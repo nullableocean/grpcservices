@@ -6,6 +6,8 @@
     • OrderService вызывает SpotInstrumentService для проверки доступности рынка перед созданием заказа.
     • Сервисы используют предоставленные интерсепторы для добавления x-request-id, логирования и обработки паник.
     • Для мониторинга используется Prometheus.
+
+
 Требования
 1. Определение gRPC API
 Создайте .proto файл с описанием двух сервисов: OrderService и SpotInstrumentService.
@@ -13,8 +15,11 @@
     • Использовать proto3.
     • Определить сообщения и сервисы согласно спецификации ниже.
     • Сгенерировать Go-код с помощью protoc.
+
 Реализация серверов
 Реализуйте два gRPC-сервиса с использованием предоставленных интерсепторов.
+
+
 SpotInstrumentService
     • Метод ViewMarkets:
         ◦ Принимает user_roles и возвращает список доступных рынков (только те, где enabled: true и deleted_at равно null).
@@ -25,6 +30,8 @@ SpotInstrumentService
         ◦ LoggerInterceptor: Логирует запросы с помощью zap.
         ◦ UnaryPanicRecoveryInterceptor: Обрабатывает паники, возвращая ошибку codes.Internal.
         ◦ prometheus.UnaryServerInterceptor: Собирает метрики.
+
+
 OrderService
     • Метод GetOrderStatus:
         ◦ Принимает order_id и user_id, возвращает статус заказа.
@@ -35,6 +42,8 @@ OrderService
         ◦ Создает заказ и сохраняет его в in-memory хранилище.
         ◦ Возвращает order_id и статус (например, "created").
     • Интерсепторы: Те же, что для SpotInstrumentService.
+
+    
 3. Реализация маппера
 Создайте маппер для SpotInstrumentService, который преобразует доменные сущности рынка в proto-структуры (Market).
 4. Настройка gRPC-сервера

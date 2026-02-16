@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package main.api.spotpb;
+
+option go_package = "main/api/spotpb";
+
+service SpotInstrument {
+    rpc ViewMarkets(ViewMarketsRequest) returns (ViewMarketsResponse);
+}
+
+message ViewMarketsResponse {
+    repeated Market markets = 1;
+}
+
+message ViewMarketsRequest {
+    repeated UserRole user_roles = 1;
+}
+
+message Market {
+    int64 id = 1;
+    string name = 2;
+}
+
+enum UserRole {
+    USER_ROLE_UNSPECIFIED = 0;
+    USER_ROLE_GUEST = 1;
+    USER_ROLE_VERIFIED = 2;
+    USER_ROLE_SELLER = 3;
+    USER_ROLE_MODER = 4;
+    USER_ROLE_ADMIN = 5;  
+}
