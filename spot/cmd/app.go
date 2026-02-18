@@ -19,6 +19,7 @@ import (
 	"github.com/nullableocean/grpcservices/pkg/intercepter"
 	"github.com/nullableocean/grpcservices/spot/config"
 	"github.com/nullableocean/grpcservices/spot/logger"
+	"github.com/nullableocean/grpcservices/spot/seed"
 	"github.com/nullableocean/grpcservices/spot/server"
 	"github.com/nullableocean/grpcservices/spot/service"
 )
@@ -66,6 +67,10 @@ func start() error {
 	httpServer := &http.Server{
 		Addr:    ":" + cnf.Metrics.Port,
 		Handler: mux,
+	}
+
+	if cnf.Seed.Need {
+		seed.SeedMarkets(logger, spotInstrumentService)
 	}
 
 	return upAndWaitShutdown(logger, cnf, gprcServer, httpServer)

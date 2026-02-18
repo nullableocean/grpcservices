@@ -3,14 +3,14 @@ package server
 import (
 	"github.com/nullableocean/grpcservices/api/spotpb"
 	"github.com/nullableocean/grpcservices/pkg/roles"
-	"github.com/nullableocean/grpcservices/spot/service"
+	"github.com/nullableocean/grpcservices/spot/domain"
 )
 
 type SpotMapper struct {
 }
 
 // internal --- > protobuf
-func (m *SpotMapper) ToPbMarkets(markets []*service.Market) []*spotpb.Market {
+func (m *SpotMapper) ToPbMarkets(markets []*domain.Market) []*spotpb.Market {
 	out := make([]*spotpb.Market, 0, len(markets))
 
 	for _, market := range markets {
@@ -20,7 +20,7 @@ func (m *SpotMapper) ToPbMarkets(markets []*service.Market) []*spotpb.Market {
 	return out
 }
 
-func (m *SpotMapper) ToPbMarket(market *service.Market) *spotpb.Market {
+func (m *SpotMapper) ToPbMarket(market *domain.Market) *spotpb.Market {
 	return &spotpb.Market{
 		Id:   market.Id(),
 		Name: market.Name(),

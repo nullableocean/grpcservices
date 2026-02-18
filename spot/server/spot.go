@@ -32,7 +32,7 @@ func NewSpotInstrumentServer(logger *zap.Logger, service *service.SpotInstrument
 
 func (serv *SpotInstrumentServer) ViewMarkets(ctx context.Context, req *spotpb.ViewMarketsRequest) (*spotpb.ViewMarketsResponse, error) {
 	userRoles := serv.mapper.FromPbToRoles(req.UserRoles)
-	markets := serv.service.ViewMarkets(userRoles)
+	markets := serv.service.ViewMarkets(ctx, userRoles)
 
 	resp := &spotpb.ViewMarketsResponse{
 		Markets: serv.mapper.ToPbMarkets(markets),

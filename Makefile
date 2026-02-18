@@ -4,9 +4,11 @@ PACKAGE="github.com/nullableocean/grpcservices"
 
 localbuild-spot:
 	cd spot && go build -o bin/spot ./cmd
+	cp spot/.env spot/bin/.env
 
 localbuild-order:
 	cd order && go build -o bin/order ./cmd
+	cp order/.env order/bin/.env
 
 up: genapi tidy mod-download
 	@echo "=== UP METRICS PANELS ==="
@@ -30,7 +32,6 @@ down:
 	docker compose -f spot/compose.dev.yml down
 	docker compose -f metrics/compose.yml down
 	@echo "=== SERVICES DOWNED === "
-
 
 
 tidy:

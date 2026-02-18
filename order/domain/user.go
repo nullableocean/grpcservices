@@ -1,12 +1,20 @@
 package domain
 
-import "github.com/nullableocean/grpcservices/pkg/roles"
+import (
+	"sync/atomic"
+	"time"
+
+	"github.com/nullableocean/grpcservices/pkg/roles"
+)
 
 type User struct {
 	id       int64
 	username string
 	roles    []roles.UserRole
 	passHash string
+
+	deletedAt time.Time
+	deleted   int32
 }
 
 func NewUser(id int64, username string, passHash string) *User {
@@ -48,4 +56,18 @@ func (u *User) HasRole(role roles.UserRole) bool {
 		}
 	}
 	return false
+}
+
+func (u *User) IsDeleted() bool {
+	return atomic.LoadInt32(&u.deleted) == 1
+}
+
+func (u *User) DeletedAt() time.Time {
+	return u.deletedAt
+}
+
+func (u *User) Delete() {
+	if atomic.CompareAndSwapInt32(&u.deleted, 0, 1) {
+		u.deletedAt = time.Now()
+	}
 }

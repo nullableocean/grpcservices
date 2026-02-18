@@ -1,7 +1,10 @@
 .env
 spot/.env
-order/.env
+spot/.env
 metrics/.env
+
+spot/bin/*
+order/bin/*
 
 spot/logs/*
 order/logs/*

@@ -71,3 +71,18 @@ func (s *UserService) GetUser(ctx context.Context, id int64) (*domain.User, erro
 
 	return u, nil
 }
+
+func (s *UserService) DeleteUser(ctx context.Context, id int64) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	u, found := s.store[id]
+	if !found {
+		return fmt.Errorf("%w: user not found. id: %d", service.ErrNotFound, id)
+	}
+
+	u.Delete()
+	delete(s.store, id)
+
+	return nil
+}

@@ -1,12 +1,13 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/nullableocean/grpcservices/pkg/roles"
+	"github.com/nullableocean/grpcservices/spot/domain"
 )
 
 var (
@@ -14,7 +15,7 @@ var (
 )
 
 type SpotInstrument struct {
-	markets []*Market
+	markets []*domain.Market
 	nextId  atomic.Int64
 
 	mu sync.RWMutex
@@ -22,16 +23,16 @@ type SpotInstrument struct {
 
 func NewSpotInstrument() *SpotInstrument {
 	return &SpotInstrument{
-		markets: []*Market{},
+		markets: []*domain.Market{},
 		mu:      sync.RWMutex{},
 	}
 }
 
-func (s *SpotInstrument) ViewMarkets(roles []roles.UserRole) []*Market {
+func (s *SpotInstrument) ViewMarkets(ctx context.Context, roles []roles.UserRole) []*domain.Market {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	out := make([]*Market, 0, len(s.markets))
+	out := make([]*domain.Market, 0, len(s.markets))
 
 	for _, m := range s.markets {
 	ROLE_LOOP:
@@ -46,7 +47,7 @@ func (s *SpotInstrument) ViewMarkets(roles []roles.UserRole) []*Market {
 	return out
 }
 
-func (s *SpotInstrument) NewMarket(name string, allowed []roles.UserRole) *Market {
+func (s *SpotInstrument) NewMarket(name string, allowed []roles.UserRole) (*domain.Market, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -57,17 +58,16 @@ func (s *SpotInstrument) NewMarket(name string, allowed []roles.UserRole) *Marke
 		allowedMap[r] = struct{}{}
 	}
 
-	newMarket := &Market{
-		id:           id,
-		name:         name,
-		enabled:      true,
-		deletedAt:    nil,
-		allowedRoles: allowedMap,
-	}
+	newMarket := domain.NewMarket(domain.CreateMarketDto{
+		Id:           id,
+		Name:         name,
+		Enabled:      true,
+		AllowedRoles: allowedMap,
+	})
 
 	s.markets = append(s.markets, newMarket)
 
-	return newMarket
+	return newMarket, nil
 }
 
 func (s *SpotInstrument) DeleteMarket(id int64) error {
@@ -76,10 +76,8 @@ func (s *SpotInstrument) DeleteMarket(id int64) error {
 
 	found := false
 	for _, m := range s.markets {
-		now := time.Now()
 		if m.Id() == id {
-			m.deletedAt = &now
-			m.enabled = false
+			m.Delete()
 
 			found = true
 			break

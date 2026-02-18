@@ -8,15 +8,20 @@ COPY api/ /app/api
 COPY pkg/ /app/pkg
 
 
-COPY order/go.mod order/go.sum ./
+COPY spot/go.mod spot/go.sum ./
 RUN go mod download
 
-COPY order/ .
+COPY spot/ .
 RUN go build -o app ./cmd
 
 FROM alpine:latest
 
-WORKDIR /app
-COPY --from=builder /app//build/app .
+ARG UID
+ARG GID
 
-CMD ["./app", "--log-path", "./logs/logs.log"]
+USER ${UID}:${GID}
+
+WORKDIR /app
+COPY --from=builder /app/build/app .
+
+CMD ["./app", "--logdir", "./logs", "--seed"]

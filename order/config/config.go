@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -11,7 +12,9 @@ import (
 
 var (
 	defaultEnvPath = ".env"
-	defaultLogPath = "./logs/logs.txt"
+
+	defaultLogsDir = "./logs"
+	logFilename    = "logs.log"
 
 	defaultAddress = "127.0.0.1"
 )
@@ -23,8 +26,14 @@ var (
 	envSpotPortKey    = "SPOT_SERVICE_PORT"
 	envSpotAddressKey = "SPOT_SERVICE_ADDRESS"
 
-	envLogPath     = "LOG_FILE"
-	envMetricsPort = "METRICS_PORT"
+	envLogsDirKey     = "LOGS_DIR"
+	envMetricsPortKey = "METRICS_PORT"
+)
+
+var (
+	envPathFlag = flag.String("env", defaultEnvPath, "path to env")
+	logsDirFlag = flag.String("logdir", defaultLogsDir, "dir for logs")
+	seedFlag    = flag.Bool("seed", false, "path to logs")
 )
 
 type Metrics struct {
@@ -44,24 +53,28 @@ type Server struct {
 type Log struct {
 	LogPath string
 }
+
+type Seed struct {
+	Need bool
+}
+
 type Config struct {
 	Server  *Server
 	Spot    *Spot
 	Metrics *Metrics
 	Log     *Log
+	Seed    *Seed
 }
 
 func NewConfig() (*Config, error) {
-	envPath := parseEnvFlag()
-	err := godotenv.Load(envPath)
-	if err != nil {
-		return nil, err
-	}
+	flag.Parse()
+
+	envPath := *envPathFlag
+	godotenv.Load(envPath)
 
 	config := &Config{}
 
-	// order server
-	err = loadServerCnf(config)
+	err := loadServerCnf(config)
 	if err != nil {
 		return nil, err
 	}
@@ -84,21 +97,11 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
+	config.Seed = &Seed{
+		Need: *seedFlag,
+	}
+
 	return config, nil
-}
-
-func parseEnvFlag() string {
-	envPath := flag.String("env", defaultEnvPath, "path to env")
-	flag.Parse()
-
-	return *envPath
-}
-
-func parseLogsFlag() string {
-	logPath := flag.String("log-path", defaultLogPath, "path to logs")
-	flag.Parse()
-
-	return *logPath
 }
 
 func loadServerCnf(config *Config) error {
@@ -139,30 +142,35 @@ func loadSpotApiCnf(config *Config) error {
 }
 
 func loadLoggerCnf(config *Config) error {
-	logPath := parseLogsFlag()
-	if logPath == "" {
-		logPath = os.Getenv(envLogPath)
+	logDir := *logsDirFlag
+	if logDir == "" {
+		logDir = os.Getenv(envLogsDirKey)
 	}
 
-	if logPath == "" {
-		logPath = defaultLogPath
+	if logDir == "" {
+		logDir = defaultLogsDir
 	}
-	dir, _ := filepath.Split(logPath)
-	if _, e := os.Stat(dir); os.IsNotExist(e) {
-		if err := os.Mkdir(dir, 0755); err != nil {
+
+	stat, err := os.Stat(logDir)
+	if err != nil && os.IsNotExist(err) {
+		if err := os.Mkdir(logDir, 0755); err != nil {
 			return err
 		}
+	} else if !stat.IsDir() {
+		return fmt.Errorf("logger config error: wait dir in path")
 	}
 
+	logpath := filepath.Join(logDir, logFilename)
+
 	config.Log = &Log{
-		LogPath: logPath,
+		LogPath: logpath,
 	}
 
 	return nil
 }
 
 func loadMetricsCnf(config *Config) error {
-	metricsPort := os.Getenv(envMetricsPort)
+	metricsPort := os.Getenv(envMetricsPortKey)
 	if metricsPort == "" {
 		// может в лог и запустить без метрик?
 		return errors.New("prometheus port empty in .env")

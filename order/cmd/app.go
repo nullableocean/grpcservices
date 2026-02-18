@@ -21,6 +21,7 @@ import (
 	"github.com/nullableocean/grpcservices/order/client"
 	"github.com/nullableocean/grpcservices/order/config"
 	"github.com/nullableocean/grpcservices/order/logger"
+	"github.com/nullableocean/grpcservices/order/seed"
 	"github.com/nullableocean/grpcservices/order/server"
 	"github.com/nullableocean/grpcservices/order/service/order"
 	"github.com/nullableocean/grpcservices/order/service/user"
@@ -89,6 +90,11 @@ func start() error {
 	httpServer := &http.Server{
 		Addr:    ":" + cnf.Metrics.Port,
 		Handler: mux,
+	}
+
+	// тестовые юзеры если установлен флаг --seed
+	if cnf.Seed.Need {
+		seed.SeedUsers(logger, userService)
 	}
 
 	return upAndWaitShutdown(logger, cnf, grpcServer, httpServer)
