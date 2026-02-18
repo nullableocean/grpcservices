@@ -6,12 +6,14 @@ type User struct {
 	id       int64
 	username string
 	roles    []roles.UserRole
+	passHash string
 }
 
-func NewUser(id int64) *User {
+func NewUser(id int64, username string, passHash string) *User {
 	return &User{
-		id:    id,
-		roles: make([]roles.UserRole, 0),
+		id:       id,
+		username: username,
+		passHash: passHash,
 	}
 }
 
@@ -23,12 +25,12 @@ func (u *User) Username() string {
 	return u.username
 }
 
-func (u *User) Roles() []roles.UserRole {
-	return u.roles
+func (u *User) PassHash() string {
+	return u.passHash
 }
 
-func (u *User) SetUsername(username string) {
-	u.username = username
+func (u *User) Roles() []roles.UserRole {
+	return u.roles
 }
 
 func (u *User) SetRoles(roles []roles.UserRole) {

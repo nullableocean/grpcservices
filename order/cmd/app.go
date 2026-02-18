@@ -22,7 +22,8 @@ import (
 	"github.com/nullableocean/grpcservices/order/config"
 	"github.com/nullableocean/grpcservices/order/logger"
 	"github.com/nullableocean/grpcservices/order/server"
-	"github.com/nullableocean/grpcservices/order/service"
+	"github.com/nullableocean/grpcservices/order/service/order"
+	"github.com/nullableocean/grpcservices/order/service/user"
 	"github.com/nullableocean/grpcservices/pkg/intercepter"
 )
 
@@ -71,8 +72,8 @@ func start() error {
 
 	// services init
 	spotClient := client.NewSpotClient(spotpb.NewSpotInstrumentClient(spotGrpcConnect))
-	userService := service.NewUserService()
-	orderService := service.NewOrderService(spotClient, userService)
+	userService := user.NewUserService()
+	orderService := order.NewOrderService(spotClient, userService)
 	orderServer := server.NewOrderServer(logger, orderService)
 
 	orderpb.RegisterOrderServer(grpcServer, orderServer)

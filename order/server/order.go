@@ -10,18 +10,19 @@ import (
 
 	"github.com/nullableocean/grpcservices/api/orderpb"
 	"github.com/nullableocean/grpcservices/order/service"
+	"github.com/nullableocean/grpcservices/order/service/order"
 )
 
 type OrderServer struct {
 	orderpb.UnimplementedOrderServer
 
-	orderService *service.OrderService
+	orderService *order.OrderService
 	mapper       *OrderServerMapper
 
 	logger *zap.Logger
 }
 
-func NewOrderServer(logger *zap.Logger, orderService *service.OrderService) *OrderServer {
+func NewOrderServer(logger *zap.Logger, orderService *order.OrderService) *OrderServer {
 	return &OrderServer{
 		orderService: orderService,
 		mapper:       &OrderServerMapper{},

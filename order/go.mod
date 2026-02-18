@@ -9,6 +9,7 @@ require (
 	github.com/nullableocean/grpcservices/pkg v0.0.0
 	github.com/prometheus/client_golang v1.23.2
 	go.uber.org/zap v1.27.1
+	golang.org/x/crypto v0.46.0
 	google.golang.org/grpc v1.79.1
 )
 

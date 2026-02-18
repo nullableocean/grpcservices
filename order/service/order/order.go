@@ -1,4 +1,4 @@
-package service
+package order
 
 import (
 	"context"
@@ -6,18 +6,23 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/nullableocean/grpcservices/order/client"
 	"github.com/nullableocean/grpcservices/order/domain"
+	"github.com/nullableocean/grpcservices/order/service"
 	"github.com/nullableocean/grpcservices/pkg/order"
+	"github.com/nullableocean/grpcservices/pkg/roles"
 )
 
-var (
-	ErrNotAllowedMarket = fmt.Errorf("%w: market not allowed", ErrInvalidData)
-)
+type SpotInstrument interface {
+	ViewMarkets(ctx context.Context, roles []roles.UserRole) ([]*domain.Market, error)
+}
+
+type UserService interface {
+	GetUser(ctx context.Context, id int64) (*domain.User, error)
+}
 
 type OrderService struct {
-	spotClient  *client.SpotClient
-	UserService *UserService
+	spotInstrument SpotInstrument
+	UserService    UserService
 
 	store  map[int64]*domain.Order
 	nextId atomic.Int64
@@ -25,12 +30,12 @@ type OrderService struct {
 	mu sync.RWMutex
 }
 
-func NewOrderService(spotClient *client.SpotClient, userService *UserService) *OrderService {
+func NewOrderService(spotInstrument SpotInstrument, userService UserService) *OrderService {
 	return &OrderService{
-		spotClient:  spotClient,
-		UserService: userService,
-		store:       make(map[int64]*domain.Order),
-		mu:          sync.RWMutex{},
+		spotInstrument: spotInstrument,
+		UserService:    userService,
+		store:          make(map[int64]*domain.Order),
+		mu:             sync.RWMutex{},
 	}
 }
 
@@ -40,11 +45,11 @@ func (s *OrderService) GetOrderStatus(ctx context.Context, orderId int64, userId
 
 	order, found := s.store[orderId]
 	if !found {
-		return 0, fmt.Errorf("%w: order not found. id: %d", ErrNotFound, orderId)
+		return 0, fmt.Errorf("%w: order not found. id: %d", service.ErrNotFound, orderId)
 	}
 
 	if order.UserId() != userId {
-		return 0, fmt.Errorf("%w: invalid userid. order_id: %d, user_id: %d", ErrInvalidData, orderId, userId)
+		return 0, fmt.Errorf("%w: invalid userid. order_id: %d, user_id: %d", service.ErrInvalidData, orderId, userId)
 	}
 
 	return order.Status(), nil
@@ -55,12 +60,12 @@ func (s *OrderService) CreateOrder(ctx context.Context, userId int64, data domai
 		return nil, err
 	}
 
-	user, err := s.UserService.GetUser(userId)
+	user, err := s.UserService.GetUser(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
 
-	allowedMarkets, err := s.spotClient.ViewMarkets(ctx, user.Roles())
+	allowedMarkets, err := s.spotInstrument.ViewMarkets(ctx, user.Roles())
 	if err != nil {
 		return nil, err
 	}
@@ -87,15 +92,15 @@ func (s *OrderService) CreateOrder(ctx context.Context, userId int64, data domai
 
 func (s *OrderService) validateCreateOrderData(dto domain.CreateOrderDto) error {
 	if dto.OrderType == 0 {
-		return fmt.Errorf("%w: create order: incorrect order type value", ErrInvalidData)
+		return fmt.Errorf("%w: create order: incorrect order type value", service.ErrInvalidData)
 	}
 
 	if dto.Price == 0 {
-		return fmt.Errorf("%w: create order: incorrect price value", ErrInvalidData)
+		return fmt.Errorf("%w: create order: incorrect price value", service.ErrInvalidData)
 	}
 
 	if dto.Quantity == 0 {
-		return fmt.Errorf("%w: create order: incorrect quantity value", ErrInvalidData)
+		return fmt.Errorf("%w: create order: incorrect quantity value", service.ErrInvalidData)
 	}
 
 	return nil
