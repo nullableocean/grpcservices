@@ -1,6 +1,8 @@
 .env
 spot/.env
 order/.env
+metrics/.env
+
 spot/logs/*
 order/logs/*
 spot/bin/logs/*
@@ -8,3 +10,8 @@ order/bin/logs/*
 spot/cmd/logs/*
 order/cmd/logs/*
 
+order/go.sum
+spot/go.sum
+pkg/go.sum
+api/go.sum
+go.sum

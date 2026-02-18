@@ -1,11 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -71,16 +78,59 @@ func start() error {
 	orderpb.RegisterOrderServer(grpcServer, orderServer)
 
 	//listen init
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+
+	httpServer := &http.Server{
+		Addr:    ":" + cnf.Metrics.Port,
+		Handler: mux,
+	}
+
+	return upAndWaitShutdown(logger, cnf, grpcServer, httpServer)
+}
+
+// gracefull
+func upAndWaitShutdown(logger *zap.Logger, cnf *config.Config, grpcServer *grpc.Server, httpServer *http.Server) error {
+	var err error
+	errChan := make(chan error, 1)
+
+	go func() {
+		logger.Info("start listen metrics http", zap.String("address", cnf.Server.Address+":"+cnf.Metrics.Port))
+
+		err := httpServer.ListenAndServe()
+		if err != nil {
+			errChan <- err
+		}
+	}()
+
 	lis, err := net.Listen("tcp", cnf.Server.Address+":"+cnf.Server.Port)
 	if err != nil {
-		return fmt.Errorf("start tcp listen error: %w", err)
+		return fmt.Errorf("create listen tcp error: %w", err)
 	}
 
-	logger.Info("SERVICE START LISTEN ON " + cnf.Server.Address + ":" + cnf.Server.Port)
-	err = grpcServer.Serve(lis)
-	if err != nil {
-		return fmt.Errorf("start serve grpc error: %w", err)
+	go func() {
+		logger.Info("order grpc service started", zap.String("address", cnf.Server.Address+":"+cnf.Server.Port))
+
+		err = grpcServer.Serve(lis)
+		if err != nil {
+			errChan <- fmt.Errorf("start serve grpc error: %w", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGQUIT)
+
+	select {
+	case <-quit:
+		grpcServer.GracefulStop()
+		err = httpServer.Shutdown(context.Background())
+	case e := <-errChan:
+		err = e
 	}
 
-	return nil
+	return err
 }

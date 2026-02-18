@@ -24,7 +24,7 @@ var (
 	envSpotAddressKey = "SPOT_SERVICE_ADDRESS"
 
 	envLogPath     = "LOG_FILE"
-	envMetricsPort = "PROMETHEUS_PORT"
+	envMetricsPort = "METRICS_PORT"
 )
 
 type Metrics struct {
@@ -94,6 +94,13 @@ func parseEnvFlag() string {
 	return *envPath
 }
 
+func parseLogsFlag() string {
+	logPath := flag.String("log-path", defaultLogPath, "path to logs")
+	flag.Parse()
+
+	return *logPath
+}
+
 func loadServerCnf(config *Config) error {
 	port := os.Getenv(envPortKey)
 	if port == "" {
@@ -132,11 +139,14 @@ func loadSpotApiCnf(config *Config) error {
 }
 
 func loadLoggerCnf(config *Config) error {
-	logPath := os.Getenv(envLogPath)
+	logPath := parseLogsFlag()
+	if logPath == "" {
+		logPath = os.Getenv(envLogPath)
+	}
+
 	if logPath == "" {
 		logPath = defaultLogPath
 	}
-
 	dir, _ := filepath.Split(logPath)
 	if _, e := os.Stat(dir); os.IsNotExist(e) {
 		if err := os.Mkdir(dir, 0755); err != nil {

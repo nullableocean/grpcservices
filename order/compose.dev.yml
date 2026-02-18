@@ -1,0 +1,33 @@
+name: order_service
+
+services:
+  orderapp:
+    build:
+      context: ../
+      dockerfile: order/Dockerfile.dev
+    volumes:
+      - "${LOG_FILE}:/app/logs/logs.log"
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    expose:
+      - "${METRICS_PORT}"
+    env_file: 
+      - ./.env
+    networks:
+      - grpcservices
+      - monitoringnet
+    healthcheck:
+       test: ["CMD", "curl", "-f", "http://localhost:${METRICS_PORT}/health"]
+       interval: 30s
+       timeout: 15s
+       retries: 5
+       start_period: 15s
+    restart: on-failure:3
+
+networks:
+  monitoringnet:
+    external: true
+    name: monitoringnet
+  grpcservices:
+    external: true
+    name: grpcservices

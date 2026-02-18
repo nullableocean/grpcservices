@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'spot-service'
+    static_configs:
+      - targets: ['spotapp:9092'] # service name in docker; resolve by docker networks
+        labels:
+          service: 'spot-instrument'
+
+  - job_name: 'order-service'
+    static_configs:
+      - targets: ['orderapp:9093']
+        labels:
+          service: 'order'

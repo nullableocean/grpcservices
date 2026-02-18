@@ -1,0 +1,35 @@
+name: monitoring_services
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prom_data:/prometheus
+    networks:
+      - monitoringnet
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_LOGIN}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASS}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - monitoringnet
+    depends_on:
+      - prometheus
+
+networks:
+  monitoringnet:
+    driver: bridge
+    name: monitoringnet
+
+volumes:
+  prom_data:
+  grafana_data:

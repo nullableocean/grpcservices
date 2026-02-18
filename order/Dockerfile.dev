@@ -1,0 +1,22 @@
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app/build
+
+# context ../order for dev
+
+# replaced in go.mod order service
+COPY api/ /app/api
+COPY pkg/ /app/pkg
+
+COPY order/go.mod order/go.sum ./
+RUN go mod download
+
+COPY order/ .
+RUN go build -o app ./cmd
+
+FROM alpine:latest
+
+WORKDIR /app
+COPY --from=builder /app//build/app .
+
+CMD ["./app", "--log-path", "./logs/logs.log"]
