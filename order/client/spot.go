@@ -2,9 +2,12 @@ package client
 
 import (
 	"context"
-	"main/api/spotpb"
-	"main/order/domain"
-	"main/pkg/roles"
+
+	"github.com/nullableocean/grpcservices/pkg/roles"
+
+	"github.com/nullableocean/grpcservices/order/domain"
+
+	"github.com/nullableocean/grpcservices/api/spotpb"
 )
 
 type SpotClient struct {

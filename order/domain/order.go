@@ -1,6 +1,6 @@
 package domain
 
-import "main/pkg/order"
+import "github.com/nullableocean/grpcservices/pkg/order"
 
 type Order struct {
 	id        int64

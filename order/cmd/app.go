@@ -2,20 +2,21 @@ package main
 
 import (
 	"fmt"
-	"main/api/orderpb"
-	"main/api/spotpb"
-	"main/order/client"
-	"main/order/config"
-	"main/order/logger"
-	"main/order/server"
-	"main/order/service"
-	"main/pkg/intercepter"
 	"net"
 
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/nullableocean/grpcservices/api/orderpb"
+	"github.com/nullableocean/grpcservices/api/spotpb"
+	"github.com/nullableocean/grpcservices/order/client"
+	"github.com/nullableocean/grpcservices/order/config"
+	"github.com/nullableocean/grpcservices/order/logger"
+	"github.com/nullableocean/grpcservices/order/server"
+	"github.com/nullableocean/grpcservices/order/service"
+	"github.com/nullableocean/grpcservices/pkg/intercepter"
 )
 
 func start() error {

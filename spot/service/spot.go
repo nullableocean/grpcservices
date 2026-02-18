@@ -2,10 +2,11 @@ package service
 
 import (
 	"errors"
-	"main/pkg/roles"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/nullableocean/grpcservices/pkg/roles"
 )
 
 var (

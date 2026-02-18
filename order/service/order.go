@@ -3,11 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
-	"main/order/client"
-	"main/order/domain"
-	"main/pkg/order"
 	"sync"
 	"sync/atomic"
+
+	"github.com/nullableocean/grpcservices/order/client"
+	"github.com/nullableocean/grpcservices/order/domain"
+	"github.com/nullableocean/grpcservices/pkg/order"
 )
 
 var (

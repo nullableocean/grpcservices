@@ -179,7 +179,7 @@ func (x *GetStatusRequest) GetUserId() int64 {
 
 type GetStatusResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        OrderStatus            `protobuf:"varint,1,opt,name=status,proto3,enum=main.api.orderpb.OrderStatus" json:"status,omitempty"`
+	Status        OrderStatus            `protobuf:"varint,1,opt,name=status,proto3,enum=orderpb.OrderStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -225,7 +225,7 @@ type CreateOrderRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	MarketId      int64                  `protobuf:"varint,2,opt,name=market_id,json=marketId,proto3" json:"market_id,omitempty"`
-	OrderType     OrderType              `protobuf:"varint,3,opt,name=order_type,json=orderType,proto3,enum=main.api.orderpb.OrderType" json:"order_type,omitempty"`
+	OrderType     OrderType              `protobuf:"varint,3,opt,name=order_type,json=orderType,proto3,enum=orderpb.OrderType" json:"order_type,omitempty"`
 	Price         float32                `protobuf:"fixed32,4,opt,name=price,proto3" json:"price,omitempty"`
 	Quantity      int64                  `protobuf:"varint,5,opt,name=quantity,proto3" json:"quantity,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -300,7 +300,7 @@ func (x *CreateOrderRequest) GetQuantity() int64 {
 type CreateOrderResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OrderId       int64                  `protobuf:"varint,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
-	Status        OrderStatus            `protobuf:"varint,2,opt,name=status,proto3,enum=main.api.orderpb.OrderStatus" json:"status,omitempty"`
+	Status        OrderStatus            `protobuf:"varint,2,opt,name=status,proto3,enum=orderpb.OrderStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -353,22 +353,22 @@ var File_order_proto protoreflect.FileDescriptor
 
 const file_order_proto_rawDesc = "" +
 	"\n" +
-	"\vorder.proto\x12\x10main.api.orderpb\"F\n" +
+	"\vorder.proto\x12\aorderpb\"F\n" +
 	"\x10GetStatusRequest\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\x03R\aorderId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\x03R\x06userId\"J\n" +
-	"\x11GetStatusResponse\x125\n" +
-	"\x06status\x18\x01 \x01(\x0e2\x1d.main.api.orderpb.OrderStatusR\x06status\"\xb8\x01\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\"A\n" +
+	"\x11GetStatusResponse\x12,\n" +
+	"\x06status\x18\x01 \x01(\x0e2\x14.orderpb.OrderStatusR\x06status\"\xaf\x01\n" +
 	"\x12CreateOrderRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1b\n" +
-	"\tmarket_id\x18\x02 \x01(\x03R\bmarketId\x12:\n" +
+	"\tmarket_id\x18\x02 \x01(\x03R\bmarketId\x121\n" +
 	"\n" +
-	"order_type\x18\x03 \x01(\x0e2\x1b.main.api.orderpb.OrderTypeR\torderType\x12\x14\n" +
+	"order_type\x18\x03 \x01(\x0e2\x12.orderpb.OrderTypeR\torderType\x12\x14\n" +
 	"\x05price\x18\x04 \x01(\x02R\x05price\x12\x1a\n" +
-	"\bquantity\x18\x05 \x01(\x03R\bquantity\"g\n" +
+	"\bquantity\x18\x05 \x01(\x03R\bquantity\"^\n" +
 	"\x13CreateOrderResponse\x12\x19\n" +
-	"\border_id\x18\x01 \x01(\x03R\aorderId\x125\n" +
-	"\x06status\x18\x02 \x01(\x0e2\x1d.main.api.orderpb.OrderStatusR\x06status*P\n" +
+	"\border_id\x18\x01 \x01(\x03R\aorderId\x12,\n" +
+	"\x06status\x18\x02 \x01(\x0e2\x14.orderpb.OrderStatusR\x06status*P\n" +
 	"\tOrderType\x12\x1a\n" +
 	"\x16ORDER_TYPE_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eORDER_TYPE_BUY\x10\x01\x12\x13\n" +
@@ -378,10 +378,10 @@ const file_order_proto_rawDesc = "" +
 	"\x14ORDER_STATUS_CREATED\x10\x01\x12\x18\n" +
 	"\x14ORDER_STATUS_PENDING\x10\x02\x12\x1a\n" +
 	"\x16ORDER_STATUS_COMPLETED\x10\x03\x12\x19\n" +
-	"\x15ORDER_STATUS_REJECTED\x10\x042\xbe\x01\n" +
-	"\x05Order\x12Z\n" +
-	"\vCreateOrder\x12$.main.api.orderpb.CreateOrderRequest\x1a%.main.api.orderpb.CreateOrderResponse\x12Y\n" +
-	"\x0eGetOrderStatus\x12\".main.api.orderpb.GetStatusRequest\x1a#.main.api.orderpb.GetStatusResponseB\x12Z\x10main/api/orderpbb\x06proto3"
+	"\x15ORDER_STATUS_REJECTED\x10\x042\x9a\x01\n" +
+	"\x05Order\x12H\n" +
+	"\vCreateOrder\x12\x1b.orderpb.CreateOrderRequest\x1a\x1c.orderpb.CreateOrderResponse\x12G\n" +
+	"\x0eGetOrderStatus\x12\x19.orderpb.GetStatusRequest\x1a\x1a.orderpb.GetStatusResponseB3Z1github.com/nullableocean/grpcservices/api/orderpbb\x06proto3"
 
 var (
 	file_order_proto_rawDescOnce sync.Once
@@ -398,21 +398,21 @@ func file_order_proto_rawDescGZIP() []byte {
 var file_order_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_order_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_order_proto_goTypes = []any{
-	(OrderType)(0),              // 0: main.api.orderpb.OrderType
-	(OrderStatus)(0),            // 1: main.api.orderpb.OrderStatus
-	(*GetStatusRequest)(nil),    // 2: main.api.orderpb.GetStatusRequest
-	(*GetStatusResponse)(nil),   // 3: main.api.orderpb.GetStatusResponse
-	(*CreateOrderRequest)(nil),  // 4: main.api.orderpb.CreateOrderRequest
-	(*CreateOrderResponse)(nil), // 5: main.api.orderpb.CreateOrderResponse
+	(OrderType)(0),              // 0: orderpb.OrderType
+	(OrderStatus)(0),            // 1: orderpb.OrderStatus
+	(*GetStatusRequest)(nil),    // 2: orderpb.GetStatusRequest
+	(*GetStatusResponse)(nil),   // 3: orderpb.GetStatusResponse
+	(*CreateOrderRequest)(nil),  // 4: orderpb.CreateOrderRequest
+	(*CreateOrderResponse)(nil), // 5: orderpb.CreateOrderResponse
 }
 var file_order_proto_depIdxs = []int32{
-	1, // 0: main.api.orderpb.GetStatusResponse.status:type_name -> main.api.orderpb.OrderStatus
-	0, // 1: main.api.orderpb.CreateOrderRequest.order_type:type_name -> main.api.orderpb.OrderType
-	1, // 2: main.api.orderpb.CreateOrderResponse.status:type_name -> main.api.orderpb.OrderStatus
-	4, // 3: main.api.orderpb.Order.CreateOrder:input_type -> main.api.orderpb.CreateOrderRequest
-	2, // 4: main.api.orderpb.Order.GetOrderStatus:input_type -> main.api.orderpb.GetStatusRequest
-	5, // 5: main.api.orderpb.Order.CreateOrder:output_type -> main.api.orderpb.CreateOrderResponse
-	3, // 6: main.api.orderpb.Order.GetOrderStatus:output_type -> main.api.orderpb.GetStatusResponse
+	1, // 0: orderpb.GetStatusResponse.status:type_name -> orderpb.OrderStatus
+	0, // 1: orderpb.CreateOrderRequest.order_type:type_name -> orderpb.OrderType
+	1, // 2: orderpb.CreateOrderResponse.status:type_name -> orderpb.OrderStatus
+	4, // 3: orderpb.Order.CreateOrder:input_type -> orderpb.CreateOrderRequest
+	2, // 4: orderpb.Order.GetOrderStatus:input_type -> orderpb.GetStatusRequest
+	5, // 5: orderpb.Order.CreateOrder:output_type -> orderpb.CreateOrderResponse
+	3, // 6: orderpb.Order.GetOrderStatus:output_type -> orderpb.GetStatusResponse
 	5, // [5:7] is the sub-list for method output_type
 	3, // [3:5] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name

@@ -3,7 +3,8 @@ package intercepter
 import (
 	"context"
 	"fmt"
-	"main/pkg/xrequestid"
+
+	"github.com/nullableocean/grpcservices/pkg/xrequestid"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

@@ -2,10 +2,11 @@ package service
 
 import (
 	"fmt"
-	"main/order/domain"
-	"main/pkg/roles"
 	"sync"
 	"sync/atomic"
+
+	"github.com/nullableocean/grpcservices/order/domain"
+	"github.com/nullableocean/grpcservices/pkg/roles"
 )
 
 var (

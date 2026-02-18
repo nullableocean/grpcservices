@@ -1,9 +1,9 @@
 package server
 
 import (
-	"main/api/spotpb"
-	"main/pkg/roles"
-	"main/spot/service"
+	"github.com/nullableocean/grpcservices/api/spotpb"
+	"github.com/nullableocean/grpcservices/pkg/roles"
+	"github.com/nullableocean/grpcservices/spot/service"
 )
 
 type SpotMapper struct {

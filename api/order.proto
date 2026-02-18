@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package main.api.orderpb;
+package orderpb;
 
-option go_package = "main/api/orderpb";
+option go_package = "github.com/nullableocean/grpcservices/api/orderpb";
 
 service Order {
     rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);

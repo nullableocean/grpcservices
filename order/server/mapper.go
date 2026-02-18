@@ -1,9 +1,9 @@
 package server
 
 import (
-	"main/api/orderpb"
-	"main/order/domain"
-	"main/pkg/order"
+	"github.com/nullableocean/grpcservices/api/orderpb"
+	"github.com/nullableocean/grpcservices/order/domain"
+	"github.com/nullableocean/grpcservices/pkg/order"
 )
 
 type OrderServerMapper struct{}

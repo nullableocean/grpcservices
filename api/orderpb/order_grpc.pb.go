@@ -19,8 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Order_CreateOrder_FullMethodName    = "/main.api.orderpb.Order/CreateOrder"
-	Order_GetOrderStatus_FullMethodName = "/main.api.orderpb.Order/GetOrderStatus"
+	Order_CreateOrder_FullMethodName    = "/orderpb.Order/CreateOrder"
+	Order_GetOrderStatus_FullMethodName = "/orderpb.Order/GetOrderStatus"
 )
 
 // OrderClient is the client API for Order service.
@@ -142,7 +142,7 @@ func _Order_GetOrderStatus_Handler(srv interface{}, ctx context.Context, dec fun
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Order_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "main.api.orderpb.Order",
+	ServiceName: "orderpb.Order",
 	HandlerType: (*OrderServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

@@ -25,11 +25,11 @@ type UserRole int32
 
 const (
 	UserRole_USER_ROLE_UNSPECIFIED UserRole = 0
-	UserRole_USER_ROLE_GUEST       UserRole = 1 // может только просматривать публичные рынки
-	UserRole_USER_ROLE_VERIFIED    UserRole = 2 // верифицированный, может торговать базовыми парами
-	UserRole_USER_ROLE_SELLER      UserRole = 3 // полный доступ к торговле
-	UserRole_USER_ROLE_MODER       UserRole = 4 // премиум функции (сниженные комиссии, приоритет)
-	UserRole_USER_ROLE_ADMIN       UserRole = 6 // административный доступ
+	UserRole_USER_ROLE_GUEST       UserRole = 1
+	UserRole_USER_ROLE_VERIFIED    UserRole = 2
+	UserRole_USER_ROLE_SELLER      UserRole = 3
+	UserRole_USER_ROLE_MODER       UserRole = 4
+	UserRole_USER_ROLE_ADMIN       UserRole = 5
 )
 
 // Enum value maps for UserRole.
@@ -40,7 +40,7 @@ var (
 		2: "USER_ROLE_VERIFIED",
 		3: "USER_ROLE_SELLER",
 		4: "USER_ROLE_MODER",
-		6: "USER_ROLE_ADMIN",
+		5: "USER_ROLE_ADMIN",
 	}
 	UserRole_value = map[string]int32{
 		"USER_ROLE_UNSPECIFIED": 0,
@@ -48,7 +48,7 @@ var (
 		"USER_ROLE_VERIFIED":    2,
 		"USER_ROLE_SELLER":      3,
 		"USER_ROLE_MODER":       4,
-		"USER_ROLE_ADMIN":       6,
+		"USER_ROLE_ADMIN":       5,
 	}
 )
 
@@ -125,7 +125,7 @@ func (x *ViewMarketsResponse) GetMarkets() []*Market {
 
 type ViewMarketsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserRoles     []UserRole             `protobuf:"varint,1,rep,packed,name=user_roles,json=userRoles,proto3,enum=main.api.spotpb.UserRole" json:"user_roles,omitempty"`
+	UserRoles     []UserRole             `protobuf:"varint,1,rep,packed,name=user_roles,json=userRoles,proto3,enum=spotpb.UserRole" json:"user_roles,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -224,12 +224,12 @@ var File_spot_proto protoreflect.FileDescriptor
 const file_spot_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"spot.proto\x12\x0fmain.api.spotpb\"H\n" +
-	"\x13ViewMarketsResponse\x121\n" +
-	"\amarkets\x18\x01 \x03(\v2\x17.main.api.spotpb.MarketR\amarkets\"N\n" +
-	"\x12ViewMarketsRequest\x128\n" +
+	"spot.proto\x12\x06spotpb\"?\n" +
+	"\x13ViewMarketsResponse\x12(\n" +
+	"\amarkets\x18\x01 \x03(\v2\x0e.spotpb.MarketR\amarkets\"E\n" +
+	"\x12ViewMarketsRequest\x12/\n" +
 	"\n" +
-	"user_roles\x18\x01 \x03(\x0e2\x19.main.api.spotpb.UserRoleR\tuserRoles\",\n" +
+	"user_roles\x18\x01 \x03(\x0e2\x10.spotpb.UserRoleR\tuserRoles\",\n" +
 	"\x06Market\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name*\x92\x01\n" +
@@ -239,9 +239,9 @@ const file_spot_proto_rawDesc = "" +
 	"\x12USER_ROLE_VERIFIED\x10\x02\x12\x14\n" +
 	"\x10USER_ROLE_SELLER\x10\x03\x12\x13\n" +
 	"\x0fUSER_ROLE_MODER\x10\x04\x12\x13\n" +
-	"\x0fUSER_ROLE_ADMIN\x10\x062j\n" +
-	"\x0eSpotInstrument\x12X\n" +
-	"\vViewMarkets\x12#.main.api.spotpb.ViewMarketsRequest\x1a$.main.api.spotpb.ViewMarketsResponseB\x11Z\x0fmain/api/spotpbb\x06proto3"
+	"\x0fUSER_ROLE_ADMIN\x10\x052X\n" +
+	"\x0eSpotInstrument\x12F\n" +
+	"\vViewMarkets\x12\x1a.spotpb.ViewMarketsRequest\x1a\x1b.spotpb.ViewMarketsResponseB2Z0github.com/nullableocean/grpcservices/api/spotpbb\x06proto3"
 
 var (
 	file_spot_proto_rawDescOnce sync.Once
@@ -258,16 +258,16 @@ func file_spot_proto_rawDescGZIP() []byte {
 var file_spot_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_spot_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_spot_proto_goTypes = []any{
-	(UserRole)(0),               // 0: main.api.spotpb.UserRole
-	(*ViewMarketsResponse)(nil), // 1: main.api.spotpb.ViewMarketsResponse
-	(*ViewMarketsRequest)(nil),  // 2: main.api.spotpb.ViewMarketsRequest
-	(*Market)(nil),              // 3: main.api.spotpb.Market
+	(UserRole)(0),               // 0: spotpb.UserRole
+	(*ViewMarketsResponse)(nil), // 1: spotpb.ViewMarketsResponse
+	(*ViewMarketsRequest)(nil),  // 2: spotpb.ViewMarketsRequest
+	(*Market)(nil),              // 3: spotpb.Market
 }
 var file_spot_proto_depIdxs = []int32{
-	3, // 0: main.api.spotpb.ViewMarketsResponse.markets:type_name -> main.api.spotpb.Market
-	0, // 1: main.api.spotpb.ViewMarketsRequest.user_roles:type_name -> main.api.spotpb.UserRole
-	2, // 2: main.api.spotpb.SpotInstrument.ViewMarkets:input_type -> main.api.spotpb.ViewMarketsRequest
-	1, // 3: main.api.spotpb.SpotInstrument.ViewMarkets:output_type -> main.api.spotpb.ViewMarketsResponse
+	3, // 0: spotpb.ViewMarketsResponse.markets:type_name -> spotpb.Market
+	0, // 1: spotpb.ViewMarketsRequest.user_roles:type_name -> spotpb.UserRole
+	2, // 2: spotpb.SpotInstrument.ViewMarkets:input_type -> spotpb.ViewMarketsRequest
+	1, // 3: spotpb.SpotInstrument.ViewMarkets:output_type -> spotpb.ViewMarketsResponse
 	3, // [3:4] is the sub-list for method output_type
 	2, // [2:3] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name

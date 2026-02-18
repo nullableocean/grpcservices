@@ -1,9 +1,9 @@
 package logger
 
 import (
-	"main/order/config"
-
 	"go.uber.org/zap"
+
+	"github.com/nullableocean/grpcservices/order/config"
 )
 
 func NewLogger(cnf *config.Config) (*zap.Logger, error) {

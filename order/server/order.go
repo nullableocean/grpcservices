@@ -3,12 +3,13 @@ package server
 import (
 	"context"
 	"errors"
-	"main/api/orderpb"
-	"main/order/service"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/nullableocean/grpcservices/api/orderpb"
+	"github.com/nullableocean/grpcservices/order/service"
 )
 
 type OrderServer struct {

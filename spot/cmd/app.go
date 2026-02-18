@@ -2,17 +2,18 @@ package main
 
 import (
 	"fmt"
-	"main/api/spotpb"
-	"main/pkg/intercepter"
-	"main/spot/config"
-	"main/spot/logger"
-	"main/spot/server"
-	"main/spot/service"
 	"net"
 
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
+
+	"github.com/nullableocean/grpcservices/api/spotpb"
+	"github.com/nullableocean/grpcservices/pkg/intercepter"
+	"github.com/nullableocean/grpcservices/spot/config"
+	"github.com/nullableocean/grpcservices/spot/logger"
+	"github.com/nullableocean/grpcservices/spot/server"
+	"github.com/nullableocean/grpcservices/spot/service"
 )
 
 func start() error {

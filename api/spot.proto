@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package main.api.spotpb;
+package spotpb;
 
-option go_package = "main/api/spotpb";
+option go_package = "github.com/nullableocean/grpcservices/api/spotpb";
 
 service SpotInstrument {
     rpc ViewMarkets(ViewMarketsRequest) returns (ViewMarketsResponse);

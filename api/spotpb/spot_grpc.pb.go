@@ -19,7 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SpotInstrument_ViewMarkets_FullMethodName = "/main.api.spotpb.SpotInstrument/ViewMarkets"
+	SpotInstrument_ViewMarkets_FullMethodName = "/spotpb.SpotInstrument/ViewMarkets"
 )
 
 // SpotInstrumentClient is the client API for SpotInstrument service.
@@ -108,7 +108,7 @@ func _SpotInstrument_ViewMarkets_Handler(srv interface{}, ctx context.Context, d
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var SpotInstrument_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "main.api.spotpb.SpotInstrument",
+	ServiceName: "spotpb.SpotInstrument",
 	HandlerType: (*SpotInstrumentServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

@@ -2,10 +2,11 @@ package server
 
 import (
 	"context"
-	"main/api/spotpb"
-	"main/spot/service"
 
 	"go.uber.org/zap"
+
+	"github.com/nullableocean/grpcservices/api/spotpb"
+	"github.com/nullableocean/grpcservices/spot/service"
 )
 
 // check interface

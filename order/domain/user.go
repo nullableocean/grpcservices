@@ -1,6 +1,6 @@
 package domain
 
-import "main/pkg/roles"
+import "github.com/nullableocean/grpcservices/pkg/roles"
 
 type User struct {
 	id       int64

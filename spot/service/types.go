@@ -1,8 +1,9 @@
 package service
 
 import (
-	"main/pkg/roles"
 	"time"
+
+	"github.com/nullableocean/grpcservices/pkg/roles"
 )
 
 type Market struct {
