@@ -1,7 +1,7 @@
 package service
 
 import (
-	pkg "main/pkg/roles"
+	"main/pkg/roles"
 	"time"
 )
 
@@ -10,7 +10,7 @@ type Market struct {
 	name         string
 	enabled      bool
 	deletedAt    *time.Time
-	allowedRoles map[pkg.UserRole]struct{}
+	allowedRoles map[roles.UserRole]struct{}
 }
 
 func (m *Market) Id() int64 {
@@ -25,7 +25,7 @@ func (m *Market) IsEnabled() bool {
 	return m.enabled
 }
 
-func (m *Market) IsAllowed(role pkg.UserRole) bool {
+func (m *Market) IsAllowed(role roles.UserRole) bool {
 	_, ex := m.allowedRoles[role]
 	return ex
 }

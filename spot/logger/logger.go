@@ -7,10 +7,9 @@ import (
 )
 
 func NewLogger(cnf *config.Config) (*zap.Logger, error) {
-
 	logConfig := zap.NewProductionConfig()
 	logConfig.OutputPaths = []string{
-		cnf.LogPath,
+		cnf.Log.LogPath,
 		"stderr",
 	}
 

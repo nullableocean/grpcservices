@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"main/order/client"
 	"main/order/domain"
-	pkg "main/pkg/order"
+	"main/pkg/order"
 	"sync"
 	"sync/atomic"
 )
@@ -33,7 +33,7 @@ func NewOrderService(spotClient *client.SpotClient, userService *UserService) *O
 	}
 }
 
-func (s *OrderService) GetOrderStatus(ctx context.Context, orderId int64, userId int64) (pkg.OrderStatus, error) {
+func (s *OrderService) GetOrderStatus(ctx context.Context, orderId int64, userId int64) (order.OrderStatus, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

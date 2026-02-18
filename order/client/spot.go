@@ -4,7 +4,7 @@ import (
 	"context"
 	"main/api/spotpb"
 	"main/order/domain"
-	pkg "main/pkg/roles"
+	"main/pkg/roles"
 )
 
 type SpotClient struct {
@@ -19,7 +19,7 @@ func NewSpotClient(client spotpb.SpotInstrumentClient) *SpotClient {
 	}
 }
 
-func (cl *SpotClient) ViewMarkets(ctx context.Context, roles []pkg.UserRole) ([]*domain.Market, error) {
+func (cl *SpotClient) ViewMarkets(ctx context.Context, roles []roles.UserRole) ([]*domain.Market, error) {
 	request := &spotpb.ViewMarketsRequest{
 		UserRoles: cl.mapper.ToPbRoles(roles),
 	}

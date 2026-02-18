@@ -3,7 +3,7 @@ package server
 import (
 	"main/api/orderpb"
 	"main/order/domain"
-	pkg "main/pkg/order"
+	"main/pkg/order"
 )
 
 type OrderServerMapper struct{}
@@ -13,7 +13,7 @@ func (mapper *OrderServerMapper) CreateOrderRequestToOrderDto(req *orderpb.Creat
 		MarketId:  req.MarketId,
 		Price:     float64(req.Price),
 		Quantity:  req.Quantity,
-		OrderType: pkg.OrderType(req.OrderType),
+		OrderType: order.OrderType(req.OrderType),
 	}
 }
 

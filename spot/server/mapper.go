@@ -2,7 +2,7 @@ package server
 
 import (
 	"main/api/spotpb"
-	pkg "main/pkg/roles"
+	"main/pkg/roles"
 	"main/spot/service"
 )
 
@@ -28,11 +28,11 @@ func (m *SpotMapper) ToPbMarket(market *service.Market) *spotpb.Market {
 }
 
 // protobuf --- > internal
-func (s *SpotMapper) FromPbToRoles(pbRoles []spotpb.UserRole) []pkg.UserRole {
-	out := make([]pkg.UserRole, 0, len(pbRoles))
+func (s *SpotMapper) FromPbToRoles(pbRoles []spotpb.UserRole) []roles.UserRole {
+	out := make([]roles.UserRole, 0, len(pbRoles))
 
 	for _, pbr := range pbRoles {
-		out = append(out, pkg.UserRole(pbr))
+		out = append(out, roles.UserRole(pbr))
 	}
 
 	return out

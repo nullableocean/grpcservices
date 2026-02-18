@@ -3,13 +3,13 @@ package client
 import (
 	"main/api/spotpb"
 	"main/order/domain"
-	pkg "main/pkg/roles"
+	"main/pkg/roles"
 )
 
 type SpotClientMapper struct{}
 
 // internal --- > protobuf
-func (mapper *SpotClientMapper) ToPbRoles(roles []pkg.UserRole) []spotpb.UserRole {
+func (mapper *SpotClientMapper) ToPbRoles(roles []roles.UserRole) []spotpb.UserRole {
 	out := make([]spotpb.UserRole, 0, len(roles))
 
 	for _, r := range roles {

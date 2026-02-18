@@ -1,4 +1,4 @@
-package pkg
+package roles
 
 type UserRole int
 

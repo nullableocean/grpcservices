@@ -2,7 +2,7 @@ package service
 
 import (
 	"errors"
-	pkg "main/pkg/roles"
+	"main/pkg/roles"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -26,7 +26,7 @@ func NewSpotInstrument() *SpotInstrument {
 	}
 }
 
-func (s *SpotInstrument) ViewMarkets(roles []pkg.UserRole) []*Market {
+func (s *SpotInstrument) ViewMarkets(roles []roles.UserRole) []*Market {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -45,13 +45,13 @@ func (s *SpotInstrument) ViewMarkets(roles []pkg.UserRole) []*Market {
 	return out
 }
 
-func (s *SpotInstrument) NewMarket(name string, allowed []pkg.UserRole) *Market {
+func (s *SpotInstrument) NewMarket(name string, allowed []roles.UserRole) *Market {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	id := s.nextId.Add(1)
 
-	allowedMap := make(map[pkg.UserRole]struct{}, len(allowed))
+	allowedMap := make(map[roles.UserRole]struct{}, len(allowed))
 	for _, r := range allowed {
 		allowedMap[r] = struct{}{}
 	}

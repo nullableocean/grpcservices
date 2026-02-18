@@ -1,2 +1,10 @@
+.env
+spot/.env
+order/.env
 spot/logs/*
 order/logs/*
+spot/bin/logs/*
+order/bin/logs/*
+spot/cmd/logs/*
+order/cmd/logs/*
+

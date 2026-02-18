@@ -59,7 +59,8 @@ OrderService
     • Корректности метода CreateOrder (не создает заказ, если рынок не существует или неактивен).
     • Наличия x-request-id в логах.
     • Работы метрик Prometheus (например, счетчик вызовов ViewMarkets).
-    • 
+
+    
 7. Усложнения 
     • Добавить RedisCacheInterceptor для кэширования ответов ViewMarkets (настроить Redis через Docker).
     • Реализовать stream-метод StreamOrderUpdates в OrderService, возвращающий обновления статуса заказа в реальном времени.

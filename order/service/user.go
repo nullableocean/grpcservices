@@ -3,7 +3,7 @@ package service
 import (
 	"fmt"
 	"main/order/domain"
-	pkg "main/pkg/roles"
+	"main/pkg/roles"
 	"sync"
 	"sync/atomic"
 )
@@ -29,7 +29,7 @@ func NewUserService() *UserService {
 	}
 }
 
-func (s *UserService) NewUser(username string, roles []pkg.UserRole) (*domain.User, error) {
+func (s *UserService) NewUser(username string, roles []roles.UserRole) (*domain.User, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
