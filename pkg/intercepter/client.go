@@ -17,7 +17,7 @@ import (
 // добавляет x-request-id в атрибуты трейса
 func UnaryClientXReqIdTelemtry() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		reqid := xrequestid.GetXRequestIdFromCtx(ctx)
+		reqid := xrequestid.GetFromIncomingCtx(ctx)
 
 		span := trace.SpanFromContext(ctx)
 		if span.IsRecording() {
@@ -30,7 +30,14 @@ func UnaryClientXReqIdTelemtry() grpc.UnaryClientInterceptor {
 
 func UnaryClientXReqId() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		ctx = xrequestid.SetNewRequestIdToCtx(ctx)
+		reqid := xrequestid.GetFromIncomingCtx(ctx)
+
+		if reqid == "" {
+			ctx = xrequestid.NewForOutCtx(ctx)
+		} else {
+			ctx = xrequestid.SetInOutCtx(reqid, ctx)
+		}
+
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
 }
@@ -40,7 +47,7 @@ func UnaryClientLogger(logger *zap.Logger) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		logger.Info("send grpc request",
 			zap.String("method", method),
-			zap.String(xrequestid.XREQUEST_ID_KEY, xrequestid.GetXRequestIdFromCtx(ctx)),
+			zap.String(xrequestid.XREQUEST_ID_KEY, xrequestid.GetFromIncomingCtx(ctx)),
 		)
 
 		return invoker(ctx, method, req, reply, cc, opts...)

@@ -58,21 +58,23 @@ func start() error {
 
 	//grpc server
 	intersChain := grpc.ChainUnaryInterceptor(
-		serverMetrics.UnaryServerInterceptor(),
-		intercepter.UnaryServerLogger(logger),
 		intercepter.UnaryServerPanicRecovery(),
+		intercepter.UnaryServerLogger(logger),
+		intercepter.UnaryServerTelemtry(),
+		serverMetrics.UnaryServerInterceptor(),
 	)
-	grpcServer := grpc.NewServer(intersChain, grpc.StatsHandler(otelgrpc.NewServerHandler()))
+	grpcServer := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()), intersChain)
 
 	//grpc client
 	clientInters := grpc.WithChainUnaryInterceptor(
-		clientMetrics.UnaryClientInterceptor(),
+		intercepter.UnaryClientPanicRecovery(),
 		intercepter.UnaryClientXReqId(),
 		intercepter.UnaryClientXReqIdTelemtry(),
-		intercepter.UnaryClientPanicRecovery(),
+		clientMetrics.UnaryClientInterceptor(),
+		intercepter.UnaryClientLogger(logger),
 	)
 	spotGrpcConnect, err := grpc.NewClient(
-		cnf.Spot.Address+":"+cnf.App.Port,
+		cnf.Spot.Endpoint,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 		clientInters,

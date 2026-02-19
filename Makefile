@@ -7,8 +7,11 @@ localbuild-spot:
 	cp spot/.env spot/bin/.env
 
 localbuild-order:
-	cd order && go build -o bin/order ./cmd
+	cd order && go build -o bin/orderserv ./cmd/server
 	cp order/.env order/bin/.env
+
+localbuild-order-cli:
+	cd order && go build -o bin/ordercli ./cmd/client
 
 # up all monintoring + services
 up: genapi tidy mod-download up-mon up-srvs

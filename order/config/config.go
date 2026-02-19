@@ -17,16 +17,13 @@ var (
 
 	defaultLogsDir = "./logs"
 	logFilename    = "logs.log"
-
-	defaultAddress = "127.0.0.1"
 )
 
 var (
 	envPortKey    = "SERVER_PORT"
 	envAddressKey = "SERVER_ADDRESS"
 
-	envSpotPortKey    = "SPOT_SERVICE_PORT"
-	envSpotAddressKey = "SPOT_SERVICE_ADDRESS"
+	envSpotEndpointKey = "SPOT_GRPC_ENDPOINT"
 
 	envLogsDirKey     = "LOGS_DIR"
 	envMetricsPortKey = "METRICS_PORT"
@@ -50,8 +47,7 @@ type Metrics struct {
 }
 
 type Spot struct {
-	Address string
-	Port    string
+	Endpoint string
 }
 
 type App struct {
@@ -131,10 +127,6 @@ func loadAppCnf(config *Config) error {
 		return errors.New("empty app server port in .env file")
 	}
 	address := os.Getenv(envAddressKey)
-	if address == "" {
-		address = defaultAddress
-	}
-
 	config.App = &App{
 		Port:    port,
 		Address: address,
@@ -145,19 +137,13 @@ func loadAppCnf(config *Config) error {
 }
 
 func loadSpotApiCnf(config *Config) error {
-	spotServicePort := os.Getenv(envSpotPortKey)
-	if spotServicePort == "" {
-		return errors.New("empty spot service port in .env file")
-	}
-
-	spotAddress := os.Getenv(envSpotAddressKey)
-	if spotAddress == "" {
-		return errors.New("empty spot address in .env file")
+	spotGrpcEndpoint := os.Getenv(envSpotEndpointKey)
+	if spotGrpcEndpoint == "" {
+		return errors.New("empty spot endpoint address in .env file")
 	}
 
 	config.Spot = &Spot{
-		Address: spotServicePort,
-		Port:    spotAddress,
+		Endpoint: spotGrpcEndpoint,
 	}
 
 	return nil

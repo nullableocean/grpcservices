@@ -12,7 +12,7 @@ COPY order/go.mod order/go.sum ./
 RUN go mod download
 
 COPY order/ .
-RUN go build -o app ./cmd
+RUN go build -o app ./cmd/server
 
 FROM alpine:latest
 

@@ -7,5 +7,5 @@ import (
 )
 
 var (
-	ErrNotAllowedMarket = fmt.Errorf("%w: market not allowed", service.ErrInvalidData)
+	ErrNotAllowedMarket = fmt.Errorf("%w:market not allowed for user", service.ErrInvalidData)
 )

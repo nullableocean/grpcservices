@@ -13,8 +13,6 @@ import (
 var (
 	appName = "spot-instrument"
 
-	defaultAddress = "127.0.0.1"
-
 	defaultEnvPath = ".env"
 
 	defaultLogsDir = "./logs"
@@ -115,9 +113,6 @@ func loadAppCnf(config *Config) error {
 		return errors.New("empty port in .env file")
 	}
 	address := os.Getenv(envAddressKey)
-	if address == "" {
-		address = defaultAddress
-	}
 
 	config.App = &App{
 		Port:    port,

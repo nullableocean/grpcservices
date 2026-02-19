@@ -45,11 +45,11 @@ func (s *OrderService) GetOrderStatus(ctx context.Context, orderId int64, userId
 
 	order, found := s.store[orderId]
 	if !found {
-		return 0, fmt.Errorf("%w: order not found. id: %d", service.ErrNotFound, orderId)
+		return 0, fmt.Errorf("%w:order not found. id: %d", service.ErrNotFound, orderId)
 	}
 
 	if order.UserId() != userId {
-		return 0, fmt.Errorf("%w: invalid userid. order_id: %d, user_id: %d", service.ErrInvalidData, orderId, userId)
+		return 0, fmt.Errorf("%w:invalid userid. order_id: %d, user_id: %d", service.ErrInvalidData, orderId, userId)
 	}
 
 	return order.Status(), nil
@@ -80,7 +80,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userId int64, data domai
 	}
 
 	if !ok {
-		return nil, fmt.Errorf("%w: market_id: %d", ErrNotAllowedMarket, marketId)
+		return nil, fmt.Errorf("%w:market_id: %d", ErrNotAllowedMarket, marketId)
 	}
 
 	id := s.nextId.Add(1)

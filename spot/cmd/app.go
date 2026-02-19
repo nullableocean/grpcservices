@@ -53,11 +53,12 @@ func start() error {
 
 	//grpc init
 	intersChain := grpc.ChainUnaryInterceptor(
-		grpcMetrics.UnaryServerInterceptor(),
-		intercepter.UnaryServerLogger(logger),
 		intercepter.UnaryServerPanicRecovery(),
+		intercepter.UnaryServerLogger(logger),
+		intercepter.UnaryServerTelemtry(),
+		grpcMetrics.UnaryServerInterceptor(),
 	)
-	gprcServer := grpc.NewServer(intersChain, grpc.StatsHandler(otelgrpc.NewServerHandler()))
+	gprcServer := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()), intersChain)
 
 	//register service
 	spotInstrumentService := service.NewSpotInstrument()
