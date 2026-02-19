@@ -54,7 +54,7 @@ func (c *Command) validate() error {
 }
 
 func (c *Command) printOrderInfo() {
-	format := "UserID: %d\nMarket: %d\nPrice: %.4f\nQuantity: %d\nType: %s\n"
+	format := "order info:\nuserid: %d market: %d price: %.4f quantity: %d type: %s\n\n"
 
 	fmt.Printf(format,
 		c.userId,
@@ -90,7 +90,7 @@ func main() {
 	}
 
 	if err := cm.validate(); err != nil {
-		fmt.Printf("invalid data: %s\n\n", err.Error())
+		fmt.Printf("invalid args: %s\n\n", err.Error())
 		flag.Usage()
 		return
 	}
@@ -111,9 +111,6 @@ func main() {
 
 	cm.printOrderInfo()
 
-	fmt.Println()
-	fmt.Println("creating order...")
-
 	r, err := createOrder(client, cm)
 	if err != nil {
 		s, ok := status.FromError(err)
@@ -125,7 +122,7 @@ func main() {
 		return
 	}
 
-	fmt.Printf("success\nOrderID: %d\nStatus: %s\n\n", r.OrderId, order.MapOrderStatusToString(order.OrderStatus(r.Status)))
+	fmt.Printf("OK\nnew_order_id: %d status: %s\n\n", r.OrderId, order.MapOrderStatusToString(order.OrderStatus(r.Status)))
 }
 
 func createOrder(client orderpb.OrderClient, cm *Command) (*orderpb.CreateOrderResponse, error) {
