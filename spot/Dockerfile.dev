@@ -16,11 +16,6 @@ RUN go build -o app ./cmd
 
 FROM alpine:latest
 
-ARG UID
-ARG GID
-
-USER ${UID}:${GID}
-
 WORKDIR /app
 COPY --from=builder /app/build/app .
 

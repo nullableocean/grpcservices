@@ -11,6 +11,8 @@ import (
 )
 
 var (
+	appName = "order-service"
+
 	defaultEnvPath = ".env"
 
 	defaultLogsDir = "./logs"
@@ -28,13 +30,20 @@ var (
 
 	envLogsDirKey     = "LOGS_DIR"
 	envMetricsPortKey = "METRICS_PORT"
+
+	envJaegerAddressKey = "JUEGER_GRPC_ADDRESS"
 )
 
 var (
 	envPathFlag = flag.String("env", defaultEnvPath, "path to env")
 	logsDirFlag = flag.String("logdir", defaultLogsDir, "dir for logs")
 	seedFlag    = flag.Bool("seed", false, "path to logs")
+	debugFlag   = flag.Bool("debug", false, "debug")
 )
+
+type Telemetry struct {
+	JaegerGrpcAddress string
+}
 
 type Metrics struct {
 	Port string
@@ -45,9 +54,10 @@ type Spot struct {
 	Port    string
 }
 
-type Server struct {
+type App struct {
 	Port    string
 	Address string
+	Name    string
 }
 
 type Log struct {
@@ -59,11 +69,15 @@ type Seed struct {
 }
 
 type Config struct {
-	Server  *Server
-	Spot    *Spot
-	Metrics *Metrics
-	Log     *Log
-	Seed    *Seed
+	App       *App
+	Spot      *Spot
+	Metrics   *Metrics
+	Telemetry *Telemetry
+
+	Log  *Log
+	Seed *Seed
+
+	Debug bool
 }
 
 func NewConfig() (*Config, error) {
@@ -74,7 +88,7 @@ func NewConfig() (*Config, error) {
 
 	config := &Config{}
 
-	err := loadServerCnf(config)
+	err := loadAppCnf(config)
 	if err != nil {
 		return nil, err
 	}
@@ -97,26 +111,34 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
+	err = loadTelemtryCnf(config)
+	if err != nil {
+		return nil, err
+	}
+
 	config.Seed = &Seed{
 		Need: *seedFlag,
 	}
 
+	config.Debug = *debugFlag
+
 	return config, nil
 }
 
-func loadServerCnf(config *Config) error {
+func loadAppCnf(config *Config) error {
 	port := os.Getenv(envPortKey)
 	if port == "" {
-		return errors.New("empty port in .env file")
+		return errors.New("empty app server port in .env file")
 	}
 	address := os.Getenv(envAddressKey)
 	if address == "" {
 		address = defaultAddress
 	}
 
-	config.Server = &Server{
+	config.App = &App{
 		Port:    port,
 		Address: address,
+		Name:    appName,
 	}
 
 	return nil
@@ -178,6 +200,20 @@ func loadMetricsCnf(config *Config) error {
 
 	config.Metrics = &Metrics{
 		Port: metricsPort,
+	}
+
+	return nil
+}
+
+func loadTelemtryCnf(config *Config) error {
+	jaegGrpc := os.Getenv(envJaegerAddressKey)
+	if jaegGrpc == "" {
+		// может в лог и запустить без метрик?
+		return errors.New("telemtry config error. jaeger grpc address empty in .env")
+	}
+
+	config.Telemetry = &Telemetry{
+		JaegerGrpcAddress: jaegGrpc,
 	}
 
 	return nil

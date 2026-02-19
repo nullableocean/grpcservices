@@ -1,6 +1,6 @@
 PACKAGE="github.com/nullableocean/grpcservices"
 
-.PHONY: up down up-monitoring localbuild-spot localbuild-spot
+.PHONY: up down up-monitoring localbuild-spot localbuild-spot up-mon up-srvs
 
 localbuild-spot:
 	cd spot && go build -o bin/spot ./cmd
@@ -10,28 +10,46 @@ localbuild-order:
 	cd order && go build -o bin/order ./cmd
 	cp order/.env order/bin/.env
 
-up: genapi tidy mod-download
-	@echo "=== UP METRICS PANELS ==="
-	docker compose -f metrics/compose.yml up -d
-	@sleep 3
+# up all monintoring + services
+up: genapi tidy mod-download up-mon up-srvs
+	@echo "=== OK ==="
+	@echo "grafana: http://localhost:3000"
+	@echo "jaeger: http://localhost:16686"
+
+down: down-srvs down-mon
+	@echo "=== SERVICES DOWNED === "
+
+#restart + rebuild compose only services
+restart-srvs: down-srvs up-srvs
+
+up-srvs:
 	@echo "=== UP SPOT SERVICE ==="
 	docker compose -f spot/compose.dev.yml up -d --build
 	@echo "=== UP ORDER SERVICE ==="
 	docker compose -f order/compose.dev.yml up -d --build
-	@echo "=== OK ==="
-	@echo "grafana: http://localhost:3000"
 
-mod-download:
-	cd pkg   && go mod download
-	cd api   && go mod download
-	cd spot  && go mod download
-	cd order && go mod download
+up-mon:
+	@echo "=== UP METRICS PANELS ==="
+	docker compose -f metrics/compose.yml up -d
+	@sleep 3
 
-down:
+down-srvs:
+	@echo "=== DOWN ORDER SERVICE ==="
 	docker compose -f order/compose.dev.yml down
+	@echo "=== DOWN SPOT SERVICE ==="
 	docker compose -f spot/compose.dev.yml down
+
+down-mon:
+	@echo "=== DOWN METRICS PANELS ==="
 	docker compose -f metrics/compose.yml down
-	@echo "=== SERVICES DOWNED === "
+	@sleep 3
+
+
+logs-order:
+	docker compose -f order/compose.dev.yml logs orderapp
+
+logs-spot:
+	docker compose -f spot/compose.dev.yml logs spotapp
 
 
 tidy:
@@ -39,6 +57,12 @@ tidy:
 	cd api   && go mod tidy
 	cd spot  && go mod tidy
 	cd order && go mod tidy
+
+mod-download:
+	cd pkg   && go mod download
+	cd api   && go mod download
+	cd spot  && go mod download
+	cd order && go mod download
 
 genapi:
 	protoc -I api --go_opt=module=${PACKAGE} --go_out=. \

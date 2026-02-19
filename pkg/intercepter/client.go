@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/nullableocean/grpcservices/pkg/xrequestid"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -12,8 +14,21 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Добавляет x-request-id в контекст запроса
-func UnaryClientXRequestIdIntercepter() grpc.UnaryClientInterceptor {
+// добавляет x-request-id в атрибуты трейса
+func UnaryClientXReqIdTelemtry() grpc.UnaryClientInterceptor {
+	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		reqid := xrequestid.GetXRequestIdFromCtx(ctx)
+
+		span := trace.SpanFromContext(ctx)
+		if span.IsRecording() {
+			span.SetAttributes(attribute.String(xrequestid.XREQUEST_ID_KEY, reqid))
+		}
+
+		return invoker(ctx, method, req, reply, cc, opts...)
+	}
+}
+
+func UnaryClientXReqId() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		ctx = xrequestid.SetNewRequestIdToCtx(ctx)
 		return invoker(ctx, method, req, reply, cc, opts...)
@@ -21,7 +36,7 @@ func UnaryClientXRequestIdIntercepter() grpc.UnaryClientInterceptor {
 }
 
 // логируем исходящий запрос к grpc серверу
-func UnaryClientLoggerIntercepter(logger *zap.Logger) grpc.UnaryClientInterceptor {
+func UnaryClientLogger(logger *zap.Logger) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		logger.Info("send grpc request",
 			zap.String("method", method),
@@ -33,7 +48,7 @@ func UnaryClientLoggerIntercepter(logger *zap.Logger) grpc.UnaryClientIntercepto
 }
 
 // ловим панику при отправке запроса
-func UnaryClientPanicRecoveryIntercepter() grpc.UnaryClientInterceptor {
+func UnaryClientPanicRecovery() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error) {
 		defer func() {
 			if r := recover(); r != nil {

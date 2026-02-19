@@ -25,6 +25,17 @@ services:
     depends_on:
       - prometheus
 
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    restart: unless-stopped
+    ports:
+      - "16686:16686" # ui
+      - "4317:4317" # OTLP gRPC
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - monitoringnet
+
 networks:
   monitoringnet:
     driver: bridge

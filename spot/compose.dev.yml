@@ -5,10 +5,6 @@ services:
     build:
       context: ../
       dockerfile: spot/Dockerfile.dev
-      args:
-        - UID=${UID}
-        - GID=${GID}
-    user: "${UID}:${GID}"
     volumes:
       - "${LOGS_DIR}:/app/logs"
     ports:

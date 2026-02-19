@@ -13,7 +13,7 @@ import (
 )
 
 // логируем входящие запросы
-func UnaryServerLoggerIntercepter(logger *zap.Logger) grpc.UnaryServerInterceptor {
+func UnaryServerLogger(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		logger.Info("got grpc request",
 			zap.String("method", info.FullMethod),
@@ -25,7 +25,7 @@ func UnaryServerLoggerIntercepter(logger *zap.Logger) grpc.UnaryServerIntercepto
 }
 
 // ловим панику при обработке запроса
-func UnaryServerPanicRecoveryIntercepter() grpc.UnaryServerInterceptor {
+func UnaryServerPanicRecovery() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		go func() {
 			if r := recover(); r != nil {

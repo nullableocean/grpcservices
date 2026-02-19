@@ -12,11 +12,13 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	"github.com/nullableocean/grpcservices/api/spotpb"
 	"github.com/nullableocean/grpcservices/pkg/intercepter"
+	"github.com/nullableocean/grpcservices/pkg/telemetry"
 	"github.com/nullableocean/grpcservices/spot/config"
 	"github.com/nullableocean/grpcservices/spot/logger"
 	"github.com/nullableocean/grpcservices/spot/seed"
@@ -35,6 +37,14 @@ func start() error {
 		return fmt.Errorf("logger init error: %w", err)
 	}
 
+	// telemetry
+	ratioTracing := float64(1)
+	shutdown, err := telemetry.InitTelemetryWithJaeger(cnf.App.Name, cnf.Telemetry.JaegerGrpcAddress, ratioTracing)
+	if err != nil {
+		return fmt.Errorf("telemtry init error: %w", err)
+	}
+	defer shutdown(context.Background())
+
 	// metrics
 	grpcMetrics := grpc_prometheus.NewServerMetrics()
 
@@ -44,10 +54,10 @@ func start() error {
 	//grpc init
 	intersChain := grpc.ChainUnaryInterceptor(
 		grpcMetrics.UnaryServerInterceptor(),
-		intercepter.UnaryServerLoggerIntercepter(logger),
-		intercepter.UnaryServerPanicRecoveryIntercepter(),
+		intercepter.UnaryServerLogger(logger),
+		intercepter.UnaryServerPanicRecovery(),
 	)
-	gprcServer := grpc.NewServer(intersChain)
+	gprcServer := grpc.NewServer(intersChain, grpc.StatsHandler(otelgrpc.NewServerHandler()))
 
 	//register service
 	spotInstrumentService := service.NewSpotInstrument()
@@ -82,7 +92,7 @@ func upAndWaitShutdown(logger *zap.Logger, cnf *config.Config, grpcServer *grpc.
 	errChan := make(chan error, 1)
 
 	go func() {
-		logger.Info("start listen metrics http", zap.String("address", cnf.Server.Address+":"+cnf.Metrics.Port))
+		logger.Info("start listen metrics http", zap.String("address", cnf.App.Address+":"+cnf.Metrics.Port))
 
 		err := httpServer.ListenAndServe()
 		if err != nil {
@@ -90,13 +100,13 @@ func upAndWaitShutdown(logger *zap.Logger, cnf *config.Config, grpcServer *grpc.
 		}
 	}()
 
-	lis, err := net.Listen("tcp", cnf.Server.Address+":"+cnf.Server.Port)
+	lis, err := net.Listen("tcp", cnf.App.Address+":"+cnf.App.Port)
 	if err != nil {
 		return fmt.Errorf("create listen tcp error: %w", err)
 	}
 
 	go func() {
-		logger.Info("spot grpc service started", zap.String("address", cnf.Server.Address+":"+cnf.Server.Port))
+		logger.Info("spot grpc service started", zap.String("address", cnf.App.Address+":"+cnf.App.Port))
 
 		err = grpcServer.Serve(lis)
 		if err != nil {
