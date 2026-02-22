@@ -11,7 +11,7 @@ import (
 type Market struct {
 	id      int64
 	name    string
-	enabled bool
+	enabled *atomic.Bool
 
 	allowedRoles map[roles.UserRole]struct{}
 	mu           sync.RWMutex
@@ -21,17 +21,19 @@ type Market struct {
 }
 
 type CreateMarketDto struct {
-	Id           int64
 	Name         string
 	Enabled      bool
 	AllowedRoles map[roles.UserRole]struct{}
 }
 
-func NewMarket(dto CreateMarketDto) *Market {
+func NewMarket(id int64, dto *CreateMarketDto) *Market {
+	enabled := &atomic.Bool{}
+	enabled.Store(dto.Enabled)
+
 	return &Market{
-		id:           dto.Id,
+		id:           id,
 		name:         dto.Name,
-		enabled:      dto.Enabled,
+		enabled:      enabled,
 		allowedRoles: dto.AllowedRoles,
 		mu:           sync.RWMutex{},
 		deletedAt:    time.Time{},
@@ -48,7 +50,15 @@ func (m *Market) Name() string {
 }
 
 func (m *Market) IsEnabled() bool {
-	return m.enabled
+	return m.enabled.Load()
+}
+
+func (m *Market) Disable() {
+	m.enabled.Store(false)
+}
+
+func (m *Market) Enable() {
+	m.enabled.Store(true)
 }
 
 func (m *Market) IsAllowed(role roles.UserRole) bool {
@@ -96,6 +106,6 @@ func (m *Market) Delete() {
 
 	if atomic.CompareAndSwapInt32(&m.deleted, 0, 1) {
 		m.deletedAt = time.Now()
-		m.enabled = false
+		m.enabled.Store(false)
 	}
 }

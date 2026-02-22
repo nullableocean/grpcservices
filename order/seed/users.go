@@ -1,20 +1,17 @@
 package seed
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 
-	"github.com/nullableocean/grpcservices/order/domain"
+	"github.com/nullableocean/grpcservices/order/service/user"
 	"github.com/nullableocean/grpcservices/pkg/roles"
 	"go.uber.org/zap"
 )
 
-type UserService interface {
-	CreateUser(username string, pass string, roles []roles.UserRole) (*domain.User, error)
-}
-
-func SeedUsers(logger *zap.Logger, userService UserService) {
+func SeedUsers(logger *zap.Logger, userService *user.UserService) {
 	rolesList := []roles.UserRole{
 		roles.USER_GUEST,
 		roles.USER_VERIFIED,
@@ -33,9 +30,11 @@ func SeedUsers(logger *zap.Logger, userService UserService) {
 
 	count := len(rolesList)
 
+	ctx := context.Background()
 	for i := range count {
 		username := fmt.Sprintf("user_%d", i)
-		u, err := userService.CreateUser(username, genString(), rolesList[:count-i])
+
+		u, err := userService.CreateUser(ctx, username, genString(), rolesList[:count-i])
 		if err != nil {
 			logger.Info("seed new user error", zap.Error(err))
 			continue

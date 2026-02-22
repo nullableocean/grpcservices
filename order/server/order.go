@@ -32,7 +32,8 @@ func NewOrderServer(logger *zap.Logger, orderService *order.OrderService) *Order
 }
 
 func (serv *OrderServer) CreateOrder(ctx context.Context, req *orderpb.CreateOrderRequest) (*orderpb.CreateOrderResponse, error) {
-	order, err := serv.orderService.CreateOrder(ctx, req.UserId, serv.mapper.CreateOrderRequestToOrderDto(req))
+	orderCreatingData := serv.mapper.MapCreateRequestToOrderDto(req)
+	order, err := serv.orderService.CreateOrder(ctx, orderCreatingData)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())
@@ -45,7 +46,7 @@ func (serv *OrderServer) CreateOrder(ctx context.Context, req *orderpb.CreateOrd
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	resp := serv.mapper.OrderToPbOrderResponse(order)
+	resp := serv.mapper.MapOrderToPbResponse(order)
 	return resp, nil
 }
 

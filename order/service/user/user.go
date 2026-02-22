@@ -3,8 +3,6 @@ package user
 import (
 	"context"
 	"fmt"
-	"sync"
-	"sync/atomic"
 
 	"github.com/nullableocean/grpcservices/order/domain"
 	"github.com/nullableocean/grpcservices/order/service"
@@ -12,77 +10,50 @@ import (
 	"github.com/nullableocean/grpcservices/pkg/roles"
 )
 
-var (
-	ErrUsernameAlreadyExist = fmt.Errorf("%w: username already exist", service.ErrInvalidData)
-)
+type UserStore interface {
+	Save(ctx context.Context, userData *domain.CreateUserDto) (*domain.User, error)
+	Get(ctx context.Context, id int64) (*domain.User, error)
+	Delete(ctx context.Context, id int64) error
+	Update(ctx context.Context, id int64, updateData *domain.UpdateUserDto) error
+}
 
 type UserService struct {
 	passService *auth.PasswordService
-
-	store     map[int64]*domain.User
-	usernames map[string]struct{}
-	nextId    atomic.Int64
-
-	mu sync.RWMutex
+	store       UserStore
 }
 
-func NewUserService() *UserService {
+func NewUserService(store UserStore) *UserService {
 	return &UserService{
 		passService: &auth.PasswordService{},
-
-		store:     make(map[int64]*domain.User),
-		usernames: make(map[string]struct{}),
-		mu:        sync.RWMutex{},
+		store:       store,
 	}
 }
 
-func (s *UserService) CreateUser(username string, pass string, roles []roles.UserRole) (*domain.User, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if _, ex := s.usernames[username]; ex {
-		return nil, fmt.Errorf("%w: username: %s", ErrUsernameAlreadyExist, username)
-	}
+func (s *UserService) CreateUser(ctx context.Context, username string, pass string, roles []roles.UserRole) (*domain.User, error) {
 
 	passHash, err := s.passService.GetHashForPassword(pass)
 	if err != nil {
 		return nil, fmt.Errorf("cant get hash for password: %w", service.ErrInvalidData)
 	}
 
-	id := s.nextId.Add(1)
+	createDto := &domain.CreateUserDto{
+		Id:       0,
+		Username: username,
+		PassHash: passHash,
+		Roles:    roles,
+	}
 
-	newUser := domain.NewUser(id, username, passHash)
-	newUser.SetRoles(roles)
-
-	s.store[id] = newUser
-	s.usernames[username] = struct{}{}
-
-	return newUser, nil
+	return s.store.Save(ctx, createDto)
 }
 
 func (s *UserService) GetUser(ctx context.Context, id int64) (*domain.User, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	u, found := s.store[id]
-	if !found {
-		return nil, fmt.Errorf("%w: user not found. id: %d", service.ErrNotFound, id)
-	}
-
-	return u, nil
+	return s.store.Get(ctx, id)
 }
 
 func (s *UserService) DeleteUser(ctx context.Context, id int64) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	return s.store.Delete(ctx, id)
+}
 
-	u, found := s.store[id]
-	if !found {
-		return fmt.Errorf("%w: user not found. id: %d", service.ErrNotFound, id)
-	}
-
-	u.Delete()
-	delete(s.store, id)
-
-	return nil
+func (s *UserService) UpdateUser(ctx context.Context, id int64, updateData *domain.UpdateUserDto) error {
+	return s.store.Update(ctx, id, updateData)
 }

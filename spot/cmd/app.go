@@ -23,7 +23,8 @@ import (
 	"github.com/nullableocean/grpcservices/spot/logger"
 	"github.com/nullableocean/grpcservices/spot/seed"
 	"github.com/nullableocean/grpcservices/spot/server"
-	"github.com/nullableocean/grpcservices/spot/service"
+	"github.com/nullableocean/grpcservices/spot/service/spot"
+	"github.com/nullableocean/grpcservices/spot/service/store/ram"
 )
 
 func start() error {
@@ -61,7 +62,9 @@ func start() error {
 	gprcServer := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()), intersChain)
 
 	//register service
-	spotInstrumentService := service.NewSpotInstrument()
+	marketStore := ram.NewMarketStore()
+
+	spotInstrumentService := spot.NewSpotInstrument(marketStore)
 	spotServer := server.NewSpotInstrumentServer(logger, spotInstrumentService)
 
 	spotpb.RegisterSpotInstrumentServer(gprcServer, spotServer)

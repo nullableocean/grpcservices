@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -13,15 +14,28 @@ type User struct {
 	roles    []roles.UserRole
 	passHash string
 
+	mu        sync.RWMutex
 	deletedAt time.Time
 	deleted   int32
 }
 
-func NewUser(id int64, username string, passHash string) *User {
+type CreateUserDto struct {
+	Id       int64
+	Username string
+	PassHash string
+	Roles    []roles.UserRole
+}
+
+type UpdateUserDto struct {
+	Roles []roles.UserRole
+}
+
+func NewUser(dto *CreateUserDto) *User {
 	return &User{
-		id:       id,
-		username: username,
-		passHash: passHash,
+		id:       dto.Id,
+		username: dto.Username,
+		passHash: dto.PassHash,
+		roles:    dto.Roles,
 	}
 }
 
@@ -38,18 +52,45 @@ func (u *User) PassHash() string {
 }
 
 func (u *User) Roles() []roles.UserRole {
-	return u.roles
+	u.mu.RLock()
+	defer u.mu.RUnlock()
+
+	copyOut := make([]roles.UserRole, len(u.roles))
+	copy(copyOut, u.roles)
+
+	return copyOut
 }
 
 func (u *User) SetRoles(roles []roles.UserRole) {
+	u.mu.Lock()
 	u.roles = roles
+	u.mu.Unlock()
 }
 
 func (u *User) AddRole(role roles.UserRole) {
+	u.mu.Lock()
 	u.roles = append(u.roles, role)
+	u.mu.Unlock()
+}
+
+func (u *User) DeleteRole(role roles.UserRole) {
+	u.mu.Lock()
+	var ind int
+	for i, r := range u.roles {
+		if r == role {
+			ind = i
+			break
+		}
+	}
+
+	u.roles = append(u.roles[:ind], u.roles[ind+1:]...)
+	u.mu.Unlock()
 }
 
 func (u *User) HasRole(role roles.UserRole) bool {
+	u.mu.RLock()
+	defer u.mu.RUnlock()
+
 	for _, r := range u.roles {
 		if r == role {
 			return true

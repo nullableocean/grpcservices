@@ -6,7 +6,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/nullableocean/grpcservices/api/spotpb"
-	"github.com/nullableocean/grpcservices/spot/service"
+	"github.com/nullableocean/grpcservices/spot/service/spot"
 )
 
 // check interface
@@ -15,13 +15,13 @@ var _ spotpb.SpotInstrumentServer = &SpotInstrumentServer{}
 type SpotInstrumentServer struct {
 	spotpb.UnimplementedSpotInstrumentServer
 
-	service *service.SpotInstrument
+	service *spot.SpotInstrument
 	mapper  *SpotMapper
 
 	logger *zap.Logger
 }
 
-func NewSpotInstrumentServer(logger *zap.Logger, service *service.SpotInstrument) *SpotInstrumentServer {
+func NewSpotInstrumentServer(logger *zap.Logger, service *spot.SpotInstrument) *SpotInstrumentServer {
 	return &SpotInstrumentServer{
 		service: service,
 		mapper:  &SpotMapper{},

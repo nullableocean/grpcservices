@@ -1,13 +1,15 @@
 package seed
 
 import (
+	"context"
+
 	"github.com/nullableocean/grpcservices/pkg/roles"
 	"github.com/nullableocean/grpcservices/spot/domain"
 	"go.uber.org/zap"
 )
 
 type SpotInstrument interface {
-	NewMarket(name string, allowed []roles.UserRole) (*domain.Market, error)
+	NewMarket(ctx context.Context, name string, allowed []roles.UserRole) (*domain.Market, error)
 }
 
 func SeedMarkets(logger *zap.Logger, spot SpotInstrument) {
@@ -36,9 +38,10 @@ func SeedMarkets(logger *zap.Logger, spot SpotInstrument) {
 	}
 
 	count := len(rolesList)
+	ctx := context.Background()
 	for i := range count {
 		name := marketsName[i]
-		m, err := spot.NewMarket(name, rolesList[count-i-1:])
+		m, err := spot.NewMarket(ctx, name, rolesList[count-i-1:])
 		if err != nil {
 			logger.Info("seed new market error", zap.Error(err))
 			continue

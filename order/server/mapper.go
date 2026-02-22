@@ -8,8 +8,9 @@ import (
 
 type OrderServerMapper struct{}
 
-func (mapper *OrderServerMapper) CreateOrderRequestToOrderDto(req *orderpb.CreateOrderRequest) domain.CreateOrderDto {
-	return domain.CreateOrderDto{
+func (mapper *OrderServerMapper) MapCreateRequestToOrderDto(req *orderpb.CreateOrderRequest) *domain.CreateOrderDto {
+	return &domain.CreateOrderDto{
+		UserId:    req.UserId,
 		MarketId:  req.MarketId,
 		Price:     float64(req.Price),
 		Quantity:  req.Quantity,
@@ -17,7 +18,7 @@ func (mapper *OrderServerMapper) CreateOrderRequestToOrderDto(req *orderpb.Creat
 	}
 }
 
-func (mapper *OrderServerMapper) OrderToPbOrderResponse(order *domain.Order) *orderpb.CreateOrderResponse {
+func (mapper *OrderServerMapper) MapOrderToPbResponse(order *domain.Order) *orderpb.CreateOrderResponse {
 	return &orderpb.CreateOrderResponse{
 		OrderId: order.Id(),
 		Status:  orderpb.OrderStatus(order.Status()),
