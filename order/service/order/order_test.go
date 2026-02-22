@@ -59,7 +59,7 @@ func (m *mockStatusApprover) CanChangeStatus(ctx context.Context, order *domain.
 	return args.Error(0)
 }
 
-func TestCreateOrder(t *testing.T) {
+func TestOrderService_CreateOrder(t *testing.T) {
 	ctx := context.Background()
 
 	spotInstrument := &mockSpotInstrument{}
@@ -101,7 +101,7 @@ func TestCreateOrder(t *testing.T) {
 	orderStore.AssertExpectations(t)
 }
 
-func TestCreateOrder_MarketNotAllowed(t *testing.T) {
+func TestOrderService_CreateOrderWithNotAllowedMarket(t *testing.T) {
 	ctx := context.Background()
 
 	spotInstrument := &mockSpotInstrument{}
@@ -141,7 +141,7 @@ func TestCreateOrder_MarketNotAllowed(t *testing.T) {
 	spotInstrument.AssertExpectations(t)
 }
 
-func TestOrderStatus(t *testing.T) {
+func TestOrderService_GetOrderStatus(t *testing.T) {
 	ctx := context.Background()
 
 	spotInstrument := &mockSpotInstrument{}
@@ -167,7 +167,7 @@ func TestOrderStatus(t *testing.T) {
 	orderStore.AssertExpectations(t)
 }
 
-func TestChangeStatus(t *testing.T) {
+func TestOrderService_ChangeStatus(t *testing.T) {
 	ctx := context.Background()
 
 	spotInstrument := &mockSpotInstrument{}

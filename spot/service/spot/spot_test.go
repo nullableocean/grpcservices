@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestViewMarkets(t *testing.T) {
+func TestSpotService_ViewMarkets(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("should return empty slice when no markets enabled", func(t *testing.T) {
@@ -106,7 +106,7 @@ func TestViewMarkets(t *testing.T) {
 	})
 }
 
-func TestNewMarket(t *testing.T) {
+func TestSpotService_NewMarket(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("should create new market successfully", func(t *testing.T) {
@@ -130,7 +130,7 @@ func TestNewMarket(t *testing.T) {
 	})
 }
 
-func TestDeleteMarket(t *testing.T) {
+func TestSpotService_DeleteMarket(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("should delete market successfully", func(t *testing.T) {
