@@ -2,10 +2,13 @@ package server
 
 import (
 	"context"
+	"time"
 
 	"go.uber.org/zap"
 
 	"github.com/nullableocean/grpcservices/api/spotpb"
+	"github.com/nullableocean/grpcservices/pkg/roles"
+	"github.com/nullableocean/grpcservices/spot/service/metrics"
 	"github.com/nullableocean/grpcservices/spot/service/spot"
 )
 
@@ -18,22 +21,30 @@ type SpotInstrumentServer struct {
 	service *spot.SpotInstrument
 	mapper  *SpotMapper
 
-	logger *zap.Logger
+	metrics *metrics.SpotMetrics
+	logger  *zap.Logger
 }
 
-func NewSpotInstrumentServer(logger *zap.Logger, service *spot.SpotInstrument) *SpotInstrumentServer {
+func NewSpotInstrumentServer(service *spot.SpotInstrument, logger *zap.Logger, metrics *metrics.SpotMetrics) *SpotInstrumentServer {
 	return &SpotInstrumentServer{
 		service: service,
 		mapper:  &SpotMapper{},
 
-		logger: logger,
+		metrics: metrics,
+		logger:  logger,
 	}
 }
 
 func (serv *SpotInstrumentServer) ViewMarkets(ctx context.Context, req *spotpb.ViewMarketsRequest) (*spotpb.ViewMarketsResponse, error) {
 	userRoles := serv.mapper.FromPbToRoles(req.UserRoles)
-	markets := serv.service.ViewMarkets(ctx, userRoles)
 
+	serv.logger.Info("view market request", zap.Strings("roles", roles.MapSliceToStrings(userRoles)))
+	start := time.Now()
+	defer func() {
+		serv.metrics.CalledViewMarket(time.Since(start))
+	}()
+
+	markets := serv.service.ViewMarkets(ctx, userRoles)
 	resp := &spotpb.ViewMarketsResponse{
 		Markets: serv.mapper.ToPbMarkets(markets),
 	}

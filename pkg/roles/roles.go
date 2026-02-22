@@ -26,3 +26,13 @@ func MapInString(r UserRole) string {
 
 	return ""
 }
+
+func MapSliceToStrings(r []UserRole) []string {
+	out := make([]string, 0, len(r))
+
+	for _, role := range r {
+		out = append(out, MapInString(role))
+	}
+
+	return out
+}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/nullableocean/grpcservices/order/domain"
 	"github.com/nullableocean/grpcservices/order/service"
+	"github.com/nullableocean/grpcservices/order/service/auth"
 	"github.com/nullableocean/grpcservices/pkg/order"
 	"github.com/nullableocean/grpcservices/pkg/roles"
 	"github.com/stretchr/testify/assert"
@@ -50,15 +51,6 @@ func (m *mockOrderStore) UpdateStatus(ctx context.Context, order *domain.Order, 
 	return args.Error(0)
 }
 
-type mockStatusApprover struct {
-	mock.Mock
-}
-
-func (m *mockStatusApprover) CanChangeStatus(ctx context.Context, order *domain.Order, newStatus order.OrderStatus) error {
-	args := m.Called(ctx, order, newStatus)
-	return args.Error(0)
-}
-
 func TestOrderService_CreateOrder(t *testing.T) {
 	ctx := context.Background()
 
@@ -66,15 +58,16 @@ func TestOrderService_CreateOrder(t *testing.T) {
 	userService := &mockUserService{}
 	orderStore := &mockOrderStore{}
 
-	orderServ := NewOrderService(orderStore, spotInstrument, userService, &StatusApprover{})
+	orderServ := NewOrderService(orderStore, spotInstrument, userService)
 
-	dto := &domain.CreateUserDto{
+	passSer := auth.PasswordService{}
+	hash, _ := passSer.GetHashForPassword("password")
+	user := domain.NewUser(&domain.CreateUserDto{
 		Id:       1,
 		Username: "testuser",
-		PassHash: "password",
+		PassHash: hash,
 		Roles:    []roles.UserRole{roles.USER_VERIFIED},
-	}
-	user := domain.NewUser(dto)
+	})
 
 	market := domain.NewMarket(1, "BTC/USDT")
 
@@ -108,15 +101,16 @@ func TestOrderService_CreateOrderWithNotAllowedMarket(t *testing.T) {
 	userService := &mockUserService{}
 	orderStore := &mockOrderStore{}
 
-	orderServ := NewOrderService(orderStore, spotInstrument, userService, &StatusApprover{})
+	orderServ := NewOrderService(orderStore, spotInstrument, userService)
 
-	dto := &domain.CreateUserDto{
+	passSer := auth.PasswordService{}
+	hash, _ := passSer.GetHashForPassword("password")
+	user := domain.NewUser(&domain.CreateUserDto{
 		Id:       1,
 		Username: "testuser",
-		PassHash: "password",
+		PassHash: hash,
 		Roles:    []roles.UserRole{roles.USER_VERIFIED},
-	}
-	user := domain.NewUser(dto)
+	})
 
 	allowedMarket := domain.NewMarket(2, "ETH/USDT")
 
@@ -148,7 +142,7 @@ func TestOrderService_GetOrderStatus(t *testing.T) {
 	userService := &mockUserService{}
 	orderStore := &mockOrderStore{}
 
-	orderServ := NewOrderService(orderStore, spotInstrument, userService, &StatusApprover{})
+	orderServ := NewOrderService(orderStore, spotInstrument, userService)
 
 	orderData := &domain.CreateOrderDto{
 		UserId:    1,
@@ -174,15 +168,16 @@ func TestOrderService_ChangeStatus(t *testing.T) {
 	userService := &mockUserService{}
 	orderStore := &mockOrderStore{}
 
-	orderServ := NewOrderService(orderStore, spotInstrument, userService, &StatusApprover{})
+	orderServ := NewOrderService(orderStore, spotInstrument, userService)
 
-	dto := &domain.CreateUserDto{
+	passSer := auth.PasswordService{}
+	hash, _ := passSer.GetHashForPassword("password")
+	user := domain.NewUser(&domain.CreateUserDto{
 		Id:       1,
 		Username: "testuser",
-		PassHash: "password",
+		PassHash: hash,
 		Roles:    []roles.UserRole{roles.USER_VERIFIED},
-	}
-	user := domain.NewUser(dto)
+	})
 
 	orderData := &domain.CreateOrderDto{
 		UserId:    1,

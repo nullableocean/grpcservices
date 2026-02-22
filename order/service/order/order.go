@@ -36,12 +36,13 @@ type OrderService struct {
 	store OrderStore
 }
 
-func NewOrderService(store OrderStore, spotInstrument SpotInstrument, userService UserService, approver OrderStatusApprover) *OrderService {
+func NewOrderService(store OrderStore, spotInstrument SpotInstrument, userService UserService) *OrderService {
 	return &OrderService{
 		spotInstrument: spotInstrument,
 		userService:    userService,
-		statusApprover: approver,
 		store:          store,
+
+		statusApprover: &StatusApprover{},
 	}
 }
 

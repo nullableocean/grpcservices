@@ -1,6 +1,6 @@
 PACKAGE="github.com/nullableocean/grpcservices"
 
-.PHONY: up down up-monitoring localbuild-spot localbuild-spot up-mon up-srvs
+.PHONY: up down up-monitoring localbuild-spot localbuild-spot up-mon up-srvs test
 
 localbuild-spot:
 	cd spot && go build -o bin/spot ./cmd
@@ -54,6 +54,12 @@ logs-order:
 logs-spot:
 	docker compose -f spot/compose.dev.yml logs spotapp
 
+
+test:
+	@echo "\n\nSPOT SERVICE TESTS\n"
+	cd spot && make test
+	@echo "\n\nORDER SERVICE TESTS\n"
+	cd order && make test
 
 tidy:
 	cd pkg   && go mod tidy

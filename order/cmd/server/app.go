@@ -24,6 +24,7 @@ import (
 	"github.com/nullableocean/grpcservices/order/logger"
 	"github.com/nullableocean/grpcservices/order/seed"
 	"github.com/nullableocean/grpcservices/order/server"
+	"github.com/nullableocean/grpcservices/order/service/metrics"
 	"github.com/nullableocean/grpcservices/order/service/order"
 	"github.com/nullableocean/grpcservices/order/service/store/ram"
 	"github.com/nullableocean/grpcservices/order/service/user"
@@ -56,6 +57,7 @@ func start() error {
 
 	promReg := prometheus.NewRegistry()
 	promReg.MustRegister(serverMetrics, clientMetrics)
+	orderServerMetrics := metrics.NewOrderMetrics(promReg)
 
 	//grpc server
 	intersChain := grpc.ChainUnaryInterceptor(
@@ -92,9 +94,9 @@ func start() error {
 	userService := user.NewUserService(userStore)
 
 	orderStore := ram.NewOrderStore()
-	orderService := order.NewOrderService(orderStore, spotClient, userService, &order.StatusApprover{})
-	orderServer := server.NewOrderServer(logger, orderService)
+	orderService := order.NewOrderService(orderStore, spotClient, userService)
 
+	orderServer := server.NewOrderServer(orderService, logger, orderServerMetrics)
 	orderpb.RegisterOrderServer(grpcServer, orderServer)
 
 	//listen init
