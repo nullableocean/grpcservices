@@ -63,9 +63,9 @@ OrderService
     
 7. Усложнения 
     • Добавить RedisCacheInterceptor для кэширования ответов ViewMarkets (настроить Redis через Docker).
+    • Добавить проверку user_roles в CreateOrder для ограничения доступа к рынкам.
     • Реализовать stream-метод StreamOrderUpdates в OrderService, возвращающий обновления статуса заказа в реальном времени.
     • Интегрировать Jaeger для трассировки x-request-id между сервисами.
-    • Добавить проверку user_roles в CreateOrder для ограничения доступа к рынкам.
 8. Технические требования
     • Использовать Go и библиотеки:
         ◦ google.golang.org/grpc

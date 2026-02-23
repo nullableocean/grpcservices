@@ -28,18 +28,24 @@ type OrderStatusApprover interface {
 	CanChangeStatus(ctx context.Context, order *domain.Order, newStatus order.OrderStatus) error
 }
 
+type RoleAccess interface {
+	CanCreate(user *domain.User, orderType order.OrderType) bool
+}
+
 type OrderService struct {
 	spotInstrument SpotInstrument
 	userService    UserService
+	roleAccesser   RoleAccess
 	statusApprover OrderStatusApprover
 
 	store OrderStore
 }
 
-func NewOrderService(store OrderStore, spotInstrument SpotInstrument, userService UserService) *OrderService {
+func NewOrderService(store OrderStore, spotInstrument SpotInstrument, userService UserService, marketAccess RoleAccess) *OrderService {
 	return &OrderService{
 		spotInstrument: spotInstrument,
 		userService:    userService,
+		roleAccesser:   marketAccess,
 		store:          store,
 
 		statusApprover: &StatusApprover{},
@@ -56,6 +62,10 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderData *domain.Create
 		return nil, err
 	}
 
+	if !s.roleAccesser.CanCreate(user, orderData.OrderType) {
+		return nil, fmt.Errorf("%w: user havent permission for create this order", ErrNotAllowed)
+	}
+
 	allowedMarkets, err := s.spotInstrument.ViewMarkets(ctx, user.Roles())
 	if err != nil {
 		return nil, err
@@ -64,7 +74,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderData *domain.Create
 	marketId := orderData.MarketId
 	ok := false
 	for _, market := range allowedMarkets {
-		if marketId == market.Id() {
+		if marketId == market.Id {
 			ok = true
 			break
 		}

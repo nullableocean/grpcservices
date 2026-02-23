@@ -6,6 +6,7 @@ import (
 
 	"github.com/nullableocean/grpcservices/api/spotpb"
 	"github.com/nullableocean/grpcservices/spot/server"
+	"github.com/nullableocean/grpcservices/spot/service/guard"
 	"github.com/nullableocean/grpcservices/spot/service/metrics"
 	"github.com/nullableocean/grpcservices/spot/service/spot"
 	"github.com/nullableocean/grpcservices/spot/service/store/ram"
@@ -18,7 +19,8 @@ import (
 func TestMetricsCollects(t *testing.T) {
 
 	store := ram.NewMarketStore()
-	spotService := spot.NewSpotInstrument(store)
+	roleInspector := guard.NewRoleInspector()
+	spotService := spot.NewSpotInstrument(store, roleInspector)
 	logger := zap.NewNop()
 
 	reg := prometheus.NewRegistry()

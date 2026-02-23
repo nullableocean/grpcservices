@@ -16,6 +16,9 @@ services:
     networks:
       - grpcservices
       - monitoringnet
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
        test: ["CMD", "curl", "-f", "http://localhost:${METRICS_PORT}/health"]
        interval: 30s
@@ -24,10 +27,35 @@ services:
        start_period: 15s
     restart: on-failure:3
 
+  redis:
+    image: redis:8.6.0-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - ordernet
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_USERNAME=${REDIS_USERNAME:-}
+    volumes:
+      - orderredisdata:/data
+
 networks:
+  ordernet:
+    driver: bridge
+    name: ordernet
   monitoringnet:
     external: true
     name: monitoringnet
   grpcservices:
     external: true
     name: grpcservices
+
+
+volumes:
+  orderredisdata:

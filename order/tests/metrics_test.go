@@ -59,7 +59,8 @@ func TestMetrics(t *testing.T) {
 
 	store := ram.NewOrderStore()
 
-	orderService := order.NewOrderService(store, spotInstrument, userService)
+	roleAccess := auth.NewRoleAccessService()
+	orderService := order.NewOrderService(store, spotInstrument, userService, roleAccess)
 
 	reg := prometheus.NewRegistry()
 	orderMetrics := metrics.NewOrderMetrics(reg)

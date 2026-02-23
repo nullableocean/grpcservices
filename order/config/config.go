@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -29,6 +31,12 @@ var (
 	envMetricsPortKey = "METRICS_PORT"
 
 	envJaegerAddressKey = "JUEGER_GRPC_ADDRESS"
+	envRedisHostKey     = "REDIS_HOST"
+	envRedisPortKey     = "REDIS_PORT"
+	envRedisPasswordKey = "REDIS_PASSWORD"
+	envRedisUsernameKey = "REDIS_USERNAME"
+	envRedisDBKey       = "REDIS_DB"
+	envRedisTTLKey      = "REDIS_TTL_SECONDS"
 )
 
 var (
@@ -64,11 +72,20 @@ type Seed struct {
 	Need bool
 }
 
+type Redis struct {
+	Address  string
+	Password string
+	Username string
+	DB       int
+	TTL      time.Duration
+}
+
 type Config struct {
 	App       *App
 	Spot      *Spot
 	Metrics   *Metrics
 	Telemetry *Telemetry
+	Redis     *Redis
 
 	Log  *Log
 	Seed *Seed
@@ -108,6 +125,11 @@ func NewConfig() (*Config, error) {
 	}
 
 	err = loadTelemtryCnf(config)
+	if err != nil {
+		return nil, err
+	}
+
+	err = loadRedisCnf(config)
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +222,45 @@ func loadTelemtryCnf(config *Config) error {
 
 	config.Telemetry = &Telemetry{
 		JaegerGrpcAddress: jaegGrpc,
+	}
+
+	return nil
+}
+
+func loadRedisCnf(config *Config) error {
+	redisHost := os.Getenv(envRedisHostKey)
+	redisPort := os.Getenv(envRedisPortKey)
+	redisAddr := redisHost + ":" + redisPort
+
+	redisPassword := os.Getenv(envRedisPasswordKey)
+	redisUsername := os.Getenv(envRedisUsernameKey)
+
+	redisDB := 0
+	redisDBStr := os.Getenv(envRedisDBKey)
+	if redisDBStr != "" {
+		_, err := strconv.Atoi(redisDBStr)
+		if err != nil {
+			return fmt.Errorf("invalid redis DB value: %w", err)
+		}
+	}
+
+	redisTTL := 300 * time.Second // default 5 minutes
+	redisTTLStr := os.Getenv(envRedisTTLKey)
+	if redisTTLStr != "" {
+		ttlSeconds := 300
+		_, err := fmt.Sscanf(redisTTLStr, "%d", &ttlSeconds)
+		if err != nil {
+			return fmt.Errorf("invalid redis TTL value: %w", err)
+		}
+		redisTTL = time.Duration(ttlSeconds) * time.Second
+	}
+
+	config.Redis = &Redis{
+		Address:  redisAddr,
+		Password: redisPassword,
+		Username: redisUsername,
+		DB:       redisDB,
+		TTL:      redisTTL,
 	}
 
 	return nil

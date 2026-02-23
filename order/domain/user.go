@@ -11,7 +11,7 @@ import (
 type User struct {
 	id       int64
 	username string
-	roles    []roles.UserRole
+	roles    *roles.Roles
 	passHash string
 
 	mu        sync.RWMutex
@@ -35,7 +35,7 @@ func NewUser(dto *CreateUserDto) *User {
 		id:       dto.Id,
 		username: dto.Username,
 		passHash: dto.PassHash,
-		roles:    dto.Roles,
+		roles:    roles.NewRoles(dto.Roles...),
 	}
 }
 
@@ -55,35 +55,24 @@ func (u *User) Roles() []roles.UserRole {
 	u.mu.RLock()
 	defer u.mu.RUnlock()
 
-	copyOut := make([]roles.UserRole, len(u.roles))
-	copy(copyOut, u.roles)
-
-	return copyOut
+	return u.roles.GetSlice()
 }
 
-func (u *User) SetRoles(roles []roles.UserRole) {
+func (u *User) SetRoles(rs []roles.UserRole) {
 	u.mu.Lock()
-	u.roles = roles
+	u.roles = roles.NewRoles(rs...)
 	u.mu.Unlock()
 }
 
 func (u *User) AddRole(role roles.UserRole) {
 	u.mu.Lock()
-	u.roles = append(u.roles, role)
+	u.roles.Add(role)
 	u.mu.Unlock()
 }
 
 func (u *User) DeleteRole(role roles.UserRole) {
 	u.mu.Lock()
-	var ind int
-	for i, r := range u.roles {
-		if r == role {
-			ind = i
-			break
-		}
-	}
-
-	u.roles = append(u.roles[:ind], u.roles[ind+1:]...)
+	u.roles.Remove(role)
 	u.mu.Unlock()
 }
 
@@ -91,12 +80,7 @@ func (u *User) HasRole(role roles.UserRole) bool {
 	u.mu.RLock()
 	defer u.mu.RUnlock()
 
-	for _, r := range u.roles {
-		if r == role {
-			return true
-		}
-	}
-	return false
+	return u.roles.Has(role)
 }
 
 func (u *User) IsDeleted() bool {

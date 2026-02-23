@@ -13,7 +13,7 @@ type Market struct {
 	name    string
 	enabled *atomic.Bool
 
-	allowedRoles map[roles.UserRole]struct{}
+	allowedRoles *roles.Roles
 	mu           sync.RWMutex
 
 	deletedAt time.Time
@@ -23,7 +23,7 @@ type Market struct {
 type CreateMarketDto struct {
 	Name         string
 	Enabled      bool
-	AllowedRoles map[roles.UserRole]struct{}
+	AllowedRoles []roles.UserRole
 }
 
 func NewMarket(id int64, dto *CreateMarketDto) *Market {
@@ -34,7 +34,7 @@ func NewMarket(id int64, dto *CreateMarketDto) *Market {
 		id:           id,
 		name:         dto.Name,
 		enabled:      enabled,
-		allowedRoles: dto.AllowedRoles,
+		allowedRoles: roles.NewRoles(dto.AllowedRoles...),
 		mu:           sync.RWMutex{},
 		deletedAt:    time.Time{},
 		deleted:      0,
@@ -65,31 +65,21 @@ func (m *Market) IsAllowed(role roles.UserRole) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	_, ex := m.allowedRoles[role]
-	return ex
+	return m.allowedRoles.Has(role)
 }
 
 func (m *Market) AddAllowedRole(role roles.UserRole) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if m.allowedRoles == nil {
-		m.allowedRoles = make(map[roles.UserRole]struct{})
-	}
-
-	m.allowedRoles[role] = struct{}{}
+	m.allowedRoles.Add(role)
 }
 
 func (m *Market) RemoveAllowedRole(role roles.UserRole) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if m.allowedRoles == nil {
-		m.allowedRoles = make(map[roles.UserRole]struct{})
-		return
-	}
-
-	delete(m.allowedRoles, role)
+	m.allowedRoles.Remove(role)
 }
 
 func (m *Market) IsDeleted() bool {

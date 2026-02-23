@@ -7,6 +7,10 @@ import (
 	"github.com/nullableocean/grpcservices/spot/domain"
 )
 
+type RoleAccess interface {
+	HasAccessToMarket(m *domain.Market, role roles.UserRole) bool
+}
+
 type MarketStore interface {
 	Save(ctx context.Context, marketData *domain.CreateMarketDto) (*domain.Market, error)
 	GetById(ctx context.Context, id int64) (*domain.Market, error)
@@ -15,12 +19,14 @@ type MarketStore interface {
 }
 
 type SpotInstrument struct {
-	store MarketStore
+	store      MarketStore
+	roleAccess RoleAccess
 }
 
-func NewSpotInstrument(store MarketStore) *SpotInstrument {
+func NewSpotInstrument(store MarketStore, roleAccessService RoleAccess) *SpotInstrument {
 	return &SpotInstrument{
-		store: store,
+		store:      store,
+		roleAccess: roleAccessService,
 	}
 }
 
@@ -31,7 +37,7 @@ func (s *SpotInstrument) ViewMarkets(ctx context.Context, roles []roles.UserRole
 	for _, m := range markets {
 	ROLE_LOOP:
 		for _, r := range roles {
-			if m.IsAllowed(r) && m.IsEnabled() && !m.IsDeleted() {
+			if m.IsEnabled() && s.roleAccess.HasAccessToMarket(m, r) {
 				out = append(out, m)
 				break ROLE_LOOP
 			}
@@ -50,7 +56,7 @@ func (s *SpotInstrument) NewMarket(ctx context.Context, name string, allowed []r
 	dto := &domain.CreateMarketDto{
 		Name:         name,
 		Enabled:      true,
-		AllowedRoles: allowedMap,
+		AllowedRoles: allowed,
 	}
 
 	newMarket, err := s.store.Save(ctx, dto)

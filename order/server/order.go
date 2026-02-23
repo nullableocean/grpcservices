@@ -49,11 +49,15 @@ func (serv *OrderServer) CreateOrder(ctx context.Context, req *orderpb.CreateOrd
 		serv.metrics.CalledCreateOrder(orderCreatingData.UserId, time.Since(start))
 	}()
 
-	order, err := serv.orderService.CreateOrder(ctx, orderCreatingData)
+	createdOrder, err := serv.orderService.CreateOrder(ctx, orderCreatingData)
 
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())
+		}
+
+		if errors.Is(err, service.ErrAccessDenied) {
+			return nil, status.Error(codes.PermissionDenied, err.Error())
 		}
 
 		if errors.Is(err, service.ErrInvalidData) {
@@ -63,7 +67,7 @@ func (serv *OrderServer) CreateOrder(ctx context.Context, req *orderpb.CreateOrd
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	resp := serv.mapper.MapOrderToPbResponse(order)
+	resp := serv.mapper.MapOrderToPbResponse(createdOrder)
 	return resp, nil
 }
 

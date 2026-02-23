@@ -12,6 +12,7 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -24,8 +25,11 @@ import (
 	"github.com/nullableocean/grpcservices/order/logger"
 	"github.com/nullableocean/grpcservices/order/seed"
 	"github.com/nullableocean/grpcservices/order/server"
+	"github.com/nullableocean/grpcservices/order/service/auth"
+	"github.com/nullableocean/grpcservices/order/service/cache/rdb"
 	"github.com/nullableocean/grpcservices/order/service/metrics"
 	"github.com/nullableocean/grpcservices/order/service/order"
+	"github.com/nullableocean/grpcservices/order/service/spot"
 	"github.com/nullableocean/grpcservices/order/service/store/ram"
 	"github.com/nullableocean/grpcservices/order/service/user"
 	"github.com/nullableocean/grpcservices/pkg/intercepter"
@@ -41,6 +45,18 @@ func start() error {
 	logger, err := logger.NewLogger(cnf)
 	if err != nil {
 		return fmt.Errorf("logger init error: %w", err)
+	}
+
+	redis := redis.NewClient(&redis.Options{
+		Addr:     cnf.Redis.Address,
+		DB:       cnf.Redis.DB,
+		Username: cnf.Redis.Username,
+		Password: cnf.Redis.Password,
+	})
+
+	err = redis.Ping(context.Background()).Err()
+	if err != nil {
+		return fmt.Errorf("redis ping error: %w", err)
 	}
 
 	//telemetry
@@ -88,13 +104,20 @@ func start() error {
 	}
 
 	// services init
+	marketsCache := rdb.NewMarketCache(redis, cnf.Redis.TTL)
+
 	spotClient := client.NewSpotClient(spotpb.NewSpotInstrumentClient(spotGrpcConnect))
+	spotInstrument := spot.NewSpotInstrument(spotClient)
+
+	cachedSpot := spot.NewCachedSpotInstrument(spotInstrument, marketsCache, logger)
 
 	userStore := ram.NewUserStore()
 	userService := user.NewUserService(userStore)
 
+	roleAccesser := auth.NewRoleAccessService()
+
 	orderStore := ram.NewOrderStore()
-	orderService := order.NewOrderService(orderStore, spotClient, userService)
+	orderService := order.NewOrderService(orderStore, cachedSpot, userService, roleAccesser)
 
 	orderServer := server.NewOrderServer(orderService, logger, orderServerMetrics)
 	orderpb.RegisterOrderServer(grpcServer, orderServer)

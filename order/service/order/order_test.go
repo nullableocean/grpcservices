@@ -57,8 +57,9 @@ func TestOrderService_CreateOrder(t *testing.T) {
 	spotInstrument := &mockSpotInstrument{}
 	userService := &mockUserService{}
 	orderStore := &mockOrderStore{}
+	roleAccess := auth.NewRoleAccessService()
 
-	orderServ := NewOrderService(orderStore, spotInstrument, userService)
+	orderServ := NewOrderService(orderStore, spotInstrument, userService, roleAccess)
 
 	passSer := auth.PasswordService{}
 	hash, _ := passSer.GetHashForPassword("password")
@@ -94,14 +95,124 @@ func TestOrderService_CreateOrder(t *testing.T) {
 	orderStore.AssertExpectations(t)
 }
 
+func TestOrderService_CreateOrderWithRoleRestrictions(t *testing.T) {
+	ctx := context.Background()
+
+	spotInstrument := &mockSpotInstrument{}
+	userService := &mockUserService{}
+	orderStore := &mockOrderStore{}
+	roleAccess := auth.NewRoleAccessService()
+
+	orderServ := NewOrderService(orderStore, spotInstrument, userService, roleAccess)
+
+	passSer := auth.PasswordService{}
+	hash, _ := passSer.GetHashForPassword("password")
+
+	btcMarket := domain.NewMarket(1, "BTC/USDT")
+	allowedMarkets := []*domain.Market{btcMarket}
+
+	t.Run("guest havent acces to but/sell", func(t *testing.T) {
+		guestUser := domain.NewUser(&domain.CreateUserDto{
+			Id:       1,
+			Username: "guestuser",
+			PassHash: hash,
+			Roles:    []roles.UserRole{roles.USER_GUEST},
+		})
+
+		buyOrderData := &domain.CreateOrderDto{
+			UserId:    1,
+			MarketId:  1,
+			Price:     50000.0,
+			Quantity:  1,
+			OrderType: order.ORDER_TYPE_BUY,
+		}
+
+		userService.On("GetUser", ctx, int64(1)).Return(guestUser, nil)
+		spotInstrument.On("ViewMarkets", ctx, guestUser.Roles()).Return(allowedMarkets, nil)
+
+		res, err := orderServ.CreateOrder(ctx, buyOrderData)
+		assert.Error(t, err)
+		assert.Nil(t, res)
+		assert.ErrorIs(t, err, ErrNotAllowed)
+
+		userService.On("GetUser", ctx, int64(1)).Return(guestUser, nil)
+		spotInstrument.On("ViewMarkets", ctx, guestUser.Roles()).Return(allowedMarkets, nil)
+
+		sellOrderData := &domain.CreateOrderDto{
+			UserId:    1,
+			MarketId:  1,
+			Price:     50000.0,
+			Quantity:  1,
+			OrderType: order.ORDER_TYPE_SELL,
+		}
+
+		res2, err2 := orderServ.CreateOrder(ctx, sellOrderData)
+		assert.Error(t, err2)
+		assert.Nil(t, res2)
+		assert.ErrorIs(t, err2, ErrNotAllowed)
+	})
+
+	t.Run("verified user has access to buy", func(t *testing.T) {
+		verifiedUser := domain.NewUser(&domain.CreateUserDto{
+			Id:       2,
+			Username: "verifieduser",
+			PassHash: hash,
+			Roles:    []roles.UserRole{roles.USER_VERIFIED},
+		})
+
+		verifiedOrderData := &domain.CreateOrderDto{
+			UserId:    2,
+			MarketId:  1,
+			Price:     50000.0,
+			Quantity:  1,
+			OrderType: order.ORDER_TYPE_BUY,
+		}
+
+		userService.On("GetUser", ctx, int64(2)).Return(verifiedUser, nil)
+		spotInstrument.On("ViewMarkets", ctx, verifiedUser.Roles()).Return(allowedMarkets, nil)
+		orderStore.On("Create", ctx, verifiedOrderData).Return(domain.NewOrder(2, verifiedOrderData), nil)
+
+		res, err := orderServ.CreateOrder(ctx, verifiedOrderData)
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
+	})
+
+	t.Run("seller user has access to sell", func(t *testing.T) {
+
+		sellerUser := domain.NewUser(&domain.CreateUserDto{
+			Id:       3,
+			Username: "selleruser",
+			PassHash: hash,
+			Roles:    []roles.UserRole{roles.USER_SELLER},
+		})
+
+		sellerOrderData := &domain.CreateOrderDto{
+			UserId:    3,
+			MarketId:  1,
+			Price:     50000.0,
+			Quantity:  1,
+			OrderType: order.ORDER_TYPE_SELL,
+		}
+
+		userService.On("GetUser", ctx, int64(3)).Return(sellerUser, nil)
+		spotInstrument.On("ViewMarkets", ctx, sellerUser.Roles()).Return(allowedMarkets, nil)
+		orderStore.On("Create", ctx, sellerOrderData).Return(domain.NewOrder(3, sellerOrderData), nil)
+
+		res, err := orderServ.CreateOrder(ctx, sellerOrderData)
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
+	})
+}
+
 func TestOrderService_CreateOrderWithNotAllowedMarket(t *testing.T) {
 	ctx := context.Background()
 
 	spotInstrument := &mockSpotInstrument{}
 	userService := &mockUserService{}
 	orderStore := &mockOrderStore{}
+	roleAccess := auth.NewRoleAccessService()
 
-	orderServ := NewOrderService(orderStore, spotInstrument, userService)
+	orderServ := NewOrderService(orderStore, spotInstrument, userService, roleAccess)
 
 	passSer := auth.PasswordService{}
 	hash, _ := passSer.GetHashForPassword("password")
@@ -141,8 +252,9 @@ func TestOrderService_GetOrderStatus(t *testing.T) {
 	spotInstrument := &mockSpotInstrument{}
 	userService := &mockUserService{}
 	orderStore := &mockOrderStore{}
+	roleAccess := auth.NewRoleAccessService()
 
-	orderServ := NewOrderService(orderStore, spotInstrument, userService)
+	orderServ := NewOrderService(orderStore, spotInstrument, userService, roleAccess)
 
 	orderData := &domain.CreateOrderDto{
 		UserId:    1,
@@ -167,8 +279,9 @@ func TestOrderService_ChangeStatus(t *testing.T) {
 	spotInstrument := &mockSpotInstrument{}
 	userService := &mockUserService{}
 	orderStore := &mockOrderStore{}
+	roleAccess := auth.NewRoleAccessService()
 
-	orderServ := NewOrderService(orderStore, spotInstrument, userService)
+	orderServ := NewOrderService(orderStore, spotInstrument, userService, roleAccess)
 
 	passSer := auth.PasswordService{}
 	hash, _ := passSer.GetHashForPassword("password")
