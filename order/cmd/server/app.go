@@ -136,7 +136,7 @@ func start() error {
 	}
 
 	// тестовые юзеры если установлен флаг --seed
-	if cnf.Seed.Need {
+	if cnf.Seed {
 		seed.SeedUsers(logger, userService)
 	}
 

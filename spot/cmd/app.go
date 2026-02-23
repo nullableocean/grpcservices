@@ -88,7 +88,7 @@ func start() error {
 		Handler: mux,
 	}
 
-	if cnf.Seed.Need {
+	if cnf.Seed {
 		seed.SeedMarkets(logger, spotInstrumentService)
 	}
 
