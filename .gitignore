@@ -13,8 +13,8 @@ order/bin/logs/*
 spot/cmd/logs/*
 order/cmd/logs/*
 
+go.sum
 order/go.sum
 spot/go.sum
 pkg/go.sum
 api/go.sum
-go.sum
