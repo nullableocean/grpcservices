@@ -29,6 +29,10 @@ func NewUserService(store UserStore) *UserService {
 	}
 }
 
+func (s *UserService) GetUser(ctx context.Context, id int64) (*domain.User, error) {
+	return s.store.Get(ctx, id)
+}
+
 func (s *UserService) CreateUser(ctx context.Context, username string, pass string, roles []roles.UserRole) (*domain.User, error) {
 
 	passHash, err := s.passService.GetHashForPassword(pass)
@@ -44,10 +48,6 @@ func (s *UserService) CreateUser(ctx context.Context, username string, pass stri
 	}
 
 	return s.store.Save(ctx, createDto)
-}
-
-func (s *UserService) GetUser(ctx context.Context, id int64) (*domain.User, error) {
-	return s.store.Get(ctx, id)
 }
 
 func (s *UserService) DeleteUser(ctx context.Context, id int64) error {

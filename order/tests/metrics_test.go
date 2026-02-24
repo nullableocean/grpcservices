@@ -10,11 +10,13 @@ import (
 	"github.com/nullableocean/grpcservices/order/service/auth"
 	"github.com/nullableocean/grpcservices/order/service/metrics"
 	"github.com/nullableocean/grpcservices/order/service/order"
+	"github.com/nullableocean/grpcservices/order/service/stockmarket"
 	"github.com/nullableocean/grpcservices/order/service/store/ram"
 	"github.com/nullableocean/grpcservices/pkg/roles"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
 
@@ -60,7 +62,15 @@ func TestMetrics(t *testing.T) {
 	store := ram.NewOrderStore()
 
 	roleAccess := auth.NewRoleAccessService()
-	orderService := order.NewOrderService(store, spotInstrument, userService, roleAccess)
+
+	marketClient := stockmarket.NewDummyMarketClient()
+	marketEvBroker := stockmarket.NewDummyBroker(ram.NewOrderStore())
+	eventStore := ram.NewEventStore()
+
+	stockMarket, err := stockmarket.NewStockMarketService(zap.NewNop(), marketClient, marketEvBroker, eventStore)
+	require.NoError(t, err)
+
+	orderService := order.NewOrderService(zap.NewNop(), stockMarket, store, spotInstrument, userService, roleAccess)
 
 	reg := prometheus.NewRegistry()
 	orderMetrics := metrics.NewOrderMetrics(reg)

@@ -30,6 +30,7 @@ import (
 	"github.com/nullableocean/grpcservices/order/service/metrics"
 	"github.com/nullableocean/grpcservices/order/service/order"
 	"github.com/nullableocean/grpcservices/order/service/spot"
+	"github.com/nullableocean/grpcservices/order/service/stockmarket"
 	"github.com/nullableocean/grpcservices/order/service/store/ram"
 	"github.com/nullableocean/grpcservices/order/service/user"
 	"github.com/nullableocean/grpcservices/pkg/intercepter"
@@ -117,7 +118,17 @@ func start() error {
 	roleAccesser := auth.NewRoleAccessService()
 
 	orderStore := ram.NewOrderStore()
-	orderService := order.NewOrderService(orderStore, cachedSpot, userService, roleAccesser)
+
+	marketClient := stockmarket.NewDummyMarketClient()
+	marketEvBroker := stockmarket.NewDummyBroker(orderStore)
+	eventStore := ram.NewEventStore()
+
+	stockMarket, err := stockmarket.NewStockMarketService(logger, marketClient, marketEvBroker, eventStore)
+	if err != nil {
+		return fmt.Errorf("create stock market service error: %w", err)
+	}
+
+	orderService := order.NewOrderService(logger, stockMarket, orderStore, cachedSpot, userService, roleAccesser)
 
 	orderServer := server.NewOrderServer(orderService, logger, orderServerMetrics)
 	orderpb.RegisterOrderServer(grpcServer, orderServer)

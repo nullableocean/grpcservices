@@ -378,10 +378,11 @@ const file_order_proto_rawDesc = "" +
 	"\x14ORDER_STATUS_CREATED\x10\x01\x12\x18\n" +
 	"\x14ORDER_STATUS_PENDING\x10\x02\x12\x1a\n" +
 	"\x16ORDER_STATUS_COMPLETED\x10\x03\x12\x19\n" +
-	"\x15ORDER_STATUS_REJECTED\x10\x042\x9a\x01\n" +
+	"\x15ORDER_STATUS_REJECTED\x10\x042\xe9\x01\n" +
 	"\x05Order\x12H\n" +
 	"\vCreateOrder\x12\x1b.orderpb.CreateOrderRequest\x1a\x1c.orderpb.CreateOrderResponse\x12G\n" +
-	"\x0eGetOrderStatus\x12\x19.orderpb.GetStatusRequest\x1a\x1a.orderpb.GetStatusResponseB3Z1github.com/nullableocean/grpcservices/api/orderpbb\x06proto3"
+	"\x0eGetOrderStatus\x12\x19.orderpb.GetStatusRequest\x1a\x1a.orderpb.GetStatusResponse\x12M\n" +
+	"\x12StreamOrderUpdates\x12\x19.orderpb.GetStatusRequest\x1a\x1a.orderpb.GetStatusResponse0\x01B3Z1github.com/nullableocean/grpcservices/api/orderpbb\x06proto3"
 
 var (
 	file_order_proto_rawDescOnce sync.Once
@@ -411,10 +412,12 @@ var file_order_proto_depIdxs = []int32{
 	1, // 2: orderpb.CreateOrderResponse.status:type_name -> orderpb.OrderStatus
 	4, // 3: orderpb.Order.CreateOrder:input_type -> orderpb.CreateOrderRequest
 	2, // 4: orderpb.Order.GetOrderStatus:input_type -> orderpb.GetStatusRequest
-	5, // 5: orderpb.Order.CreateOrder:output_type -> orderpb.CreateOrderResponse
-	3, // 6: orderpb.Order.GetOrderStatus:output_type -> orderpb.GetStatusResponse
-	5, // [5:7] is the sub-list for method output_type
-	3, // [3:5] is the sub-list for method input_type
+	2, // 5: orderpb.Order.StreamOrderUpdates:input_type -> orderpb.GetStatusRequest
+	5, // 6: orderpb.Order.CreateOrder:output_type -> orderpb.CreateOrderResponse
+	3, // 7: orderpb.Order.GetOrderStatus:output_type -> orderpb.GetStatusResponse
+	3, // 8: orderpb.Order.StreamOrderUpdates:output_type -> orderpb.GetStatusResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
 	3, // [3:3] is the sub-list for extension extendee
 	0, // [0:3] is the sub-list for field type_name

@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Order_CreateOrder_FullMethodName    = "/orderpb.Order/CreateOrder"
-	Order_GetOrderStatus_FullMethodName = "/orderpb.Order/GetOrderStatus"
+	Order_CreateOrder_FullMethodName        = "/orderpb.Order/CreateOrder"
+	Order_GetOrderStatus_FullMethodName     = "/orderpb.Order/GetOrderStatus"
+	Order_StreamOrderUpdates_FullMethodName = "/orderpb.Order/StreamOrderUpdates"
 )
 
 // OrderClient is the client API for Order service.
@@ -29,6 +30,7 @@ const (
 type OrderClient interface {
 	CreateOrder(ctx context.Context, in *CreateOrderRequest, opts ...grpc.CallOption) (*CreateOrderResponse, error)
 	GetOrderStatus(ctx context.Context, in *GetStatusRequest, opts ...grpc.CallOption) (*GetStatusResponse, error)
+	StreamOrderUpdates(ctx context.Context, in *GetStatusRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetStatusResponse], error)
 }
 
 type orderClient struct {
@@ -59,12 +61,32 @@ func (c *orderClient) GetOrderStatus(ctx context.Context, in *GetStatusRequest, 
 	return out, nil
 }
 
+func (c *orderClient) StreamOrderUpdates(ctx context.Context, in *GetStatusRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetStatusResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &Order_ServiceDesc.Streams[0], Order_StreamOrderUpdates_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[GetStatusRequest, GetStatusResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Order_StreamOrderUpdatesClient = grpc.ServerStreamingClient[GetStatusResponse]
+
 // OrderServer is the server API for Order service.
 // All implementations must embed UnimplementedOrderServer
 // for forward compatibility.
 type OrderServer interface {
 	CreateOrder(context.Context, *CreateOrderRequest) (*CreateOrderResponse, error)
 	GetOrderStatus(context.Context, *GetStatusRequest) (*GetStatusResponse, error)
+	StreamOrderUpdates(*GetStatusRequest, grpc.ServerStreamingServer[GetStatusResponse]) error
 	mustEmbedUnimplementedOrderServer()
 }
 
@@ -80,6 +102,9 @@ func (UnimplementedOrderServer) CreateOrder(context.Context, *CreateOrderRequest
 }
 func (UnimplementedOrderServer) GetOrderStatus(context.Context, *GetStatusRequest) (*GetStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetOrderStatus not implemented")
+}
+func (UnimplementedOrderServer) StreamOrderUpdates(*GetStatusRequest, grpc.ServerStreamingServer[GetStatusResponse]) error {
+	return status.Error(codes.Unimplemented, "method StreamOrderUpdates not implemented")
 }
 func (UnimplementedOrderServer) mustEmbedUnimplementedOrderServer() {}
 func (UnimplementedOrderServer) testEmbeddedByValue()               {}
@@ -138,6 +163,17 @@ func _Order_GetOrderStatus_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Order_StreamOrderUpdates_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetStatusRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(OrderServer).StreamOrderUpdates(m, &grpc.GenericServerStream[GetStatusRequest, GetStatusResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Order_StreamOrderUpdatesServer = grpc.ServerStreamingServer[GetStatusResponse]
+
 // Order_ServiceDesc is the grpc.ServiceDesc for Order service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -154,6 +190,12 @@ var Order_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Order_GetOrderStatus_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "StreamOrderUpdates",
+			Handler:       _Order_StreamOrderUpdates_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "order.proto",
 }

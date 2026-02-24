@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -98,4 +99,41 @@ func (serv *OrderServer) GetOrderStatus(ctx context.Context, req *orderpb.GetSta
 	}
 
 	return resp, nil
+}
+
+func (serv *OrderServer) StreamOrderUpdates(req *orderpb.GetStatusRequest, stream grpc.ServerStreamingServer[orderpb.GetStatusResponse]) error {
+	serv.logger.Info("got stream order updates request",
+		zap.Int64("user_id", req.UserId),
+		zap.Int64("order_id", req.OrderId),
+	)
+
+	orderId := req.OrderId
+	userId := req.UserId
+
+	sub, err := serv.orderService.SubOrderUpdates(stream.Context(), orderId, userId)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			return status.Error(codes.NotFound, err.Error())
+		}
+
+		if errors.Is(err, service.ErrInvalidData) {
+			return status.Error(codes.InvalidArgument, err.Error())
+		}
+
+		return status.Error(codes.Internal, err.Error())
+	}
+
+	defer serv.orderService.DissubOrderUpdates(stream.Context(), orderId, sub.Id)
+
+	for newStatus := range sub.StatusCh {
+		err := stream.Send(&orderpb.GetStatusResponse{
+			Status: orderpb.OrderStatus(newStatus),
+		})
+		if err != nil {
+			serv.logger.Info("stream send order status error", zap.Error(err))
+			break
+		}
+	}
+
+	return nil
 }

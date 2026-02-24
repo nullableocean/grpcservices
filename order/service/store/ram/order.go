@@ -25,6 +25,18 @@ func NewOrderStore() *OrderStore {
 	}
 }
 
+func (s *OrderStore) GetAll(ctx context.Context) []*domain.Order {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	out := make([]*domain.Order, 0, len(s.store))
+	for _, o := range s.store {
+		out = append(out, o)
+	}
+
+	return out
+}
+
 func (s *OrderStore) Get(ctx context.Context, id int64) (*domain.Order, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

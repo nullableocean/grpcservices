@@ -7,6 +7,7 @@ option go_package = "github.com/nullableocean/grpcservices/api/orderpb";
 service Order {
     rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
     rpc GetOrderStatus(GetStatusRequest) returns (GetStatusResponse);
+    rpc StreamOrderUpdates(GetStatusRequest) returns (stream GetStatusResponse);
 }
 
 message GetStatusRequest {

@@ -7,10 +7,14 @@ import (
 	"github.com/nullableocean/grpcservices/order/domain"
 	"github.com/nullableocean/grpcservices/order/service"
 	"github.com/nullableocean/grpcservices/order/service/auth"
+	"github.com/nullableocean/grpcservices/order/service/stockmarket"
+	"github.com/nullableocean/grpcservices/order/service/store/ram"
 	"github.com/nullableocean/grpcservices/pkg/order"
 	"github.com/nullableocean/grpcservices/pkg/roles"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 type mockSpotInstrument struct {
@@ -59,7 +63,14 @@ func TestOrderService_CreateOrder(t *testing.T) {
 	orderStore := &mockOrderStore{}
 	roleAccess := auth.NewRoleAccessService()
 
-	orderServ := NewOrderService(orderStore, spotInstrument, userService, roleAccess)
+	marketClient := stockmarket.NewDummyMarketClient()
+	marketEvBroker := stockmarket.NewDummyBroker(ram.NewOrderStore())
+	eventStore := ram.NewEventStore()
+
+	stockMarket, err := stockmarket.NewStockMarketService(zap.NewNop(), marketClient, marketEvBroker, eventStore)
+	require.NoError(t, err)
+
+	orderServ := NewOrderService(zap.NewNop(), stockMarket, orderStore, spotInstrument, userService, roleAccess)
 
 	passSer := auth.PasswordService{}
 	hash, _ := passSer.GetHashForPassword("password")
@@ -103,7 +114,14 @@ func TestOrderService_CreateOrderWithRoleRestrictions(t *testing.T) {
 	orderStore := &mockOrderStore{}
 	roleAccess := auth.NewRoleAccessService()
 
-	orderServ := NewOrderService(orderStore, spotInstrument, userService, roleAccess)
+	marketClient := stockmarket.NewDummyMarketClient()
+	marketEvBroker := stockmarket.NewDummyBroker(ram.NewOrderStore())
+	eventStore := ram.NewEventStore()
+
+	stockMarket, err := stockmarket.NewStockMarketService(zap.NewNop(), marketClient, marketEvBroker, eventStore)
+	require.NoError(t, err)
+
+	orderServ := NewOrderService(zap.NewNop(), stockMarket, orderStore, spotInstrument, userService, roleAccess)
 
 	passSer := auth.PasswordService{}
 	hash, _ := passSer.GetHashForPassword("password")
@@ -212,7 +230,14 @@ func TestOrderService_CreateOrderWithNotAllowedMarket(t *testing.T) {
 	orderStore := &mockOrderStore{}
 	roleAccess := auth.NewRoleAccessService()
 
-	orderServ := NewOrderService(orderStore, spotInstrument, userService, roleAccess)
+	marketClient := stockmarket.NewDummyMarketClient()
+	marketEvBroker := stockmarket.NewDummyBroker(ram.NewOrderStore())
+	eventStore := ram.NewEventStore()
+
+	stockMarket, err := stockmarket.NewStockMarketService(zap.NewNop(), marketClient, marketEvBroker, eventStore)
+	require.NoError(t, err)
+
+	orderServ := NewOrderService(zap.NewNop(), stockMarket, orderStore, spotInstrument, userService, roleAccess)
 
 	passSer := auth.PasswordService{}
 	hash, _ := passSer.GetHashForPassword("password")
@@ -254,7 +279,14 @@ func TestOrderService_GetOrderStatus(t *testing.T) {
 	orderStore := &mockOrderStore{}
 	roleAccess := auth.NewRoleAccessService()
 
-	orderServ := NewOrderService(orderStore, spotInstrument, userService, roleAccess)
+	marketClient := stockmarket.NewDummyMarketClient()
+	marketEvBroker := stockmarket.NewDummyBroker(ram.NewOrderStore())
+	eventStore := ram.NewEventStore()
+
+	stockMarket, err := stockmarket.NewStockMarketService(zap.NewNop(), marketClient, marketEvBroker, eventStore)
+	require.NoError(t, err)
+
+	orderServ := NewOrderService(zap.NewNop(), stockMarket, orderStore, spotInstrument, userService, roleAccess)
 
 	orderData := &domain.CreateOrderDto{
 		UserId:    1,
@@ -281,7 +313,14 @@ func TestOrderService_ChangeStatus(t *testing.T) {
 	orderStore := &mockOrderStore{}
 	roleAccess := auth.NewRoleAccessService()
 
-	orderServ := NewOrderService(orderStore, spotInstrument, userService, roleAccess)
+	marketClient := stockmarket.NewDummyMarketClient()
+	marketEvBroker := stockmarket.NewDummyBroker(ram.NewOrderStore())
+	eventStore := ram.NewEventStore()
+
+	stockMarket, err := stockmarket.NewStockMarketService(zap.NewNop(), marketClient, marketEvBroker, eventStore)
+	require.NoError(t, err)
+
+	orderServ := NewOrderService(zap.NewNop(), stockMarket, orderStore, spotInstrument, userService, roleAccess)
 
 	passSer := auth.PasswordService{}
 	hash, _ := passSer.GetHashForPassword("password")
