@@ -1,0 +1,38 @@
+package user
+
+import (
+	"context"
+
+	"github.com/nullableocean/grpcservices/orderservice/internal/domain"
+	"github.com/nullableocean/grpcservices/shared/roles"
+)
+
+type UserClient interface {
+	GetUserRoles(ctx context.Context, userUuid string) ([]roles.UserRole, error)
+}
+
+type UserService struct {
+	client UserClient
+}
+
+func NewUserService(client UserClient) *UserService {
+	return &UserService{
+		client: client,
+	}
+}
+
+func (s *UserService) GetUser(ctx context.Context, userUuid string) (*domain.User, error) {
+	rls, err := s.client.GetUserRoles(ctx, userUuid)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: cache user
+
+	user := &domain.User{
+		UUID:  userUuid,
+		Roles: roles.NewRoles(rls...),
+	}
+
+	return user, err
+}

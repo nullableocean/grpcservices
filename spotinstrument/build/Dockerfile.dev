@@ -1,0 +1,19 @@
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app/build
+
+COPY api/ /app/api
+COPY shared/ /app/shared
+
+COPY spotinstrument/go.mod spotinstrument/go.sum ./
+RUN go mod download
+
+COPY spotinstrument/ .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app ./cmd
+
+FROM alpine:latest AS build
+
+WORKDIR /app
+COPY --from=builder /app/build/app .
+
+CMD ["./app", "--seed"]

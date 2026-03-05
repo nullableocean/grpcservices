@@ -1,15 +1,45 @@
 name: monitoring_services
 
 services:
+  promtail:
+    image: grafana/promtail:latest
+    restart: unless-stopped
+    mem_limit: 64m                        
+    mem_reservation: 32m
+    volumes:
+      - ./configs/promtail/promtail.yaml:/etc/promtail/config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro 
+    command: -config.file=/etc/promtail/config.yaml
+    depends_on:
+      loki:
+        condition: service_started
+    networks:
+      - monitoringnet
+
+  loki:
+    image: grafana/loki:latest
+    restart: unless-stopped
+    # mem_limit: 512m
+    # mem_reservation: 128m
+    expose:
+      - "3100"
+    volumes:
+      - ./configs/loki/loki.yaml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoringnet
+
   prometheus:
     image: prom/prometheus:latest
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prom_data:/prometheus
     networks:
       - monitoringnet
+    mem_limit: 512m
 
   grafana:
     image: grafana/grafana:latest
@@ -18,6 +48,8 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_LOGIN}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASS}
+      - GF_FEATURE_TOGGLES_ENABLE=accessControlOnCall
+      - GF_INSTALL_PLUGINS=https://storage.googleapis.com/integration-artifacts/grafana-lokiexplore-app/grafana-lokiexplore-app-latest.zip;grafana-lokiexplore-app
     volumes:
       - grafana_data:/var/lib/grafana
     networks:
@@ -35,12 +67,14 @@ services:
       - COLLECTOR_OTLP_ENABLED=true
     networks:
       - monitoringnet
+    mem_limit: 1g
 
 networks:
   monitoringnet:
-    driver: bridge
+    external: true
     name: monitoringnet
 
 volumes:
   prom_data:
   grafana_data:
+  loki_data:

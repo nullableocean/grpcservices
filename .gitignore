@@ -16,5 +16,6 @@ order/cmd/logs/*
 go.sum
 order/go.sum
 spot/go.sum
-pkg/go.sum
+shared/go.sum
 api/go.sum
+cli.sh

@@ -1,0 +1,67 @@
+services:
+  orderapp:
+    container_name: orderapp
+    build:
+      context: ../
+      dockerfile: orderservice/build/Dockerfile.dev
+    volumes:
+      - "./logs:/app/logs"
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    expose:
+      - "${METRICS_PORT}"
+    env_file: 
+      - ./.env
+    networks:
+      - brokernet
+      - ordernet
+      - grpcservices
+      - monitoringnet
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+       test: ["CMD", "curl", "-f", "http://localhost:${METRICS_PORT}/health"]
+       interval: 30s
+       timeout: 15s
+       retries: 5
+       start_period: 15s
+    restart: on-failure:3
+    labels:
+      - promtail_logs=true
+
+  redis:
+    image: redis:8.6.0-alpine
+    ports:
+      - "${REDIS_PORT}:6379"
+    networks:
+      - ordernet
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_USERNAME=${REDIS_USERNAME:-}
+    volumes:
+      - orderredisdata:/data
+
+networks:
+  ordernet:
+    driver: bridge
+    name: ordernet
+  monitoringnet:
+    external: true
+    name: monitoringnet
+  grpcservices:
+    external: true
+    name: grpcservices
+  brokernet:
+    external: true
+    name: brokernet
+
+
+volumes:
+  orderredisdata:

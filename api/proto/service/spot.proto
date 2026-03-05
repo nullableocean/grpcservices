@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package spot.v1;
+
+option go_package = "github.com/nullableocean/grpcservices/api/gen/spot/v1;spotv1";
+
+import "types/common.proto";
+
+service SpotInstrument {
+    rpc ViewMarkets(ViewMarketsRequest) returns (ViewMarketsResponse);
+}
+
+message ViewMarketsResponse {
+    repeated Market markets = 1;
+}
+
+message ViewMarketsRequest {
+    repeated types.v1.UserRole user_roles = 1;
+}
+
+message Market {
+    string uuid = 1; //uuid
+    string name = 2;
+}

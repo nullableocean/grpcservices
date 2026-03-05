@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package events.order.v1;
+
+option go_package = "github.com/nullableocean/grpcservices/api/gen/events/order/v1;ordereventsv1";
+
+import "types/common.proto";
+import "google/protobuf/timestamp.proto";
+
+message UpdateStatus {
+    string uuid = 1; //uuid
+    string order_uuid = 2; //uuid
+    types.v1.OrderStatus new_status = 3;
+    google.protobuf.Timestamp created_at = 4;
+}

@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package order.v1;
+
+option go_package = "github.com/nullableocean/grpcservices/api/gen/order/v1;orderv1";
+
+import "types/money.proto";
+import "types/common.proto";
+
+service Order {
+    rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+    rpc GetOrderStatus(GetStatusRequest) returns (GetStatusResponse);
+    rpc StreamOrderUpdates(GetStatusRequest) returns (stream GetStatusResponse);
+}
+
+message GetStatusRequest {
+    string order_uuid = 1; //uuid
+    string user_uuid = 2; //uuid
+}
+
+message GetStatusResponse {
+    types.v1.OrderStatus status = 1;
+}
+
+message CreateOrderRequest {
+    string user_uuid = 1; //uuid
+    string market_id = 2; //uuid
+    types.v1.OrderType order_type = 3;
+    types.v1.Money price = 4;
+    int64 quantity = 5;
+}
+
+message CreateOrderResponse {
+    string order_uuid = 1; // uuid
+    types.v1.OrderStatus status = 2;
+}

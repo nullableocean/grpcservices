@@ -1,80 +1,111 @@
-PACKAGE="github.com/nullableocean/grpcservices"
+.PHONY: up down up-monitoring localbuild-spot localbuild-spot up-mon up-srvs test logs create-net rm-net up-broker down-broker
 
-.PHONY: up down up-monitoring localbuild-spot localbuild-spot up-mon up-srvs test
+MONITORING_NET=monitoringnet
+BROKER_NET=brokernet
+SERVICES_NET=grpcservices
 
-localbuild-spot:
-	cd spot && go build -o bin/spot ./cmd
-	cp spot/.env spot/bin/.env
 
-localbuild-order:
-	cd order && go build -o bin/orderserv ./cmd/server
-	cp order/.env order/bin/.env
-
-localbuild-order-cli:
-	cd order && go build -o bin/ordercli ./cmd/client
+genapi:
+	cd api && make gen
 
 # up all monintoring + services
-up: genapi tidy mod-download up-mon up-srvs
+up: genapi create-net up-mon up-broker up-srvs
 	@echo "=== OK ==="
 	@echo "grafana: http://localhost:3000"
 	@echo "jaeger: http://localhost:16686"
 
-down: down-srvs down-mon
+down: down-srvs down-mon down-broker
 	@echo "=== SERVICES DOWNED === "
 
-#restart + rebuild compose only services
-restart-srvs: down-srvs up-srvs
 
-up-srvs:
-	@echo "=== UP SPOT SERVICE ==="
-	docker compose -f spot/compose.dev.yml up -d --build
-	@echo "=== UP ORDER SERVICE ==="
-	docker compose -f order/compose.dev.yml up -d --build
+create-net:
+	docker network inspect ${MONITORING_NET} >/dev/null 2>&1 || docker network create ${MONITORING_NET}
+	docker network inspect ${BROKER_NET} >/dev/null 2>&1 || docker network create ${BROKER_NET}
+	docker network inspect ${SERVICES_NET} >/dev/null 2>&1 || docker network create ${SERVICES_NET}
+
+rm-net:
+	-docker network rm ${MONITORING_NET} 2>/dev/null
+	-docker network rm ${BROKER_NET} 2>/dev/null
+	-docker network rm ${SERVICES_NET} 2>/dev/null
+
+
 
 up-mon:
 	@echo "=== UP METRICS PANELS ==="
-	docker compose -f metrics/compose.yml up -d
+	cd metrics && make up
 	@sleep 3
-
-down-srvs:
-	@echo "=== DOWN ORDER SERVICE ==="
-	docker compose -f order/compose.dev.yml down
-	@echo "=== DOWN SPOT SERVICE ==="
-	docker compose -f spot/compose.dev.yml down
 
 down-mon:
 	@echo "=== DOWN METRICS PANELS ==="
 	docker compose -f metrics/compose.yml down
+
+up-broker:
+	@echo "=== UP KAFKA BROKER ==="
+	cd kafka && make up
 	@sleep 3
 
+down-broker:
+	@echo "=== DOWN KAFKA BROKER ==="
+	cd kafka && make down
 
-logs-order:
-	docker compose -f order/compose.dev.yml logs orderapp
+up-srvs:
+	@echo "=== UP USER SERVICE ==="
+	cd userservice && make up
 
-logs-spot:
-	docker compose -f spot/compose.dev.yml logs spotapp
+	@echo "=== UP STOCKMARKET SERVICE ==="
+	cd stockmarketservice && make up
+
+	@echo "=== UP SPOT SERVICE ==="
+	cd spotinstrument && make up
+
+	@echo "=== UP ORDER SERVICE ==="
+	cd orderservice && make up
+
+restart-srvs: down-srvs up-srvs
+
+down-srvs:
+	@echo "=== DOWN ORDER SERVICE ==="
+	cd orderservice && make down
+
+	@echo "=== DOWN STOCKMARKET SERVICE ==="
+	cd stockmarketservice && make down
+
+	@echo "=== DOWN SPOT SERVICE ==="
+	cd spotinstrument && make down
+
+	@echo "=== DOWN USER SERVICE ==="
+	cd userservice && make down
 
 
-test:
-	@echo "\n\nSPOT SERVICE TESTS\n"
-	cd spot && make test
-	@echo "\n\nORDER SERVICE TESTS\n"
-	cd order && make test
+logs:
+	@echo "=== LOGS ORDER SERVICE ==="
+	cd orderservice && make logs
+	@echo
+	@echo
+	@echo "=== LOGS STOCKMARKET SERVICE ==="
+	cd stockmarketservice && make logs
+	@echo
+	@echo
+	@echo "=== LOGS SPOT SERVICE ==="
+	cd spotinstrument && make logs
+	@echo
+	@echo
+	@echo "=== LOGS USER SERVICE ==="
+	cd userservice && make logs
 
 tidy:
-	cd pkg   && go mod tidy
+	cd shared   && go mod tidy
 	cd api   && go mod tidy
-	cd spot  && go mod tidy
-	cd order && go mod tidy
+	cd spotinstrument  && go mod tidy
+	cd orderservice && go mod tidy
+	cd stockmarketservice && go mod tidy
+	cd userservice && go mod tidy
 
 mod-download:
-	cd pkg   && go mod download
+	cd shared   && go mod download
 	cd api   && go mod download
-	cd spot  && go mod download
-	cd order && go mod download
+	cd spotinstrument  && go mod download
+	cd orderservice && go mod download
+	cd stockmarketservice && go mod download
+	cd userservice && go mod download
 
-genapi:
-	protoc -I api --go_opt=module=${PACKAGE} --go_out=. \
-	--go-grpc_opt=module=${PACKAGE} --go-grpc_out=. \
-	api/*.proto
-	cd api && go mod tidy
