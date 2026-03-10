@@ -84,11 +84,3 @@ OrderService
     • Документация gRPC для Go: https://grpc.io/docs/languages/go/
     • Prometheus для Go: https://prometheus.io/docs/guides/go-application/
     • Пример настройки Prometheus: https://github.com/prometheus/prometheus
-
-\
-
-fix:
-	id -- uuid 
-	price -- decimal, money libre
-	
-	structure catalogs
