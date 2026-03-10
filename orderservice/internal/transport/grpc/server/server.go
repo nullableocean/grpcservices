@@ -1,4 +1,4 @@
-package orderserver
+package server
 
 import (
 	"context"
@@ -15,9 +15,9 @@ import (
 	orderv1 "github.com/nullableocean/grpcservices/api/gen/order/v1"
 	typesv1 "github.com/nullableocean/grpcservices/api/gen/types/v1"
 	"github.com/nullableocean/grpcservices/orderservice/internal/errs"
-	"github.com/nullableocean/grpcservices/orderservice/internal/service/metrics"
+	"github.com/nullableocean/grpcservices/orderservice/internal/metrics"
+	insideHandlers "github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside/handlers"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/order"
-	"github.com/nullableocean/grpcservices/orderservice/internal/service/order/streamer"
 	"github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/mapping"
 )
 
@@ -25,18 +25,16 @@ type OrderServer struct {
 	orderv1.UnimplementedOrderServer
 
 	orderService   *order.OrderService
-	orderProcessor order.Processor
-	changeStreamer *streamer.ChangesStreamer
+	statusStreamer *insideHandlers.StatusStreamer
 
 	metrics *metrics.OrderServiceMetrics
 	logger  *zap.Logger
 }
 
-func NewOrderServer(orderService *order.OrderService, logger *zap.Logger, metrics *metrics.OrderServiceMetrics, changeStreamer *streamer.ChangesStreamer, orderProcessor order.Processor) *OrderServer {
+func NewOrderServer(logger *zap.Logger, orderService *order.OrderService, metrics *metrics.OrderServiceMetrics, statusStreamer *insideHandlers.StatusStreamer) *OrderServer {
 	return &OrderServer{
 		orderService:   orderService,
-		changeStreamer: changeStreamer,
-		orderProcessor: orderProcessor,
+		statusStreamer: statusStreamer,
 
 		metrics: metrics,
 		logger:  logger,
@@ -53,8 +51,7 @@ func (serv *OrderServer) CreateOrder(ctx context.Context, req *orderv1.CreateOrd
 		zap.String("price", orderCreatingData.Price.Decimal.String()),
 	)
 
-	// телеметрия, метрики
-	ctx, span := otel.Tracer("order_service").Start(ctx, "create_order")
+	ctx, span := otel.Tracer("order_server").Start(ctx, "create_order")
 	defer span.End()
 
 	start := time.Now()
@@ -65,21 +62,14 @@ func (serv *OrderServer) CreateOrder(ctx context.Context, req *orderv1.CreateOrd
 	createdOrder, err := serv.orderService.CreateOrder(ctx, orderCreatingData)
 	if err != nil {
 		span.AddEvent("create order error")
-
 		serv.logger.Warn("failed create order", zap.Error(err))
+
 		return nil, serv.getGrpcError(err)
 	}
 
+	serv.logger.Info("order created", zap.String("order_uuid", createdOrder.UUID))
 	span.AddEvent("order created")
 	span.SetAttributes(attribute.String("order_uuid", createdOrder.UUID))
-
-	serv.logger.Info("order created", zap.String("order_uuid", createdOrder.UUID))
-
-	err = serv.orderProcessor.Process(ctx, createdOrder)
-	if err != nil {
-		span.AddEvent("failed order process")
-		serv.logger.Warn("failed process order", zap.Error(err))
-	}
 
 	resp := mapping.MapDomainOrderToProtoResponse(createdOrder)
 	return resp, nil
@@ -136,7 +126,7 @@ func (serv *OrderServer) StreamOrderUpdates(req *orderv1.GetStatusRequest, strea
 	defer span.End()
 	span.SetAttributes(attribute.String("order_uuid", orderUuid))
 
-	_, err := serv.orderService.FindOrder(ctx, orderUuid, userUuid)
+	_, err := serv.orderService.FindOrderForUser(ctx, orderUuid, userUuid)
 	if err != nil {
 		span.AddEvent("failed streaming request")
 		logger.Warn("failed find order for request", zap.Error(err))
@@ -144,21 +134,20 @@ func (serv *OrderServer) StreamOrderUpdates(req *orderv1.GetStatusRequest, strea
 		return serv.getGrpcError(err)
 	}
 
-	sub, err := serv.changeStreamer.Sub(ctx, orderUuid)
+	sub, err := serv.statusStreamer.Subscribe(ctx, orderUuid)
 	if err != nil {
 		span.AddEvent("failed streaming request")
 		logger.Warn("error subscription on update in order service", zap.Error(err))
 
 		return serv.getGrpcError(err)
 	}
-	defer serv.changeStreamer.Dissub(ctx, orderUuid, sub.Id)
+	defer serv.statusStreamer.Unsubscribe(ctx, orderUuid, sub.Id)
 
-	statusesCh := streamer.WatchStatusChanges(ctx, sub)
-	for statusChange := range statusesCh {
-		logger.Info("get status changes", zap.String("new_status", statusChange.NewStatus.String()))
+	for newStatusEvent := range sub.EventCh {
+		logger.Info("send updated status in stream", zap.String("new_status", newStatusEvent.NewStatus.String()))
 
 		err := stream.Send(&orderv1.GetStatusResponse{
-			Status: typesv1.OrderStatus(statusChange.NewStatus),
+			Status: typesv1.OrderStatus(newStatusEvent.NewStatus),
 		})
 		if err != nil {
 			serv.logger.Info("failed send to stream", zap.Error(err))

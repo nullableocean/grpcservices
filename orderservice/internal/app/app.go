@@ -17,21 +17,24 @@ import (
 	stockmarketv1 "github.com/nullableocean/grpcservices/api/gen/stockmarket/v1"
 	userv1 "github.com/nullableocean/grpcservices/api/gen/user/v1"
 	"github.com/nullableocean/grpcservices/orderservice/internal/config"
+	"github.com/nullableocean/grpcservices/orderservice/internal/metrics"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/access"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/cache/rdb"
-	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/update"
-	"github.com/nullableocean/grpcservices/orderservice/internal/service/metrics"
+	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside"
+	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside/bus"
+	insideHandler "github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside/handlers"
+	outsideHandlers "github.com/nullableocean/grpcservices/orderservice/internal/service/events/outside/handlers"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/order"
-	"github.com/nullableocean/grpcservices/orderservice/internal/service/order/streamer"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/spot"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/stockmarket"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/user"
 	"github.com/nullableocean/grpcservices/orderservice/internal/store/ram"
 	"github.com/nullableocean/grpcservices/orderservice/internal/transport/amqp/listener"
+	"github.com/nullableocean/grpcservices/orderservice/internal/transport/amqp/writer"
 	"github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/client/spotinstrument"
 	transport "github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/client/stockmarket"
 	"github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/client/userservice"
-	"github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/server/orderserver"
+	"github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/server"
 	"github.com/nullableocean/grpcservices/shared/intercepter"
 	"github.com/nullableocean/grpcservices/shared/telemetry"
 	"github.com/prometheus/client_golang/prometheus"
@@ -59,16 +62,23 @@ func Run(cnf *config.Config, logger *zap.Logger) error {
 		StartOffset:    kafka.FirstOffset,
 	})
 
+	kafkaCreatedOrderWriter := kafka.NewWriter(kafka.WriterConfig{
+		Brokers: []string{cnf.Kafka.Endpoint},
+		Topic:   cnf.Kafka.OrderCreatedTopic,
+	})
+	kafkaCreatedOrderWriter.AllowAutoTopicCreation = true
+
 	kfkDlqWriter := kafka.NewWriter(kafka.WriterConfig{
 		Brokers: []string{cnf.Kafka.Endpoint},
 		Topic:   cnf.Kafka.DLQTopic,
 	})
+	kfkDlqWriter.AllowAutoTopicCreation = true
 
 	//telemetry
 	collectRatio := float64(1)
 	shutdown, err := telemetry.InitTelemetryWithJaeger(cnf.App.Name, cnf.Telemetry.JaegerGrpcAddress, collectRatio)
 	if err != nil {
-		return fmt.Errorf("init telemetry jaeger exporter error: %w", err)
+		return fmt.Errorf("failed init telemetry jaeger exporter: %w", err)
 	}
 	defer shutdown(context.Background())
 
@@ -98,6 +108,9 @@ func Run(cnf *config.Config, logger *zap.Logger) error {
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 		clientInterceptors,
 	)
+	if err != nil {
+		return fmt.Errorf("failed grpc connect to user service: %w", err)
+	}
 
 	stockmarketGrpcConnect, err := grpc.NewClient(
 		cnf.Stockmarket.Endpoint,
@@ -105,12 +118,12 @@ func Run(cnf *config.Config, logger *zap.Logger) error {
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 		clientInterceptors,
 	)
-
 	if err != nil {
-		return fmt.Errorf("grpc connect to user service error: %w", err)
+		return fmt.Errorf("failed grpc connect to stockmarket service: %w", err)
 	}
 
 	// services init
+
 	marketsCache := rdb.NewMarketCache(redis, cnf.Redis.TTL)
 
 	spotClient := spotinstrument.NewSpotClient(spotv1.NewSpotInstrumentClient(spotGrpcConnect))
@@ -127,17 +140,26 @@ func Run(cnf *config.Config, logger *zap.Logger) error {
 
 	stockmarketGrpcClient := stockmarketv1.NewStockMarketServiceClient(stockmarketGrpcConnect)
 	stockMarketClient := transport.NewStockmarketClient(logger, stockmarketGrpcClient)
-	stockMarket := stockmarket.NewStockMarketService(logger, stockMarketClient)
+	stockmarket := stockmarket.NewStockMarketService(logger, stockMarketClient)
 
-	var orderProcessor order.Processor
-	orderProcessor = stockMarket
+	eventsBus := bus.NewEventBus()
 
-	changesStreamer := streamer.NewChangeStreamer(logger, streamer.Option{})
-	orderService := order.NewOrderService(logger, orderStore, cachedSpotInstrument, userService, changesStreamer, roleInspector)
+	updateStatusStreamer := insideHandler.NewStatusStreamer(logger, insideHandler.Option{MaxSendingProcess: 5})
 
-	eventStore := ram.NewEventStore()
+	createdEventWriter := writer.NewCreatedEventWriter(logger, kafkaCreatedOrderWriter)
+	createdAmqpEventHandler := insideHandler.NewAmqpOrderCreatedHandler(logger, createdEventWriter)
 
-	updatesEventHandler := update.NewUpdateEventHandler(logger, orderService, eventStore)
+	eventsBus.RegisterHandler(context.Background(), string(inside.EVENT_NEW_ORDER_STATUS), updateStatusStreamer)
+	eventsBus.RegisterHandler(context.Background(), string(inside.EVENT_CREATED_ORDER), createdAmqpEventHandler)
+
+	orderService := order.NewOrderService(logger, orderStore, cachedSpotInstrument, userService, eventsBus, roleInspector)
+
+	createdOrderStockmarketHandler := insideHandler.NewStockmarketCreatedOrderHandler(logger, orderService, stockmarket)
+	eventsBus.RegisterHandler(context.Background(), string(inside.EVENT_CREATED_ORDER), createdOrderStockmarketHandler)
+
+	outsideEventStore := ram.NewEventStore()
+
+	updatesEventHandler := outsideHandlers.NewUpdateEventHandler(logger, orderService, outsideEventStore)
 	updatesEventListener := listener.NewUpdateListener(
 		logger,
 		kafkaReader,
@@ -149,7 +171,7 @@ func Run(cnf *config.Config, logger *zap.Logger) error {
 		},
 	)
 
-	orderServer := orderserver.NewOrderServer(orderService, logger, orderServerMetrics, changesStreamer, orderProcessor)
+	orderServer := server.NewOrderServer(logger, orderService, orderServerMetrics, updateStatusStreamer)
 	orderv1.RegisterOrderServer(grpcServer, orderServer)
 
 	//listen init

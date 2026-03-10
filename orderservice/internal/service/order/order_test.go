@@ -1,374 +1,466 @@
 package order
 
-// import (
-// 	"context"
-// 	"testing"
-
-// 	"github.com/nullableocean/grpcservices/orderservice/internal/domain"
-// 	"github.com/nullableocean/grpcservices/orderservice/internal/service"
-// 	"github.com/nullableocean/grpcservices/orderservice/internal/service/access"
-// 	"github.com/nullableocean/grpcservices/orderservice/internal/service/stockmarket"
-// 	"github.com/nullableocean/grpcservices/orderservice/internal/store/ram"
-// 	"github.com/nullableocean/grpcservices/shared/order"
-// 	"github.com/nullableocean/grpcservices/shared/roles"
-// 	"github.com/stretchr/testify/assert"
-// 	"github.com/stretchr/testify/mock"
-// 	"github.com/stretchr/testify/require"
-// 	"go.uber.org/zap"
-// )
-
-// type mockSpotInstrument struct {
-// 	mock.Mock
-// }
-
-// func (m *mockSpotInstrument) ViewMarkets(ctx context.Context, roles []roles.UserRole) ([]*domain.Market, error) {
-// 	args := m.Called(ctx, roles)
-// 	return args.Get(0).([]*domain.Market), args.Error(1)
-// }
-
-// type mockUserService struct {
-// 	mock.Mock
-// }
-
-// func (m *mockUserService) GetUser(ctx context.Context, id int64) (*domain.User, error) {
-// 	args := m.Called(ctx, id)
-// 	return args.Get(0).(*domain.User), args.Error(1)
-// }
-
-// type mockOrderStore struct {
-// 	mock.Mock
-// }
-
-// func (m *mockOrderStore) Get(ctx context.Context, id int64) (*domain.Order, error) {
-// 	args := m.Called(ctx, id)
-// 	return args.Get(0).(*domain.Order), args.Error(1)
-// }
-
-// func (m *mockOrderStore) Create(ctx context.Context, orderData *domain.CreateOrderDto) (*domain.Order, error) {
-// 	args := m.Called(ctx, orderData)
-// 	return args.Get(0).(*domain.Order), args.Error(1)
-// }
-
-// func (m *mockOrderStore) UpdateStatus(ctx context.Context, order *domain.Order, newStatus order.OrderStatus) error {
-// 	args := m.Called(ctx, order, newStatus)
-// 	order.SetStatus(newStatus)
-// 	return args.Error(0)
-// }
-
-// func TestOrderService_CreateOrder(t *testing.T) {
-// 	ctx := context.Background()
-
-// 	spotInstrument := &mockSpotInstrument{}
-// 	userService := &mockUserService{}
-// 	orderStore := &mockOrderStore{}
-// 	roleAccess := access.NewRoleAccessService()
-
-// 	marketClient := stockmarket.NewDummyMarketClient()
-// 	marketEvBroker := stockmarket.NewDummyBroker(ram.NewOrderStore())
-// 	eventStore := ram.NewEventStore()
-
-// 	stockMarket, err := stockmarket.NewStockMarketService(zap.NewNop(), marketClient, marketEvBroker, eventStore)
-// 	require.NoError(t, err)
-
-// 	orderServ := NewOrderService(zap.NewNop(), stockMarket, orderStore, spotInstrument, userService, roleAccess)
-
-// 	passSer := access.PasswordService{}
-// 	hash, _ := passSer.GetHashForPassword("password")
-// 	user := domain.NewUser(&domain.CreateUserDto{
-// 		Id:       1,
-// 		Username: "testuser",
-// 		PassHash: hash,
-// 		Roles:    []roles.UserRole{roles.USER_VERIFIED},
-// 	})
-
-// 	market := domain.NewMarket(1, "BTC/USDT")
-
-// 	orderData := &domain.CreateOrderDto{
-// 		UserId:    1,
-// 		MarketId:  1,
-// 		Price:     50000.0,
-// 		Quantity:  1,
-// 		OrderType: order.ORDER_TYPE_BUY,
-// 	}
-
-// 	expectedOrder := domain.NewOrder(1, orderData)
-
-// 	userService.On("GetUser", ctx, int64(1)).Return(user, nil)
-// 	spotInstrument.On("ViewMarkets", ctx, user.Roles()).Return([]*domain.Market{market}, nil)
-// 	orderStore.On("Create", ctx, orderData).Return(expectedOrder, nil)
-
-// 	result, err := orderServ.CreateOrder(ctx, orderData)
-// 	assert.NoError(t, err)
-// 	assert.Equal(t, expectedOrder, result)
-
-// 	userService.AssertExpectations(t)
-// 	spotInstrument.AssertExpectations(t)
-// 	orderStore.AssertExpectations(t)
-// }
-
-// func TestOrderService_CreateOrderWithRoleRestrictions(t *testing.T) {
-// 	ctx := context.Background()
-
-// 	spotInstrument := &mockSpotInstrument{}
-// 	userService := &mockUserService{}
-// 	orderStore := &mockOrderStore{}
-// 	roleAccess := access.NewRoleAccessService()
-
-// 	marketClient := stockmarket.NewDummyMarketClient()
-// 	marketEvBroker := stockmarket.NewDummyBroker(ram.NewOrderStore())
-// 	eventStore := ram.NewEventStore()
-
-// 	stockMarket, err := stockmarket.NewStockMarketService(zap.NewNop(), marketClient, marketEvBroker, eventStore)
-// 	require.NoError(t, err)
-
-// 	orderServ := NewOrderService(zap.NewNop(), stockMarket, orderStore, spotInstrument, userService, roleAccess)
-
-// 	passSer := access.PasswordService{}
-// 	hash, _ := passSer.GetHashForPassword("password")
-
-// 	btcMarket := domain.NewMarket(1, "BTC/USDT")
-// 	allowedMarkets := []*domain.Market{btcMarket}
-
-// 	t.Run("guest havent acces to but/sell", func(t *testing.T) {
-// 		guestUser := domain.NewUser(&domain.CreateUserDto{
-// 			Id:       1,
-// 			Username: "guestuser",
-// 			PassHash: hash,
-// 			Roles:    []roles.UserRole{roles.USER_GUEST},
-// 		})
-
-// 		buyOrderData := &domain.CreateOrderDto{
-// 			UserId:    1,
-// 			MarketId:  1,
-// 			Price:     50000.0,
-// 			Quantity:  1,
-// 			OrderType: order.ORDER_TYPE_BUY,
-// 		}
-
-// 		userService.On("GetUser", ctx, int64(1)).Return(guestUser, nil)
-// 		spotInstrument.On("ViewMarkets", ctx, guestUser.Roles()).Return(allowedMarkets, nil)
-
-// 		res, err := orderServ.CreateOrder(ctx, buyOrderData)
-// 		assert.Error(t, err)
-// 		assert.Nil(t, res)
-// 		assert.ErrorIs(t, err, ErrNotAllowed)
-
-// 		userService.On("GetUser", ctx, int64(1)).Return(guestUser, nil)
-// 		spotInstrument.On("ViewMarkets", ctx, guestUser.Roles()).Return(allowedMarkets, nil)
-
-// 		sellOrderData := &domain.CreateOrderDto{
-// 			UserId:    1,
-// 			MarketId:  1,
-// 			Price:     50000.0,
-// 			Quantity:  1,
-// 			OrderType: order.ORDER_TYPE_SELL,
-// 		}
-
-// 		res2, err2 := orderServ.CreateOrder(ctx, sellOrderData)
-// 		assert.Error(t, err2)
-// 		assert.Nil(t, res2)
-// 		assert.ErrorIs(t, err2, ErrNotAllowed)
-// 	})
-
-// 	t.Run("verified user has access to buy", func(t *testing.T) {
-// 		verifiedUser := domain.NewUser(&domain.CreateUserDto{
-// 			Id:       2,
-// 			Username: "verifieduser",
-// 			PassHash: hash,
-// 			Roles:    []roles.UserRole{roles.USER_VERIFIED},
-// 		})
-
-// 		verifiedOrderData := &domain.CreateOrderDto{
-// 			UserId:    2,
-// 			MarketId:  1,
-// 			Price:     50000.0,
-// 			Quantity:  1,
-// 			OrderType: order.ORDER_TYPE_BUY,
-// 		}
-
-// 		userService.On("GetUser", ctx, int64(2)).Return(verifiedUser, nil)
-// 		spotInstrument.On("ViewMarkets", ctx, verifiedUser.Roles()).Return(allowedMarkets, nil)
-// 		orderStore.On("Create", ctx, verifiedOrderData).Return(domain.NewOrder(2, verifiedOrderData), nil)
-
-// 		res, err := orderServ.CreateOrder(ctx, verifiedOrderData)
-// 		assert.NoError(t, err)
-// 		assert.NotNil(t, res)
-// 	})
-
-// 	t.Run("seller user has access to sell", func(t *testing.T) {
-
-// 		sellerUser := domain.NewUser(&domain.CreateUserDto{
-// 			Id:       3,
-// 			Username: "selleruser",
-// 			PassHash: hash,
-// 			Roles:    []roles.UserRole{roles.USER_SELLER},
-// 		})
-
-// 		sellerOrderData := &domain.CreateOrderDto{
-// 			UserId:    3,
-// 			MarketId:  1,
-// 			Price:     50000.0,
-// 			Quantity:  1,
-// 			OrderType: order.ORDER_TYPE_SELL,
-// 		}
-
-// 		userService.On("GetUser", ctx, int64(3)).Return(sellerUser, nil)
-// 		spotInstrument.On("ViewMarkets", ctx, sellerUser.Roles()).Return(allowedMarkets, nil)
-// 		orderStore.On("Create", ctx, sellerOrderData).Return(domain.NewOrder(3, sellerOrderData), nil)
-
-// 		res, err := orderServ.CreateOrder(ctx, sellerOrderData)
-// 		assert.NoError(t, err)
-// 		assert.NotNil(t, res)
-// 	})
-// }
-
-// func TestOrderService_CreateOrderWithNotAllowedMarket(t *testing.T) {
-// 	ctx := context.Background()
-
-// 	spotInstrument := &mockSpotInstrument{}
-// 	userService := &mockUserService{}
-// 	orderStore := &mockOrderStore{}
-// 	roleAccess := access.NewRoleAccessService()
-
-// 	marketClient := stockmarket.NewDummyMarketClient()
-// 	marketEvBroker := stockmarket.NewDummyBroker(ram.NewOrderStore())
-// 	eventStore := ram.NewEventStore()
-
-// 	stockMarket, err := stockmarket.NewStockMarketService(zap.NewNop(), marketClient, marketEvBroker, eventStore)
-// 	require.NoError(t, err)
-
-// 	orderServ := NewOrderService(zap.NewNop(), stockMarket, orderStore, spotInstrument, userService, roleAccess)
-
-// 	passSer := access.PasswordService{}
-// 	hash, _ := passSer.GetHashForPassword("password")
-// 	user := domain.NewUser(&domain.CreateUserDto{
-// 		Id:       1,
-// 		Username: "testuser",
-// 		PassHash: hash,
-// 		Roles:    []roles.UserRole{roles.USER_VERIFIED},
-// 	})
-
-// 	allowedMarket := domain.NewMarket(2, "ETH/USDT")
-
-// 	orderData := &domain.CreateOrderDto{
-// 		UserId:    1,
-// 		MarketId:  1, // not allowed/not existed/not enabled
-// 		Price:     50000.0,
-// 		Quantity:  1,
-// 		OrderType: order.ORDER_TYPE_BUY,
-// 	}
-
-// 	userService.On("GetUser", ctx, int64(1)).Return(user, nil)
-// 	spotInstrument.On("ViewMarkets", ctx, user.Roles()).Return([]*domain.Market{allowedMarket}, nil)
-
-// 	result, err := orderServ.CreateOrder(ctx, orderData)
-// 	assert.Error(t, err)
-// 	assert.Nil(t, result)
-// 	assert.ErrorIs(t, err, ErrNotAllowedMarket)
-// 	assert.ErrorIs(t, err, errs.ErrInvalidData)
-
-// 	userService.AssertExpectations(t)
-// 	spotInstrument.AssertExpectations(t)
-// }
-
-// func TestOrderService_GetOrderStatus(t *testing.T) {
-// 	ctx := context.Background()
-
-// 	spotInstrument := &mockSpotInstrument{}
-// 	userService := &mockUserService{}
-// 	orderStore := &mockOrderStore{}
-// 	roleAccess := access.NewRoleAccessService()
-
-// 	marketClient := stockmarket.NewDummyMarketClient()
-// 	marketEvBroker := stockmarket.NewDummyBroker(ram.NewOrderStore())
-// 	eventStore := ram.NewEventStore()
-
-// 	stockMarket, err := stockmarket.NewStockMarketService(zap.NewNop(), marketClient, marketEvBroker, eventStore)
-// 	require.NoError(t, err)
-
-// 	orderServ := NewOrderService(zap.NewNop(), stockMarket, orderStore, spotInstrument, userService, roleAccess)
-
-// 	orderData := &domain.CreateOrderDto{
-// 		UserId:    1,
-// 		MarketId:  1,
-// 		Price:     50000.0,
-// 		Quantity:  1,
-// 		OrderType: order.ORDER_TYPE_BUY,
-// 	}
-// 	expectedOrder := domain.NewOrder(1, orderData)
-
-// 	orderStore.On("Get", ctx, int64(1)).Return(expectedOrder, nil)
-// 	status, err := orderServ.GetOrderStatus(ctx, 1, 1)
-// 	assert.NoError(t, err)
-// 	assert.Equal(t, order.ORDER_STATUS_CREATED, status)
-
-// 	orderStore.AssertExpectations(t)
-// }
-
-// func TestOrderService_ChangeStatus(t *testing.T) {
-// 	ctx := context.Background()
-
-// 	spotInstrument := &mockSpotInstrument{}
-// 	userService := &mockUserService{}
-// 	orderStore := &mockOrderStore{}
-// 	roleAccess := access.NewRoleAccessService()
-
-// 	marketClient := stockmarket.NewDummyMarketClient()
-// 	marketEvBroker := stockmarket.NewDummyBroker(ram.NewOrderStore())
-// 	eventStore := ram.NewEventStore()
-
-// 	stockMarket, err := stockmarket.NewStockMarketService(zap.NewNop(), marketClient, marketEvBroker, eventStore)
-// 	require.NoError(t, err)
-
-// 	orderServ := NewOrderService(zap.NewNop(), stockMarket, orderStore, spotInstrument, userService, roleAccess)
-
-// 	passSer := access.PasswordService{}
-// 	hash, _ := passSer.GetHashForPassword("password")
-// 	user := domain.NewUser(&domain.CreateUserDto{
-// 		Id:       1,
-// 		Username: "testuser",
-// 		PassHash: hash,
-// 		Roles:    []roles.UserRole{roles.USER_VERIFIED},
-// 	})
-
-// 	orderData := &domain.CreateOrderDto{
-// 		UserId:    1,
-// 		MarketId:  1,
-// 		Price:     50000.0,
-// 		Quantity:  1,
-// 		OrderType: order.ORDER_TYPE_BUY,
-// 	}
-// 	expectedOrder := domain.NewOrder(1, orderData)
-// 	newStatus := order.ORDER_STATUS_PENDING
-
-// 	userService.On("GetUser", ctx, int64(1)).Return(user, nil)
-// 	orderStore.On("Get", ctx, int64(1)).Return(expectedOrder, nil)
-// 	orderStore.On("UpdateStatus", ctx, expectedOrder, newStatus).Return(nil)
-
-// 	t.Run("valid status change", func(t *testing.T) {
-// 		resultStatus, err := orderServ.ChangeStatus(ctx, 1, newStatus)
-
-// 		assert.NoError(t, err)
-// 		assert.Equal(t, newStatus, resultStatus)
-
-// 		status, err := orderServ.GetOrderStatus(ctx, 1, 1)
-// 		assert.NoError(t, err)
-// 		assert.Equal(t, newStatus, status)
-
-// 		orderStore.AssertExpectations(t)
-// 	})
-
-// 	t.Run("not allowed status change", func(t *testing.T) {
-// 		// pending --- > created  [X] err
-// 		res, err := orderServ.ChangeStatus(ctx, 1, order.ORDER_STATUS_CREATED)
-
-// 		assert.Error(t, err)
-// 		assert.Zero(t, res)
-
-// 		status, err := orderServ.GetOrderStatus(ctx, 1, 1)
-// 		assert.NoError(t, err)
-// 		assert.Equal(t, order.ORDER_STATUS_PENDING, status)
-
-// 		orderStore.AssertExpectations(t)
-// 	})
-// }
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"github.com/google/uuid"
+	"github.com/nullableocean/grpcservices/orderservice/internal/domain"
+	"github.com/nullableocean/grpcservices/orderservice/internal/dto"
+	"github.com/nullableocean/grpcservices/orderservice/internal/errs"
+	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside"
+	"github.com/nullableocean/grpcservices/shared/money"
+	sharedOrder "github.com/nullableocean/grpcservices/shared/order"
+	"github.com/nullableocean/grpcservices/shared/roles"
+	"github.com/shopspring/decimal"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
+)
+
+type MockSpotInstrument struct {
+	mock.Mock
+}
+
+func (m *MockSpotInstrument) ViewMarkets(ctx context.Context, userRoles []roles.UserRole) ([]*domain.Market, error) {
+	args := m.Called(ctx, userRoles)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*domain.Market), args.Error(1)
+}
+
+type MockUserService struct {
+	mock.Mock
+}
+
+func (m *MockUserService) GetUser(ctx context.Context, userUuid string) (*domain.User, error) {
+	args := m.Called(ctx, userUuid)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.User), args.Error(1)
+}
+
+type MockOrderStore struct {
+	mock.Mock
+}
+
+func (m *MockOrderStore) Get(ctx context.Context, id string) (*domain.Order, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.Order), args.Error(1)
+}
+
+func (m *MockOrderStore) Save(ctx context.Context, ord *domain.Order) error {
+	args := m.Called(ctx, ord)
+	return args.Error(0)
+}
+
+type MockRoleInspector struct {
+	mock.Mock
+}
+
+func (m *MockRoleInspector) CanCreate(user *domain.User, orderType sharedOrder.OrderType) bool {
+	args := m.Called(user, orderType)
+	return args.Bool(0)
+}
+
+type MockEventDispatcher struct {
+	mock.Mock
+}
+
+func (m *MockEventDispatcher) Dispatch(ctx context.Context, e inside.Event) {
+	m.Called(ctx, e)
+}
+
+type OrderServiceTestSuite struct {
+	suite.Suite
+	ctx           context.Context
+	mockSpot      *MockSpotInstrument
+	mockUserSvc   *MockUserService
+	mockStore     *MockOrderStore
+	mockEventDisp *MockEventDispatcher
+	mockRoleInsp  *MockRoleInspector
+	logger        *zap.Logger
+	service       *OrderService
+}
+
+func (s *OrderServiceTestSuite) SetupTest() {
+	s.ctx = context.Background()
+	s.mockSpot = new(MockSpotInstrument)
+	s.mockUserSvc = new(MockUserService)
+	s.mockStore = new(MockOrderStore)
+	s.mockEventDisp = new(MockEventDispatcher)
+	s.mockRoleInsp = new(MockRoleInspector)
+
+	s.logger = zap.NewNop()
+
+	s.service = NewOrderService(
+		s.logger,
+		s.mockStore,
+		s.mockSpot,
+		s.mockUserSvc,
+		s.mockEventDisp,
+		s.mockRoleInsp,
+	)
+}
+
+func (s *OrderServiceTestSuite) getMoney(m int64) money.Money {
+	return money.Money{
+		Decimal: decimal.NewFromInt(m),
+	}
+}
+
+func (s *OrderServiceTestSuite) getQuantity(q int64) int64 {
+	return q
+}
+
+func TestOrderServiceSuite(t *testing.T) {
+	suite.Run(t, new(OrderServiceTestSuite))
+}
+
+func (s *OrderServiceTestSuite) newTestOrder(uuidStr, userUuid string) *domain.Order {
+	return &domain.Order{
+		UUID:       uuidStr,
+		UserUuid:   userUuid,
+		MarketUuid: "TestCoin/USDT",
+		Price:      s.getMoney(100),
+		Quantity:   10,
+		OrderType:  sharedOrder.ORDER_TYPE_BUY,
+		Status:     sharedOrder.ORDER_STATUS_CREATED,
+	}
+}
+
+// ======== CHANGE STATUS
+func (s *OrderServiceTestSuite) TestChangeStatus_Success() {
+	orderUUID := uuid.New().String()
+	userUUID := uuid.New().String()
+	oldOrder := s.newTestOrder(orderUUID, userUUID)
+	oldOrder.Status = sharedOrder.ORDER_STATUS_CREATED
+	newStatus := sharedOrder.ORDER_STATUS_COMPLETED
+
+	s.mockStore.On("Get", s.ctx, orderUUID).Return(oldOrder, nil).Once()
+	s.mockStore.On("Save", s.ctx, mock.MatchedBy(func(o *domain.Order) bool {
+		return o.UUID == orderUUID && o.Status == newStatus
+	})).Return(nil).Once()
+
+	s.mockEventDisp.On("Dispatch", s.ctx, mock.MatchedBy(func(e inside.Event) bool {
+		ev, ok := e.(*inside.NewStatusEvent)
+		return ok && ev.OrderUuid == orderUUID && ev.NewStatus == newStatus
+	})).Return().Once()
+
+	status, err := s.service.ChangeStatus(s.ctx, orderUUID, newStatus)
+	s.NoError(err)
+	s.Equal(newStatus, status)
+
+	s.mockStore.AssertExpectations(s.T())
+	s.mockEventDisp.AssertExpectations(s.T())
+}
+
+func (s *OrderServiceTestSuite) TestChangeStatus_OrderNotFound() {
+	orderUUID := uuid.New().String()
+	s.mockStore.On("Get", s.ctx, orderUUID).Return(nil, errors.New("not found")).Once()
+
+	status, err := s.service.ChangeStatus(s.ctx, orderUUID, sharedOrder.ORDER_STATUS_COMPLETED)
+	s.Error(err)
+	s.ErrorIs(err, errs.ErrNotFound)
+	s.Equal(sharedOrder.OrderStatus(0), status)
+}
+
+func (s *OrderServiceTestSuite) TestChangeStatus_InvalidTransition() {
+	orderUUID := uuid.New().String()
+	userUUID := uuid.New().String()
+
+	changingOrder := s.newTestOrder(orderUUID, userUUID)
+	changingOrder.Status = sharedOrder.ORDER_STATUS_PENDING
+
+	invalidStatus := sharedOrder.ORDER_STATUS_CREATED
+
+	s.mockStore.On("Get", s.ctx, orderUUID).Return(changingOrder, nil).Once()
+
+	status, err := s.service.ChangeStatus(s.ctx, orderUUID, invalidStatus)
+	s.Error(err)
+	s.ErrorIs(err, errs.ErrStatusUnavailable)
+	s.Equal(sharedOrder.OrderStatus(0), status)
+}
+
+func (s *OrderServiceTestSuite) TestChangeStatus_SaveError() {
+	orderUUID := uuid.New().String()
+	userUUID := uuid.New().String()
+	oldOrder := s.newTestOrder(orderUUID, userUUID)
+	oldOrder.Status = sharedOrder.ORDER_STATUS_CREATED
+	newStatus := sharedOrder.ORDER_STATUS_COMPLETED
+
+	s.mockStore.On("Get", s.ctx, orderUUID).Return(oldOrder, nil).Once()
+	s.mockStore.On("Save", s.ctx, mock.Anything).Return(errors.New("db error")).Once()
+
+	status, err := s.service.ChangeStatus(s.ctx, orderUUID, newStatus)
+	s.Error(err)
+	s.Equal("db error", err.Error())
+	s.Equal(sharedOrder.OrderStatus(0), status)
+}
+
+// ======== GET STATUS
+func (s *OrderServiceTestSuite) TestGetOrderStatus_Success() {
+	orderUUID := uuid.New().String()
+	userUUID := uuid.New().String()
+	orderObj := s.newTestOrder(orderUUID, userUUID)
+	orderObj.Status = sharedOrder.ORDER_STATUS_CREATED
+
+	s.mockStore.On("Get", s.ctx, orderUUID).Return(orderObj, nil).Once()
+
+	status, err := s.service.GetOrderStatus(s.ctx, orderUUID, userUUID)
+	s.NoError(err)
+	s.Equal(sharedOrder.ORDER_STATUS_CREATED, status)
+}
+
+func (s *OrderServiceTestSuite) TestGetOrderStatus_OrderNotFound() {
+	orderUUID := uuid.New().String()
+	userUUID := uuid.New().String()
+
+	s.mockStore.On("Get", s.ctx, orderUUID).Return(nil, errors.New("not found")).Once()
+
+	status, err := s.service.GetOrderStatus(s.ctx, orderUUID, userUUID)
+	s.Error(err)
+	s.ErrorIs(err, errs.ErrNotFound)
+	s.Equal(sharedOrder.OrderStatus(0), status)
+}
+
+func (s *OrderServiceTestSuite) TestGetOrderStatus_WrongUser() {
+	orderUUID := uuid.New().String()
+	userUUID := uuid.New().String()
+	wrongUserUUID := uuid.New().String()
+	orderObj := s.newTestOrder(orderUUID, userUUID)
+
+	s.mockStore.On("Get", s.ctx, orderUUID).Return(orderObj, nil).Once()
+
+	status, err := s.service.GetOrderStatus(s.ctx, orderUUID, wrongUserUUID)
+	s.Error(err)
+	s.ErrorIs(err, errs.ErrInvalidData)
+	s.Equal(sharedOrder.OrderStatus(0), status)
+}
+
+// ======== FIND ORDER
+func (s *OrderServiceTestSuite) TestFindOrder_Success() {
+	orderUUID := uuid.New().String()
+	userUUID := uuid.New().String()
+	orderObj := s.newTestOrder(orderUUID, userUUID)
+
+	s.mockStore.On("Get", s.ctx, orderUUID).Return(orderObj, nil).Once()
+
+	found, err := s.service.FindOrderForUser(s.ctx, orderUUID, userUUID)
+	s.NoError(err)
+	s.Equal(orderObj, found)
+}
+
+func (s *OrderServiceTestSuite) TestFindOrder_NotFound() {
+	orderUUID := uuid.New().String()
+	userUUID := uuid.New().String()
+
+	s.mockStore.On("Get", s.ctx, orderUUID).Return(nil, errors.New("not found")).Once()
+
+	found, err := s.service.FindOrderForUser(s.ctx, orderUUID, userUUID)
+	s.Error(err)
+	s.ErrorIs(err, errs.ErrNotFound)
+	s.Nil(found)
+}
+
+func (s *OrderServiceTestSuite) TestFindOrder_WrongUser() {
+	orderUUID := uuid.New().String()
+	userUUID := uuid.New().String()
+	wrongUserUUID := uuid.New().String()
+	orderObj := s.newTestOrder(orderUUID, userUUID)
+
+	s.mockStore.On("Get", s.ctx, orderUUID).Return(orderObj, nil).Once()
+
+	found, err := s.service.FindOrderForUser(s.ctx, orderUUID, wrongUserUUID)
+	s.Error(err)
+	s.ErrorIs(err, errs.ErrInvalidData)
+	s.Nil(found)
+}
+
+// ======== CREATE ORDER
+func (s *OrderServiceTestSuite) TestCreateOrder_Success() {
+	userUUID := uuid.New().String()
+	marketUUID := "market-1"
+	orderType := sharedOrder.ORDER_TYPE_BUY
+
+	price := s.getMoney(100)
+	quantity := s.getQuantity(10)
+
+	createDto := &dto.CreateOrderDto{
+		UserUuid:   userUUID,
+		MarketUuid: marketUUID,
+		Price:      price,
+		Quantity:   int64(quantity),
+		OrderType:  orderType,
+	}
+
+	user := &domain.User{
+		UUID:  userUUID,
+		Roles: roles.NewRoles(roles.USER_SELLER),
+	}
+	markets := []*domain.Market{
+		{UUID: marketUUID, Name: "BTC/USD"},
+	}
+
+	s.mockUserSvc.On("GetUser", s.ctx, userUUID).Return(user, nil).Once()
+	s.mockRoleInsp.On("CanCreate", user, orderType).Return(true).Once()
+	s.mockSpot.On("ViewMarkets", s.ctx, user.Roles.GetSlice()).Return(markets, nil).Once()
+	s.mockStore.On("Save", s.ctx, mock.MatchedBy(func(o *domain.Order) bool {
+		return o.UserUuid == userUUID &&
+			o.MarketUuid == marketUUID &&
+			o.Status == sharedOrder.ORDER_STATUS_CREATED &&
+			o.UUID != ""
+	})).Return(nil).Once()
+
+	s.mockEventDisp.On("Dispatch", s.ctx, mock.MatchedBy(func(e inside.Event) bool {
+		ev, ok := e.(*inside.OrderCreatedEvent)
+		return ok && ev.OrderUuid != ""
+	})).Return().Once()
+
+	order, err := s.service.CreateOrder(s.ctx, createDto)
+	s.NoError(err)
+	s.NotNil(order)
+	s.Equal(userUUID, order.UserUuid)
+	s.Equal(marketUUID, order.MarketUuid)
+	s.Equal(price, order.Price)
+	s.Equal(quantity, order.Quantity)
+	s.Equal(orderType, order.OrderType)
+	s.Equal(sharedOrder.ORDER_STATUS_CREATED, order.Status)
+
+	s.mockUserSvc.AssertExpectations(s.T())
+	s.mockRoleInsp.AssertExpectations(s.T())
+	s.mockSpot.AssertExpectations(s.T())
+	s.mockStore.AssertExpectations(s.T())
+	s.mockEventDisp.AssertExpectations(s.T())
+}
+
+func (s *OrderServiceTestSuite) TestCreateOrder_ValidationNegativePriceError() {
+	negativePrice := s.getMoney(-100)
+
+	createDto := &dto.CreateOrderDto{
+		UserUuid:   uuid.New().String(),
+		MarketUuid: "market-uuid",
+		Price:      negativePrice,
+		Quantity:   s.getQuantity(10),
+		OrderType:  sharedOrder.ORDER_TYPE_BUY,
+	}
+
+	order, err := s.service.CreateOrder(s.ctx, createDto)
+	s.Error(err)
+	s.Nil(order)
+}
+
+func (s *OrderServiceTestSuite) TestCreateOrder_GetUserNotFoundError() {
+	userUUID := uuid.New().String()
+	createDto := &dto.CreateOrderDto{
+		UserUuid:   userUUID,
+		MarketUuid: "market-uuid",
+		Price:      s.getMoney(100),
+		Quantity:   s.getQuantity(10),
+		OrderType:  sharedOrder.ORDER_TYPE_BUY,
+	}
+
+	s.mockUserSvc.On("GetUser", s.ctx, userUUID).Return(nil, errs.ErrNotFound).Once()
+
+	order, err := s.service.CreateOrder(s.ctx, createDto)
+	s.Error(err)
+	s.ErrorIs(err, errs.ErrNotFound)
+	s.Nil(order)
+}
+
+func (s *OrderServiceTestSuite) TestCreateOrder_NoPermission() {
+	userUUID := uuid.New().String()
+	createDto := &dto.CreateOrderDto{
+		UserUuid:   userUUID,
+		MarketUuid: "market-uuid",
+		Price:      s.getMoney(100),
+		Quantity:   s.getQuantity(10),
+		OrderType:  sharedOrder.ORDER_TYPE_BUY,
+	}
+	user := &domain.User{UUID: userUUID, Roles: roles.NewRoles()}
+
+	s.mockUserSvc.On("GetUser", s.ctx, userUUID).Return(user, nil).Once()
+	s.mockRoleInsp.On("CanCreate", user, createDto.OrderType).Return(false).Once()
+
+	order, err := s.service.CreateOrder(s.ctx, createDto)
+	s.Error(err)
+	s.ErrorIs(err, errs.ErrNotAllowed)
+	s.Nil(order)
+}
+
+func (s *OrderServiceTestSuite) TestCreateOrder_ViewMarketsError() {
+	userUUID := uuid.New().String()
+	createDto := &dto.CreateOrderDto{
+		UserUuid:   userUUID,
+		MarketUuid: "market-uuid",
+		Price:      s.getMoney(100),
+		Quantity:   s.getQuantity(10),
+		OrderType:  sharedOrder.ORDER_TYPE_BUY,
+	}
+	user := &domain.User{UUID: userUUID, Roles: roles.NewRoles(roles.USER_MODER)}
+
+	errorMsg := "failed spot service connect"
+
+	s.mockUserSvc.On("GetUser", s.ctx, userUUID).Return(user, nil).Once()
+	s.mockRoleInsp.On("CanCreate", user, createDto.OrderType).Return(true).Once()
+	s.mockSpot.On("ViewMarkets", s.ctx, user.Roles.GetSlice()).Return(nil, errors.New(errorMsg)).Once()
+
+	order, err := s.service.CreateOrder(s.ctx, createDto)
+	s.Error(err)
+	s.Nil(order)
+}
+
+func (s *OrderServiceTestSuite) TestCreateOrder_MarketNotAllowed() {
+	userUUID := uuid.New().String()
+	requestedMarket := "market-uuid"
+	createDto := &dto.CreateOrderDto{
+		UserUuid:   userUUID,
+		MarketUuid: requestedMarket,
+		Price:      s.getMoney(100),
+		Quantity:   s.getQuantity(10),
+		OrderType:  sharedOrder.ORDER_TYPE_BUY,
+	}
+	user := &domain.User{UUID: userUUID, Roles: roles.NewRoles(roles.USER_VERIFIED)}
+
+	allowedMarkets := []*domain.Market{{UUID: "market-uuid-2", Name: "ETH/USD"}}
+
+	s.mockUserSvc.On("GetUser", s.ctx, userUUID).Return(user, nil).Once()
+	s.mockRoleInsp.On("CanCreate", user, createDto.OrderType).Return(true).Once()
+	s.mockSpot.On("ViewMarkets", s.ctx, user.Roles.GetSlice()).Return(allowedMarkets, nil).Once()
+
+	order, err := s.service.CreateOrder(s.ctx, createDto)
+	s.Error(err)
+	s.ErrorIs(err, errs.ErrNotAllowedMarket)
+	s.Nil(order)
+}
+
+func (s *OrderServiceTestSuite) TestCreateOrder_StoreSaveError() {
+	userUUID := uuid.New().String()
+	requestedMarket := "market-uuid"
+	createDto := &dto.CreateOrderDto{
+		UserUuid:   userUUID,
+		MarketUuid: requestedMarket,
+		Price:      s.getMoney(100),
+		Quantity:   s.getQuantity(10),
+		OrderType:  sharedOrder.ORDER_TYPE_BUY,
+	}
+	user := &domain.User{UUID: userUUID, Roles: roles.NewRoles(roles.USER_VERIFIED)}
+	markets := []*domain.Market{{UUID: requestedMarket, Name: "BTC/USD"}}
+
+	s.mockUserSvc.On("GetUser", s.ctx, userUUID).Return(user, nil).Once()
+	s.mockRoleInsp.On("CanCreate", user, createDto.OrderType).Return(true).Once()
+	s.mockSpot.On("ViewMarkets", s.ctx, user.Roles.GetSlice()).Return(markets, nil).Once()
+
+	saveError := "store cant connect to db"
+	s.mockStore.On("Save", s.ctx, mock.Anything).Return(errors.New(saveError)).Once()
+
+	order, err := s.service.CreateOrder(s.ctx, createDto)
+	s.Error(err)
+	s.Nil(order)
+}

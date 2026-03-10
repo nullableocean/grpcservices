@@ -2,8 +2,19 @@ package cli
 
 import "github.com/spf13/cobra"
 
+type args struct {
+	grpcAddr   string
+	userUuid   string
+	marketUUID string
+	orderType  string
+	price      string
+	quantity   int64
+}
+
 type Cli struct {
 	rootCmd *cobra.Command
+
+	args
 }
 
 func (c *Cli) Execute() error {
@@ -13,17 +24,17 @@ func (c *Cli) Execute() error {
 func New() *Cli {
 	c := &Cli{}
 
-	var grpcAddr string
-	var userUuid string
-
 	rootCmd := &cobra.Command{
 		Use:   "ordercli",
 		Short: "Client for working with order service",
 	}
-	rootCmd.PersistentFlags().StringVarP(&grpcAddr, "addr", "a", "", "order-service gRPC endpoint (required)")
-	rootCmd.PersistentFlags().StringVarP(&userUuid, "uid", "u", "", "user uuid (required)")
+	rootCmd.PersistentFlags().StringVarP(&c.args.grpcAddr, "addr", "a", "", "order-service gRPC endpoint (required)")
+	rootCmd.PersistentFlags().StringVarP(&c.args.userUuid, "uid", "u", "", "user uuid (required)")
 
-	rootCmd.AddCommand(CreateCmd())
+	rootCmd.MarkFlagRequired("addr")
+	rootCmd.MarkFlagRequired("uid")
+
+	rootCmd.AddCommand(c.CreateCmd())
 
 	c.rootCmd = rootCmd
 	return c

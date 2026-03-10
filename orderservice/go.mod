@@ -11,14 +11,18 @@ require (
 	github.com/redis/go-redis/v9 v9.0.5
 	github.com/segmentio/kafka-go v0.4.50
 	github.com/shopspring/decimal v1.4.0
+	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.65.0
 	go.uber.org/zap v1.27.1
 	google.golang.org/grpc v1.79.1
 )
 
 require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 )
 
 require (

@@ -1,145 +1,165 @@
 package tests
 
-// import (
-// 	"context"
-// 	"testing"
+import (
+	"context"
+	"testing"
 
-// 	"github.com/nullableocean/grpcservices/api/orderpb"
-// 	"github.com/nullableocean/grpcservices/orderservice/internal/domain"
-// 	"github.com/nullableocean/grpcservices/orderservice/internal/server"
-// 	"github.com/nullableocean/grpcservices/orderservice/internal/service/access"
-// 	"github.com/nullableocean/grpcservices/orderservice/internal/service/metrics"
-// 	"github.com/nullableocean/grpcservices/orderservice/internal/service/order"
-// 	"github.com/nullableocean/grpcservices/orderservice/internal/service/stockmarket"
-// 	"github.com/nullableocean/grpcservices/orderservice/internal/store/ram"
-// 	"github.com/nullableocean/grpcservices/shared/roles"
-// 	"github.com/prometheus/client_golang/prometheus"
-// 	"github.com/stretchr/testify/assert"
-// 	"github.com/stretchr/testify/mock"
-// 	"github.com/stretchr/testify/require"
-// 	"go.uber.org/zap"
-// )
+	"github.com/google/uuid"
+	orderv1 "github.com/nullableocean/grpcservices/api/gen/order/v1"
+	typesv1 "github.com/nullableocean/grpcservices/api/gen/types/v1"
+	"github.com/nullableocean/grpcservices/orderservice/internal/domain"
+	"github.com/nullableocean/grpcservices/orderservice/internal/metrics"
+	"github.com/nullableocean/grpcservices/orderservice/internal/service/access"
+	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside"
+	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside/handlers"
+	"github.com/nullableocean/grpcservices/orderservice/internal/service/order"
+	"github.com/nullableocean/grpcservices/orderservice/internal/store/ram"
+	"github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/server"
+	"github.com/nullableocean/grpcservices/shared/roles"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+)
 
-// type mockSpotInstrument struct {
-// 	mock.Mock
-// }
+// Mocks
+type mockSpotInstrument struct {
+	mock.Mock
+}
 
-// func (m *mockSpotInstrument) ViewMarkets(ctx context.Context, roles []roles.UserRole) ([]*domain.Market, error) {
-// 	args := m.Called(ctx, roles)
-// 	return args.Get(0).([]*domain.Market), args.Error(1)
-// }
+func (m *mockSpotInstrument) ViewMarkets(ctx context.Context, userRoles []roles.UserRole) ([]*domain.Market, error) {
+	args := m.Called(ctx, userRoles)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*domain.Market), args.Error(1)
+}
 
-// type mockUserService struct {
-// 	mock.Mock
-// }
+type mockUserService struct {
+	mock.Mock
+}
 
-// func (m *mockUserService) GetUser(ctx context.Context, id int64) (*domain.User, error) {
-// 	args := m.Called(ctx, id)
-// 	return args.Get(0).(*domain.User), args.Error(1)
-// }
+func (m *mockUserService) GetUser(ctx context.Context, userUuid string) (*domain.User, error) {
+	args := m.Called(ctx, userUuid)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.User), args.Error(1)
+}
 
-// func TestMetrics(t *testing.T) {
+type mockEventDispatcher struct {
+	mock.Mock
+}
 
-// 	ctx := context.Background()
+func (m *mockEventDispatcher) Dispatch(ctx context.Context, e inside.Event) {
+	m.Called(ctx, e)
+}
 
-// 	passSer := access.PasswordService{}
-// 	hash, _ := passSer.GetHashForPassword("password")
-// 	user := domain.NewUser(&domain.CreateUserDto{
-// 		Id:       10,
-// 		Username: "tea",
-// 		PassHash: hash,
-// 		Roles:    []roles.UserRole{roles.USER_SELLER},
-// 	})
+func TestMetrics(t *testing.T) {
+	ctx := context.Background()
+	logger := zap.NewNop()
 
-// 	m := domain.NewMarket(1, "test_market")
+	userUUID := uuid.New().String()
+	marketUUID := uuid.New().String()
 
-// 	userService := &mockUserService{}
-// 	userService.On("GetUser", ctx, int64(10)).Return(user, nil)
+	user := &domain.User{
+		UUID:  userUUID,
+		Roles: roles.NewRoles(roles.USER_SELLER),
+	}
 
-// 	spotInstrument := &mockSpotInstrument{}
-// 	spotInstrument.On("ViewMarkets", ctx, user.Roles()).Return([]*domain.Market{m}, nil)
+	market := &domain.Market{
+		UUID: marketUUID,
+		Name: "test_market",
+	}
 
-// 	store := ram.NewOrderStore()
+	userService := &mockUserService{}
+	userService.On("GetUser", mock.Anything, userUUID).Return(user, nil)
 
-// 	roleAccess := access.NewRoleAccessService()
+	spotInstrument := &mockSpotInstrument{}
+	spotInstrument.On("ViewMarkets", mock.Anything, user.Roles.GetSlice()).Return([]*domain.Market{market}, nil)
 
-// 	marketClient := stockmarket.NewDummyMarketClient()
-// 	marketEvBroker := stockmarket.NewDummyBroker(ram.NewOrderStore())
-// 	eventStore := ram.NewEventStore()
+	eventDispatcher := &mockEventDispatcher{}
+	eventDispatcher.On("Dispatch", mock.Anything, mock.MatchedBy(func(e inside.Event) bool {
+		_, ok := e.(*inside.OrderCreatedEvent)
+		return ok
+	})).Return().Times(2)
 
-// 	stockMarket, err := stockmarket.NewStockMarketService(zap.NewNop(), marketClient, marketEvBroker, eventStore)
-// 	require.NoError(t, err)
+	statusStreamer := handlers.NewStatusStreamer(logger, handlers.Option{MaxSendingProcess: 5})
 
-// 	orderService := order.NewOrderService(zap.NewNop(), stockMarket, store, spotInstrument, userService, roleAccess)
+	store := ram.NewOrderStore()
+	roleInspector := access.NewRoleInspector()
 
-// 	reg := prometheus.NewRegistry()
-// 	orderMetrics := metrics.NewOrderMetrics(reg)
-// 	orderServer := server.NewOrderServer(orderService, zap.NewNop(), orderMetrics)
+	orderService := order.NewOrderService(
+		logger,
+		store,
+		spotInstrument,
+		userService,
+		eventDispatcher,
+		roleInspector,
+	)
 
-// 	resp, err := orderServer.CreateOrder(context.Background(), &orderpb.CreateOrderRequest{
-// 		UserId:    10,
-// 		MarketId:  1,
-// 		OrderType: 1,
-// 		Price:     1000.0,
-// 		Quantity:  1,
-// 	})
+	reg := prometheus.NewRegistry()
+	orderMetrics := metrics.NewOrderMetrics(reg)
 
-// 	assert.NoError(t, err)
+	orderServer := server.NewOrderServer(logger, orderService, orderMetrics, statusStreamer)
 
-// 	resp, err = orderServer.CreateOrder(context.Background(), &orderpb.CreateOrderRequest{
-// 		UserId:    10,
-// 		MarketId:  1,
-// 		OrderType: 1,
-// 		Price:     1000.0,
-// 		Quantity:  1,
-// 	})
+	createReq := &orderv1.CreateOrderRequest{
+		UserUuid:  userUUID,
+		MarketId:  marketUUID,
+		OrderType: typesv1.OrderType_ORDER_TYPE_BUY,
+		Price: &typesv1.Money{
+			Units: 1000,
+			Nanos: 0,
+		},
+		Quantity: 1,
+	}
 
-// 	assert.NoError(t, err)
+	resp1, err := orderServer.CreateOrder(ctx, createReq)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp1.OrderUuid)
 
-// 	orderServer.GetOrderStatus(context.Background(), &orderpb.GetStatusRequest{
-// 		OrderId: resp.OrderId,
-// 		UserId:  10,
-// 	})
+	resp2, err := orderServer.CreateOrder(ctx, createReq)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp2.OrderUuid)
 
-// 	collectedMetrics, err := reg.Gather()
+	_, err = orderServer.GetOrderStatus(ctx, &orderv1.GetStatusRequest{
+		OrderUuid: resp2.OrderUuid,
+		UserUuid:  userUUID,
+	})
+	require.NoError(t, err)
 
-// 	assert.NoError(t, err)
+	collectedMetrics, err := reg.Gather()
+	require.NoError(t, err)
 
-// 	createOrdersCounter := false
-// 	createOrdersDuration := false
-// 	getStatusCounter := false
+	var createCounterFound, getCounterFound, durationFound bool
 
-// 	for _, m := range collectedMetrics {
-// 		if *m.Name == metrics.Namespace+"_"+metrics.CreateOrderCalls {
-// 			createOrdersCounter = true
+	for _, mf := range collectedMetrics {
+		switch mf.GetName() {
+		case metrics.Namespace + "_" + metrics.CreateOrderCalls:
+			createCounterFound = true
+			metricsList := mf.GetMetric()
+			assert.Len(t, metricsList, 1, "exactly one metric should exist for CreateOrderCalls")
+			counterValue := metricsList[0].GetCounter().GetValue()
+			assert.Equal(t, 2.0, counterValue, "CreateOrder counter should be 2")
 
-// 			collectedMetrics := m.GetMetric()
+		case metrics.Namespace + "_" + metrics.GetStatusCalls:
+			getCounterFound = true
+			metricsList := mf.GetMetric()
+			assert.Len(t, metricsList, 1, "exactly one metric should exist for GetStatusCalls")
+			counterValue := metricsList[0].GetCounter().GetValue()
+			assert.Equal(t, 1.0, counterValue, "GetOrderStatus counter should be 1")
 
-// 			assert.Len(t, collectedMetrics, 1)
+		case metrics.Namespace + "_" + metrics.CreateOrderDuration:
+			durationFound = true
+		}
+	}
 
-// 			counterMetric := collectedMetrics[0]
-// 			callCount := counterMetric.Counter.GetValue()
+	assert.True(t, createCounterFound, "metric CreateOrderCalls not found")
+	assert.True(t, getCounterFound, "metric GetStatusCalls not found")
+	assert.True(t, durationFound, "metric CreateOrderDuration not found")
 
-// 			assert.Equal(t, int(callCount), 2, "create order call count should be 2")
-// 		}
-// 		if *m.Name == metrics.Namespace+"_"+metrics.GetStatusCalls {
-// 			getStatusCounter = true
-
-// 			collectedMetrics := m.GetMetric()
-
-// 			assert.Len(t, collectedMetrics, 1)
-
-// 			counterMetric := collectedMetrics[0]
-// 			callCount := counterMetric.Counter.GetValue()
-
-// 			assert.Equal(t, int(callCount), 1, "create order call count should be 1")
-// 		}
-// 		if *m.Name == metrics.Namespace+"_"+metrics.CreateOrderDuration {
-// 			createOrdersDuration = true
-// 		}
-// 	}
-
-// 	assert.True(t, createOrdersCounter)
-// 	assert.True(t, createOrdersDuration)
-// 	assert.True(t, getStatusCounter)
-// }
+	userService.AssertExpectations(t)
+	spotInstrument.AssertExpectations(t)
+	eventDispatcher.AssertExpectations(t)
+}

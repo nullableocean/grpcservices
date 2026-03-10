@@ -10,12 +10,7 @@ const (
 )
 
 func (status OrderStatus) IsFinal() bool {
-	switch status {
-	case ORDER_STATUS_COMPLETED, ORDER_STATUS_REJECTED:
-		return true
-	default:
-		return false
-	}
+	return len(AllowedTransitions(status)) == 0
 }
 
 func (status OrderStatus) String() string {

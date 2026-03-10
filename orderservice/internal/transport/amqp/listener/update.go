@@ -7,8 +7,7 @@ import (
 	"time"
 
 	ordereventsv1 "github.com/nullableocean/grpcservices/api/gen/events/order/v1"
-	"github.com/nullableocean/grpcservices/orderservice/internal/domain"
-	"github.com/nullableocean/grpcservices/orderservice/internal/service/events"
+	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/outside"
 	"github.com/nullableocean/grpcservices/shared/limiter"
 	"github.com/nullableocean/grpcservices/shared/order"
 	"github.com/nullableocean/grpcservices/shared/xrequestid"
@@ -27,7 +26,7 @@ var (
 )
 
 type UpdateEventHandler interface {
-	Handle(ctx context.Context, update *domain.UpdateEvent) error
+	Handle(ctx context.Context, update *outside.UpdateStatusEvent) error
 }
 
 type UpdateListener struct {
@@ -139,7 +138,7 @@ func (l *UpdateListener) handleMsg(ctx context.Context, msg kafka.Message) {
 	logger = logger.With(zap.String("event_uuid", event.UUID))
 
 	err = l.handler.Handle(traceCtx, event)
-	if err != nil && !errors.Is(err, events.ErrEventAlreadyHandled) {
+	if err != nil && !errors.Is(err, outside.ErrEventAlreadyHandled) {
 		logger.Error("failed handle event", zap.Error(err))
 
 		l.mu.Lock()
@@ -193,7 +192,7 @@ func (l *UpdateListener) startTracing(ctx context.Context, msg kafka.Message) (c
 	return traceCtx, span
 }
 
-func (l *UpdateListener) unmarshalDataToUpdateEvent(value []byte) (*domain.UpdateEvent, error) {
+func (l *UpdateListener) unmarshalDataToUpdateEvent(value []byte) (*outside.UpdateStatusEvent, error) {
 	protoUpdateEvent := ordereventsv1.UpdateStatus{}
 
 	err := proto.Unmarshal(value, &protoUpdateEvent)
@@ -201,11 +200,11 @@ func (l *UpdateListener) unmarshalDataToUpdateEvent(value []byte) (*domain.Updat
 		return nil, err
 	}
 
-	return &domain.UpdateEvent{
+	return &outside.UpdateStatusEvent{
 		UUID:      protoUpdateEvent.Uuid,
 		OrderUuid: protoUpdateEvent.OrderUuid,
 		NewStatus: order.OrderStatus(protoUpdateEvent.NewStatus),
-		CreatedAt: protoUpdateEvent.CreatedAt.AsTime(),
+		UpdatedAt: protoUpdateEvent.CreatedAt.AsTime(),
 	}, nil
 }
 

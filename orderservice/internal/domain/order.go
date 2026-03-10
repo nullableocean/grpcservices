@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"time"
+
 	"github.com/nullableocean/grpcservices/shared/money"
 	"github.com/nullableocean/grpcservices/shared/order"
 )
@@ -13,6 +15,7 @@ type Order struct {
 	Quantity   int64
 	Status     order.OrderStatus
 	OrderType  order.OrderType
+	CreatedAt  time.Time
 }
 
 func (o *Order) Id() string {

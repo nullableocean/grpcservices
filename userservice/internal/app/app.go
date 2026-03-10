@@ -13,6 +13,7 @@ import (
 	userv1 "github.com/nullableocean/grpcservices/api/gen/user/v1"
 	"github.com/nullableocean/grpcservices/shared/intercepter"
 	"github.com/nullableocean/grpcservices/shared/telemetry"
+	"github.com/nullableocean/grpcservices/userservice/internal/auth"
 	"github.com/nullableocean/grpcservices/userservice/internal/config"
 	"github.com/nullableocean/grpcservices/userservice/internal/seed"
 	"github.com/nullableocean/grpcservices/userservice/internal/service/user"
@@ -52,7 +53,7 @@ func Start(cnf *config.Config, logger *zap.Logger) error {
 	// service
 
 	userStore := ram.NewUserStore()
-	userService := user.NewUserService(userStore)
+	userService := user.NewUserService(userStore, &auth.PasswordHasher{})
 	userServer := transport.NewUserServer(logger, userService)
 
 	userv1.RegisterUserServer(gprcServer, userServer)

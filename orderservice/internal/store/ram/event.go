@@ -6,16 +6,16 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/nullableocean/grpcservices/orderservice/internal/domain"
 	"github.com/nullableocean/grpcservices/orderservice/internal/errs"
+	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/outside"
 )
 
 type UpdateEventStore interface {
-	Save(ctx context.Context, event *domain.UpdateEvent) error
-	Find(ctx context.Context, uuid string) (*domain.UpdateEvent, error)
+	Save(ctx context.Context, event *outside.UpdateStatusEvent) error
+	Find(ctx context.Context, uuid string) (*outside.UpdateStatusEvent, error)
 }
 type EventStore struct {
-	store  map[string]*domain.UpdateEvent
+	store  map[string]*outside.UpdateStatusEvent
 	nextId atomic.Int64
 
 	mu sync.RWMutex
@@ -23,13 +23,13 @@ type EventStore struct {
 
 func NewEventStore() *EventStore {
 	return &EventStore{
-		store:  make(map[string]*domain.UpdateEvent, 256),
+		store:  make(map[string]*outside.UpdateStatusEvent, 256),
 		nextId: atomic.Int64{},
 		mu:     sync.RWMutex{},
 	}
 }
 
-func (s *EventStore) Save(ctx context.Context, event *domain.UpdateEvent) error {
+func (s *EventStore) Save(ctx context.Context, event *outside.UpdateStatusEvent) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -46,7 +46,7 @@ func (s *EventStore) Save(ctx context.Context, event *domain.UpdateEvent) error 
 	return nil
 }
 
-func (s *EventStore) Update(ctx context.Context, event *domain.UpdateEvent) error {
+func (s *EventStore) Update(ctx context.Context, event *outside.UpdateStatusEvent) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -59,7 +59,7 @@ func (s *EventStore) Update(ctx context.Context, event *domain.UpdateEvent) erro
 	return nil
 }
 
-func (s *EventStore) Find(ctx context.Context, uuid string) (*domain.UpdateEvent, error) {
+func (s *EventStore) Find(ctx context.Context, uuid string) (*outside.UpdateStatusEvent, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

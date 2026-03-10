@@ -4,7 +4,7 @@ import "golang.org/x/crypto/bcrypt"
 
 type PasswordHasher struct{}
 
-func (p *PasswordHasher) GetHashForPassword(pass string) (string, error) {
+func (p *PasswordHasher) GetHash(pass string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
@@ -13,7 +13,7 @@ func (p *PasswordHasher) GetHashForPassword(pass string) (string, error) {
 	return string(hash), nil
 }
 
-func (p *PasswordHasher) CompareHashAndPassword(pass, hash string) bool {
+func (p *PasswordHasher) Compare(pass, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(pass))
 
 	return err == nil

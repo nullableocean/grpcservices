@@ -90,6 +90,7 @@ func (w *OrderUpdateWriter) getRequestId(ctx context.Context) string {
 
 	return id
 }
+
 func (w *OrderUpdateWriter) getHeaders(ctx context.Context, xreqid string) []kafka.Header {
 	carrier := propagation.HeaderCarrier{}
 

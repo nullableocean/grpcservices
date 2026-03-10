@@ -1,10 +1,9 @@
-package update
+package handlers
 
 import (
 	"context"
 
-	"github.com/nullableocean/grpcservices/orderservice/internal/domain"
-	"github.com/nullableocean/grpcservices/orderservice/internal/service/events"
+	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/outside"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/order"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -12,9 +11,9 @@ import (
 )
 
 type UpdateEventStore interface {
-	Save(ctx context.Context, event *domain.UpdateEvent) error
-	Update(ctx context.Context, event *domain.UpdateEvent) error
-	Find(ctx context.Context, uuid string) (*domain.UpdateEvent, error)
+	Save(ctx context.Context, event *outside.UpdateStatusEvent) error
+	Update(ctx context.Context, event *outside.UpdateStatusEvent) error
+	Find(ctx context.Context, uuid string) (*outside.UpdateStatusEvent, error)
 }
 
 type UpdateEventHandler struct {
@@ -32,7 +31,7 @@ func NewUpdateEventHandler(logger *zap.Logger, oService *order.OrderService, sto
 	}
 }
 
-func (h *UpdateEventHandler) Handle(ctx context.Context, event *domain.UpdateEvent) error {
+func (h *UpdateEventHandler) Handle(ctx context.Context, event *outside.UpdateStatusEvent) error {
 	ctx, span := otel.Tracer("order_service_event_handler").Start(ctx, "handle_update_event")
 	defer span.End()
 
@@ -41,20 +40,20 @@ func (h *UpdateEventHandler) Handle(ctx context.Context, event *domain.UpdateEve
 
 	ev, _ := h.store.Find(ctx, event.UUID)
 	if ev != nil {
-		if ev.Status != domain.EVENT_STATUS_ERROR {
+		if ev.ProcessingStatus != outside.EVENT_STATUS_ERROR {
 			span.AddEvent("dublicate hit")
-			return events.ErrEventAlreadyHandled
+			return outside.ErrEventAlreadyHandled
 		}
 
 		event = ev
-		event.Status = domain.EVENT_STATUS_PROCESSING
+		event.ProcessingStatus = outside.EVENT_STATUS_PROCESSING
 		err := h.store.Update(ctx, event)
 		if err != nil {
 			span.AddEvent("update event status error")
 			return err
 		}
 	} else {
-		event.Status = domain.EVENT_STATUS_PROCESSING
+		event.ProcessingStatus = outside.EVENT_STATUS_PROCESSING
 		err := h.store.Save(ctx, event)
 		if err != nil {
 			span.AddEvent("save event error")
@@ -69,7 +68,7 @@ func (h *UpdateEventHandler) Handle(ctx context.Context, event *domain.UpdateEve
 		span.AddEvent("change order status error")
 		h.logger.Warn("failed change order status", zap.Error(err))
 
-		event.Status = domain.EVENT_STATUS_ERROR
+		event.ProcessingStatus = outside.EVENT_STATUS_ERROR
 		if err := h.store.Update(ctx, event); err != nil {
 			span.AddEvent("update event status error")
 			h.logger.Warn("failed update event status", zap.Error(err))
@@ -83,7 +82,7 @@ func (h *UpdateEventHandler) Handle(ctx context.Context, event *domain.UpdateEve
 		zap.String("new_status", newOrderStatus.String()),
 	)
 
-	event.Status = domain.EVENT_STATUS_PROCESSED
+	event.ProcessingStatus = outside.EVENT_STATUS_PROCESSED
 	if err := h.store.Update(ctx, event); err != nil {
 		span.AddEvent("update event status error")
 		h.logger.Warn("failed update event status", zap.Error(err))

@@ -1,4 +1,4 @@
-package events
+package outside
 
 import "errors"
 

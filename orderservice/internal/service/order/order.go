@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/nullableocean/grpcservices/orderservice/internal/domain"
 	"github.com/nullableocean/grpcservices/orderservice/internal/dto"
 	"github.com/nullableocean/grpcservices/orderservice/internal/errs"
-	"github.com/nullableocean/grpcservices/orderservice/internal/service/order/streamer"
+	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside"
 	"github.com/nullableocean/grpcservices/shared/order"
 	"github.com/nullableocean/grpcservices/shared/roles"
 	"go.uber.org/zap"
@@ -28,8 +29,8 @@ type OrderStore interface {
 	Save(ctx context.Context, ord *domain.Order) error
 }
 
-type ChangesStreamer interface {
-	Send(ctx context.Context, change streamer.Changes) error
+type EventDispatcher interface {
+	Dispatch(ctx context.Context, e inside.Event)
 }
 
 type RoleInspector interface {
@@ -40,7 +41,7 @@ type OrderService struct {
 	spotInstrument  SpotInstrument
 	userService     UserService
 	roleInspect     RoleInspector
-	changesStreamer ChangesStreamer
+	eventDispatcher EventDispatcher
 
 	store  OrderStore
 	logger *zap.Logger
@@ -51,7 +52,7 @@ func NewOrderService(
 	store OrderStore,
 	spotInstrument SpotInstrument,
 	userService UserService,
-	changesStreamer ChangesStreamer,
+	eventDispatcher EventDispatcher,
 	rInspect RoleInspector) *OrderService {
 
 	return &OrderService{
@@ -59,7 +60,7 @@ func NewOrderService(
 		userService:     userService,
 		roleInspect:     rInspect,
 		store:           store,
-		changesStreamer: changesStreamer,
+		eventDispatcher: eventDispatcher,
 
 		logger: logger,
 	}
@@ -82,17 +83,18 @@ func (s *OrderService) ChangeStatus(ctx context.Context, orderUuid string, newSt
 		return 0, err
 	}
 
-	s.changesStreamer.Send(ctx, &streamer.StatusChanges{
-		OrderUuid:     orderUuid,
-		NewStatus:     newStatus,
-		IsFinalStatus: newStatus.IsFinal(),
+	updatedAt := time.Now()
+	s.eventDispatcher.Dispatch(ctx, &inside.NewStatusEvent{
+		OrderUuid: orderUuid,
+		NewStatus: newStatus,
+		UpdatedAt: updatedAt,
 	})
 
 	return newStatus, nil
 }
 
 func (s *OrderService) GetOrderStatus(ctx context.Context, orderUuid string, userUuid string) (order.OrderStatus, error) {
-	o, err := s.FindOrder(ctx, orderUuid, userUuid)
+	o, err := s.FindOrderForUser(ctx, orderUuid, userUuid)
 	if err != nil {
 		return 0, err
 	}
@@ -100,14 +102,23 @@ func (s *OrderService) GetOrderStatus(ctx context.Context, orderUuid string, use
 	return o.GetStatus(), nil
 }
 
-func (s *OrderService) FindOrder(ctx context.Context, orderUuid string, userUuid string) (*domain.Order, error) {
-	o, err := s.store.Get(ctx, orderUuid)
+func (s *OrderService) FindOrderForUser(ctx context.Context, orderUuid string, userUuid string) (*domain.Order, error) {
+	o, err := s.FindOrder(ctx, orderUuid)
 	if err != nil {
-		return nil, fmt.Errorf("get order error: %w", errs.ErrNotFound)
+		return nil, err
 	}
 
 	if o.GetUserUuid() != userUuid {
 		return nil, fmt.Errorf("%w:invalid userid. order_id: %s, user_id: %s", errs.ErrInvalidData, orderUuid, userUuid)
+	}
+
+	return o, nil
+}
+
+func (s *OrderService) FindOrder(ctx context.Context, orderUuid string) (*domain.Order, error) {
+	o, err := s.store.Get(ctx, orderUuid)
+	if err != nil {
+		return nil, fmt.Errorf("get order error: %w", errs.ErrNotFound)
 	}
 
 	return o, nil
@@ -151,6 +162,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderData *dto.CreateOrd
 		return nil, fmt.Errorf("%w:market_uuid: %s", errs.ErrNotAllowedMarket, orderData.MarketUuid)
 	}
 
+	createdAt := time.Now()
 	newOrder := &domain.Order{
 		UUID:       uuid.NewString(),
 		UserUuid:   orderData.UserUuid,
@@ -159,6 +171,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderData *dto.CreateOrd
 		Quantity:   orderData.Quantity,
 		OrderType:  orderData.OrderType,
 		Status:     order.ORDER_STATUS_CREATED,
+		CreatedAt:  createdAt,
 	}
 
 	s.logger.Info("save order")
@@ -167,6 +180,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderData *dto.CreateOrd
 	if err != nil {
 		return nil, fmt.Errorf("save order error: %w", err)
 	}
+
+	s.eventDispatcher.Dispatch(ctx, &inside.OrderCreatedEvent{
+		OrderUuid: newOrder.UUID,
+		CreatedAt: newOrder.CreatedAt,
+	})
 
 	return newOrder, err
 }

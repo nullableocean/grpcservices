@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nullableocean/grpcservices/shared/roles"
-	"github.com/nullableocean/grpcservices/userservice/internal/auth"
 	"github.com/nullableocean/grpcservices/userservice/internal/domain"
 	"github.com/nullableocean/grpcservices/userservice/internal/errs"
 )
@@ -18,14 +17,19 @@ type UserStore interface {
 	Update(ctx context.Context, uuid string, updateData *domain.UpdateUserDto) error
 }
 
+type PasswordHasher interface {
+	Compare(pass, hash string) bool
+	GetHash(pass string) (string, error)
+}
+
 type UserService struct {
-	passHasher *auth.PasswordHasher
+	passHasher PasswordHasher
 	store      UserStore
 }
 
-func NewUserService(store UserStore) *UserService {
+func NewUserService(store UserStore, hasher PasswordHasher) *UserService {
 	return &UserService{
-		passHasher: &auth.PasswordHasher{},
+		passHasher: hasher,
 		store:      store,
 	}
 }
@@ -39,7 +43,7 @@ func (s *UserService) CreateUser(ctx context.Context, createData *domain.CreateU
 		return nil, err
 	}
 
-	passHash, err := s.passHasher.GetHashForPassword(createData.Password)
+	passHash, err := s.passHasher.GetHash(createData.Password)
 	if err != nil {
 		return nil, fmt.Errorf("cant get hash for password: %w", errs.ErrInvalidData)
 	}
