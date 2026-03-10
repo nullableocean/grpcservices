@@ -31,17 +31,11 @@ func (h *StockmarketOrderCreatedHandler) Handle(ctx context.Context, e inside.Ev
 			zap.String("got", e.EventType()))
 		return
 	}
-	h.logger.Info("process created order event with stockmarket", zap.String("order_uuid", event.OrderUuid))
+	h.logger.Info("process created order event with stockmarket", zap.String("order_uuid", event.Order.UUID))
 
-	order, err := h.orderService.FindOrder(ctx, event.OrderUuid)
-	if err != nil {
-		h.logger.Warn("find order by created event error", zap.String("order_uuid", event.OrderUuid), zap.Error(err))
-		return
-	}
-
-	if err := h.stockmarket.Process(ctx, order); err != nil {
+	if err := h.stockmarket.Process(ctx, event.Order); err != nil {
 		h.logger.Error("failed process order in stockmarket service",
-			zap.String("order_uuid", event.OrderUuid),
+			zap.String("order_uuid", event.Order.UUID),
 			zap.Error(err),
 		)
 	}

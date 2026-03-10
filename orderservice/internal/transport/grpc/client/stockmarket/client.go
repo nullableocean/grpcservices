@@ -5,7 +5,7 @@ import (
 
 	stockmarketv1 "github.com/nullableocean/grpcservices/api/gen/stockmarket/v1"
 	"github.com/nullableocean/grpcservices/orderservice/internal/domain"
-	"github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/mapping"
+	"github.com/nullableocean/grpcservices/orderservice/internal/transport/mapping"
 	"go.uber.org/zap"
 )
 

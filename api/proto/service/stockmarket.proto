@@ -4,24 +4,14 @@ package stockmarket.v1;
 
 option go_package = "github.com/nullableocean/grpcservices/api/gen/stockmarket/v1;stockmarketv1";
 
-import "types/money.proto";
-import "types/common.proto";
+import "types/order.proto";
 
 service StockMarketService {
     rpc ProcessOrder(ProcessOrderRequest) returns (ProcessOrderResponse);
 }
 
-message Order {
-    string order_uuid = 1;                          // UUID
-    string user_uuid = 2;                      // UUID
-    string market_uuid = 3;                     // UUID
-    types.v1.OrderType type = 4;
-    types.v1.Money price = 5;
-    int64 quantity = 6;
-}
-
 message ProcessOrderRequest {
-    Order order = 1;
+    types.v1.Order order = 1;
 }
 
 message ProcessOrderResponse {}

@@ -4,9 +4,9 @@ package events.order.v1;
 
 option go_package = "github.com/nullableocean/grpcservices/api/gen/events/order/v1;ordereventsv1";
 
-import "google/protobuf/timestamp.proto";
+import "types/order.proto";
 
-message CreatedOrder {
-    string order_uuid = 1;
-    google.protobuf.Timestamp created_at = 2;
+message CreatedOrderEvent {
+    string event_uuid = 1;
+    types.v1.Order created_order = 2;
 }

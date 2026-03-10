@@ -30,6 +30,7 @@ type Config struct {
 		GroupID           string `env:"KAFKA_GROUP" env-required:"true"`
 		OrderUpdatesTopic string `env:"KAFKA_ORDER_UPDATES_TOPIC" env-required:"true"`
 		OrderCreatedTopic string `env:"KAFKA_ORDER_CREATED_TOPIC" env-required:"true"`
+		DLQTopic          string `env:"KAFKA_DLQ_TOPIC" env-required:"true"`
 	}
 
 	Telemetry struct {

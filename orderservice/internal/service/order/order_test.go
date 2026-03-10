@@ -320,7 +320,7 @@ func (s *OrderServiceTestSuite) TestCreateOrder_Success() {
 
 	s.mockEventDisp.On("Dispatch", s.ctx, mock.MatchedBy(func(e inside.Event) bool {
 		ev, ok := e.(*inside.OrderCreatedEvent)
-		return ok && ev.OrderUuid != ""
+		return ok && ev.Order.UUID != ""
 	})).Return().Once()
 
 	order, err := s.service.CreateOrder(s.ctx, createDto)

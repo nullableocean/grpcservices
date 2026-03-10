@@ -6,6 +6,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/domain"
 	"github.com/nullableocean/grpcservices/orderservice/internal/dto"
 	"github.com/nullableocean/grpcservices/shared/order"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Map proto request to service order dto
@@ -24,5 +25,17 @@ func MapDomainOrderToProtoResponse(order *domain.Order) *orderv1.CreateOrderResp
 	return &orderv1.CreateOrderResponse{
 		OrderUuid: order.Id(),
 		Status:    typesv1.OrderStatus(order.GetStatus()),
+	}
+}
+
+func MapDomainOrderToProtoOrder(o *domain.Order) *typesv1.Order {
+	return &typesv1.Order{
+		OrderUuid:  o.UUID,
+		UserUuid:   o.UserUuid,
+		MarketUuid: o.MarketUuid,
+		Type:       typesv1.OrderType(o.OrderType),
+		Price:      MapDomainMoneyToProto(o.Price),
+		Quantity:   o.Quantity,
+		CreatedAt:  timestamppb.New(o.CreatedAt),
 	}
 }

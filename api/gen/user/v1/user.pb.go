@@ -218,7 +218,7 @@ var File_service_user_proto protoreflect.FileDescriptor
 
 const file_service_user_proto_rawDesc = "" +
 	"\n" +
-	"\x12service/user.proto\x12\auser.v1\x1a\x12types/common.proto\"/\n" +
+	"\x12service/user.proto\x12\auser.v1\x1a\x10types/user.proto\"/\n" +
 	"\x10UserRolesRequest\x12\x1b\n" +
 	"\tuser_uuid\x18\x01 \x01(\tR\buserUuid\"F\n" +
 	"\x11UserRolesResponse\x121\n" +

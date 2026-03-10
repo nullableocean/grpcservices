@@ -18,7 +18,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/metrics"
 	insideHandlers "github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside/handlers"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/order"
-	"github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/mapping"
+	"github.com/nullableocean/grpcservices/orderservice/internal/transport/mapping"
 )
 
 type OrderServer struct {

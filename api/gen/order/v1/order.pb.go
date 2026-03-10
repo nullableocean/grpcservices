@@ -250,7 +250,7 @@ var File_service_order_proto protoreflect.FileDescriptor
 
 const file_service_order_proto_rawDesc = "" +
 	"\n" +
-	"\x13service/order.proto\x12\border.v1\x1a\x11types/money.proto\x1a\x12types/common.proto\"N\n" +
+	"\x13service/order.proto\x12\border.v1\x1a\x11types/money.proto\x1a\x11types/order.proto\"N\n" +
 	"\x10GetStatusRequest\x12\x1d\n" +
 	"\n" +
 	"order_uuid\x18\x01 \x01(\tR\torderUuid\x12\x1b\n" +

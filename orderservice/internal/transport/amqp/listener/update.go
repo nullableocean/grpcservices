@@ -83,7 +83,9 @@ func (l *UpdateListener) StartListen(ctx context.Context) error {
 		default:
 		}
 
+		l.logger.Info("fetching messages from kafka", zap.String("topic", l.kafkaReader.Config().Topic))
 		msg, err := l.kafkaReader.FetchMessage(ctx)
+		l.logger.Info("fetched message...")
 
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {

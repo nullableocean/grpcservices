@@ -95,7 +95,7 @@ var File_events_order_update_proto protoreflect.FileDescriptor
 
 const file_events_order_update_proto_rawDesc = "" +
 	"\n" +
-	"\x19events/order/update.proto\x12\x0fevents.order.v1\x1a\x12types/common.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb2\x01\n" +
+	"\x19events/order/update.proto\x12\x0fevents.order.v1\x1a\x11types/order.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb2\x01\n" +
 	"\fUpdateStatus\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x12\x1d\n" +
 	"\n" +

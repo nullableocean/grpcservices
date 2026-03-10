@@ -4,6 +4,19 @@ package types.v1;
 
 option go_package = "github.com/nullableocean/grpcservices/api/gen/types/v1;typesv1";
 
+import "google/protobuf/timestamp.proto";
+import "types/money.proto";
+
+message Order {
+    string order_uuid = 1;                          // UUID
+    string user_uuid = 2;                      // UUID
+    string market_uuid = 3;                     // UUID
+    OrderType type = 4;
+    Money price = 5;
+    int64 quantity = 6;
+    google.protobuf.Timestamp created_at = 7;
+}
+
 enum OrderType {
     ORDER_TYPE_UNSPECIFIED = 0;
     ORDER_TYPE_BUY = 1;
@@ -16,13 +29,4 @@ enum OrderStatus {
     ORDER_STATUS_PENDING = 2;
     ORDER_STATUS_COMPLETED = 3;  
     ORDER_STATUS_REJECTED = 4;
-}
-
-enum UserRole {
-    USER_ROLE_UNSPECIFIED = 0;
-    USER_ROLE_GUEST = 1;
-    USER_ROLE_VERIFIED = 2;
-    USER_ROLE_SELLER = 3;
-    USER_ROLE_MODER = 4;
-    USER_ROLE_ADMIN = 5;  
 }

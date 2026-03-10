@@ -182,8 +182,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderData *dto.CreateOrd
 	}
 
 	s.eventDispatcher.Dispatch(ctx, &inside.OrderCreatedEvent{
-		OrderUuid: newOrder.UUID,
-		CreatedAt: newOrder.CreatedAt,
+		Order: newOrder,
 	})
 
 	return newOrder, err

@@ -6,7 +6,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// Map pb Money to domain money
 func MapProtoMoneyToDomain(pbmoney *typesv1.Money) money.Money {
 	return money.Money{
 		Decimal: MapProtoMoneyToDecimal(pbmoney),
@@ -20,4 +19,16 @@ func MapProtoMoneyToDecimal(pbmoney *typesv1.Money) decimal.Decimal {
 
 	result := units.Add(nanos.Div(decimal.NewFromInt(1e9)))
 	return result
+}
+
+func MapDomainMoneyToProto(m money.Money) *typesv1.Money {
+	units := m.Decimal.IntPart()
+
+	fractional := m.Decimal.Sub(decimal.NewFromInt(units))
+	nanos := fractional.Mul(decimal.NewFromInt(1e9)).IntPart()
+
+	return &typesv1.Money{
+		Units: units,
+		Nanos: int32(nanos),
+	}
 }

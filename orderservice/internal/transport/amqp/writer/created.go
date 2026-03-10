@@ -4,8 +4,10 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	ordereventsv1 "github.com/nullableocean/grpcservices/api/gen/events/order/v1"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside"
+	"github.com/nullableocean/grpcservices/orderservice/internal/transport/mapping"
 	"github.com/nullableocean/grpcservices/shared/xrequestid"
 	"github.com/segmentio/kafka-go"
 	"go.opentelemetry.io/otel"
@@ -13,7 +15,6 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type CreatedEventWriter struct {
@@ -29,7 +30,7 @@ func NewCreatedEventWriter(logger *zap.Logger, kw *kafka.Writer) *CreatedEventWr
 }
 
 func (w *CreatedEventWriter) Write(ctx context.Context, insideEvent *inside.OrderCreatedEvent) error {
-	orderUuid := insideEvent.OrderUuid
+	orderUuid := insideEvent.Order.UUID
 	reqId := w.getRequestId(ctx)
 
 	logger := w.logger.With(
@@ -37,9 +38,9 @@ func (w *CreatedEventWriter) Write(ctx context.Context, insideEvent *inside.Orde
 		zap.String(xrequestid.XREQUEST_ID_KEY, reqId),
 	)
 
-	protoEvent := &ordereventsv1.CreatedOrder{
-		OrderUuid: insideEvent.OrderUuid,
-		CreatedAt: timestamppb.New(insideEvent.CreatedAt),
+	protoEvent := &ordereventsv1.CreatedOrderEvent{
+		EventUuid:    uuid.NewString(),
+		CreatedOrder: mapping.MapDomainOrderToProtoOrder(insideEvent.Order),
 	}
 
 	data, err := proto.Marshal(protoEvent)
@@ -55,21 +56,23 @@ func (w *CreatedEventWriter) Write(ctx context.Context, insideEvent *inside.Orde
 
 	headers := w.prepareHeaders(ctx, reqId)
 	msg := kafka.Message{
-		Key:     []byte(insideEvent.OrderUuid),
+		Key:     []byte(insideEvent.Order.UUID),
 		Value:   data,
 		Headers: headers,
-		Time:    insideEvent.CreatedAt,
+		Time:    insideEvent.Order.CreatedAt,
 	}
 
 	writeCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+
+	logger.Info("write created order event to kafka", zap.String("topic", w.kwriter.Topic))
 
 	if err := w.kwriter.WriteMessages(writeCtx, msg); err != nil {
 		w.logger.Error("failed to write message to Kafka", zap.Error(err))
 		return err
 	}
 
-	logger.Info("order created event sent to Kafka")
+	logger.Info("order created event writed to kafka")
 	return nil
 }
 

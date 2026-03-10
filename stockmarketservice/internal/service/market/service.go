@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/nullableocean/grpcservices/stockmarketservice/internal/domain"
-	"github.com/nullableocean/grpcservices/stockmarketservice/internal/service/errs"
+	"github.com/nullableocean/grpcservices/stockmarketservice/internal/errs"
 	"go.opentelemetry.io/otel"
 )
 

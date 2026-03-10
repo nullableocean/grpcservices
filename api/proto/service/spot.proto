@@ -4,7 +4,7 @@ package spot.v1;
 
 option go_package = "github.com/nullableocean/grpcservices/api/gen/spot/v1;spotv1";
 
-import "types/common.proto";
+import "types/user.proto";
 
 service SpotInstrument {
     rpc ViewMarkets(ViewMarketsRequest) returns (ViewMarketsResponse);

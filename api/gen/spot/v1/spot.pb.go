@@ -166,7 +166,7 @@ var File_service_spot_proto protoreflect.FileDescriptor
 
 const file_service_spot_proto_rawDesc = "" +
 	"\n" +
-	"\x12service/spot.proto\x12\aspot.v1\x1a\x12types/common.proto\"@\n" +
+	"\x12service/spot.proto\x12\aspot.v1\x1a\x10types/user.proto\"@\n" +
 	"\x13ViewMarketsResponse\x12)\n" +
 	"\amarkets\x18\x01 \x03(\v2\x0f.spot.v1.MarketR\amarkets\"G\n" +
 	"\x12ViewMarketsRequest\x121\n" +

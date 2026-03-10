@@ -7,9 +7,9 @@
 package ordereventsv1
 
 import (
+	v1 "github.com/nullableocean/grpcservices/api/gen/types/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -22,28 +22,28 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type CreatedOrder struct {
+type CreatedOrderEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrderUuid     string                 `protobuf:"bytes,1,opt,name=order_uuid,json=orderUuid,proto3" json:"order_uuid,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	EventUuid     string                 `protobuf:"bytes,1,opt,name=event_uuid,json=eventUuid,proto3" json:"event_uuid,omitempty"`
+	CreatedOrder  *v1.Order              `protobuf:"bytes,2,opt,name=created_order,json=createdOrder,proto3" json:"created_order,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CreatedOrder) Reset() {
-	*x = CreatedOrder{}
+func (x *CreatedOrderEvent) Reset() {
+	*x = CreatedOrderEvent{}
 	mi := &file_events_order_created_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CreatedOrder) String() string {
+func (x *CreatedOrderEvent) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreatedOrder) ProtoMessage() {}
+func (*CreatedOrderEvent) ProtoMessage() {}
 
-func (x *CreatedOrder) ProtoReflect() protoreflect.Message {
+func (x *CreatedOrderEvent) ProtoReflect() protoreflect.Message {
 	mi := &file_events_order_created_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -55,21 +55,21 @@ func (x *CreatedOrder) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreatedOrder.ProtoReflect.Descriptor instead.
-func (*CreatedOrder) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreatedOrderEvent.ProtoReflect.Descriptor instead.
+func (*CreatedOrderEvent) Descriptor() ([]byte, []int) {
 	return file_events_order_created_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *CreatedOrder) GetOrderUuid() string {
+func (x *CreatedOrderEvent) GetEventUuid() string {
 	if x != nil {
-		return x.OrderUuid
+		return x.EventUuid
 	}
 	return ""
 }
 
-func (x *CreatedOrder) GetCreatedAt() *timestamppb.Timestamp {
+func (x *CreatedOrderEvent) GetCreatedOrder() *v1.Order {
 	if x != nil {
-		return x.CreatedAt
+		return x.CreatedOrder
 	}
 	return nil
 }
@@ -78,12 +78,11 @@ var File_events_order_created_proto protoreflect.FileDescriptor
 
 const file_events_order_created_proto_rawDesc = "" +
 	"\n" +
-	"\x1aevents/order/created.proto\x12\x0fevents.order.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"h\n" +
-	"\fCreatedOrder\x12\x1d\n" +
+	"\x1aevents/order/created.proto\x12\x0fevents.order.v1\x1a\x11types/order.proto\"h\n" +
+	"\x11CreatedOrderEvent\x12\x1d\n" +
 	"\n" +
-	"order_uuid\x18\x01 \x01(\tR\torderUuid\x129\n" +
-	"\n" +
-	"created_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtBMZKgithub.com/nullableocean/grpcservices/api/gen/events/order/v1;ordereventsv1b\x06proto3"
+	"event_uuid\x18\x01 \x01(\tR\teventUuid\x124\n" +
+	"\rcreated_order\x18\x02 \x01(\v2\x0f.types.v1.OrderR\fcreatedOrderBMZKgithub.com/nullableocean/grpcservices/api/gen/events/order/v1;ordereventsv1b\x06proto3"
 
 var (
 	file_events_order_created_proto_rawDescOnce sync.Once
@@ -99,11 +98,11 @@ func file_events_order_created_proto_rawDescGZIP() []byte {
 
 var file_events_order_created_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_events_order_created_proto_goTypes = []any{
-	(*CreatedOrder)(nil),          // 0: events.order.v1.CreatedOrder
-	(*timestamppb.Timestamp)(nil), // 1: google.protobuf.Timestamp
+	(*CreatedOrderEvent)(nil), // 0: events.order.v1.CreatedOrderEvent
+	(*v1.Order)(nil),          // 1: types.v1.Order
 }
 var file_events_order_created_proto_depIdxs = []int32{
-	1, // 0: events.order.v1.CreatedOrder.created_at:type_name -> google.protobuf.Timestamp
+	1, // 0: events.order.v1.CreatedOrderEvent.created_order:type_name -> types.v1.Order
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name

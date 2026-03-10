@@ -4,7 +4,7 @@ package events.order.v1;
 
 option go_package = "github.com/nullableocean/grpcservices/api/gen/events/order/v1;ordereventsv1";
 
-import "types/common.proto";
+import "types/order.proto";
 import "google/protobuf/timestamp.proto";
 
 message UpdateStatus {

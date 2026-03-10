@@ -3,6 +3,7 @@ package inside
 import (
 	"time"
 
+	"github.com/nullableocean/grpcservices/orderservice/internal/domain"
 	"github.com/nullableocean/grpcservices/shared/order"
 )
 
@@ -28,8 +29,7 @@ func (e *NewStatusEvent) EventType() string {
 }
 
 type OrderCreatedEvent struct {
-	OrderUuid string
-	CreatedAt time.Time
+	Order *domain.Order
 }
 
 func (e *OrderCreatedEvent) EventType() string {

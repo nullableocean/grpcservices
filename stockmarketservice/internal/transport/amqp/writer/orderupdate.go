@@ -1,4 +1,4 @@
-package amqp
+package writer
 
 import (
 	"context"
@@ -44,7 +44,7 @@ func (w *OrderUpdateWriter) Write(ctx context.Context, event *domain.OrderUpdate
 		return err
 	}
 
-	logger.Info("writing event for update order")
+	logger.Info("writing event for update order", zap.String("topic", w.kafkaWriter.Topic))
 
 	traceCtx, span := otel.Tracer("stockmarket_update_writer").Start(ctx, "order_update_write")
 	span.SetAttributes(attribute.String(xrequestid.XREQUEST_ID_KEY, reqId))

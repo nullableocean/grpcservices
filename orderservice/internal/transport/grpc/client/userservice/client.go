@@ -5,7 +5,7 @@ import (
 
 	userv1 "github.com/nullableocean/grpcservices/api/gen/user/v1"
 	"github.com/nullableocean/grpcservices/orderservice/internal/errs"
-	"github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/mapping"
+	"github.com/nullableocean/grpcservices/orderservice/internal/transport/mapping"
 	"github.com/nullableocean/grpcservices/shared/roles"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"

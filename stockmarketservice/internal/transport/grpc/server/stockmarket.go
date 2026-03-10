@@ -7,6 +7,7 @@ import (
 	stockmarketv1 "github.com/nullableocean/grpcservices/api/gen/stockmarket/v1"
 	"github.com/nullableocean/grpcservices/stockmarketservice/internal/errs"
 	"github.com/nullableocean/grpcservices/stockmarketservice/internal/service/processor"
+	"github.com/nullableocean/grpcservices/stockmarketservice/internal/transport/mapping"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
@@ -32,19 +33,27 @@ func (s *StockmarketServer) ProcessOrder(ctx context.Context, req *stockmarketv1
 	ctx, span := otel.Tracer("stockmarket_service").Start(ctx, "process_order")
 	defer span.End()
 
-	o := mapProtoProcessOrderRequestToDomain(req)
-	s.logger.Info("start order process", zap.String("order_uuid", o.UUID))
+	o := mapping.MapProtoProcessOrderRequestToDomain(req)
+	s.logger.Info("start order process from grpc server", zap.String("order_uuid", o.UUID))
 
 	span.SetAttributes(attribute.String("order_uuid", o.UUID))
 
 	err := s.processor.Process(ctx, o)
 	if err != nil {
-		if errors.Is(err, errs.ErrInvalidData) {
-			return nil, status.Error(codes.InvalidArgument, err.Error())
-		}
+		s.logger.Info("failed order process", zap.String("order_uuid", o.UUID), zap.Error(err))
 
-		return nil, status.Error(codes.Internal, err.Error())
+		if !errors.Is(err, errs.ErrAlreadyProcessed) && !errors.Is(err, errs.ErrAlreadyProcessing) {
+			return nil, s.handleError(err)
+		}
 	}
 
 	return &stockmarketv1.ProcessOrderResponse{}, nil
+}
+
+func (s *StockmarketServer) handleError(err error) error {
+	if errors.Is(err, errs.ErrInvalidData) {
+		return status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	return status.Error(codes.Internal, err.Error())
 }

@@ -22,100 +22,16 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type Order struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrderUuid     string                 `protobuf:"bytes,1,opt,name=order_uuid,json=orderUuid,proto3" json:"order_uuid,omitempty"`    // UUID
-	UserUuid      string                 `protobuf:"bytes,2,opt,name=user_uuid,json=userUuid,proto3" json:"user_uuid,omitempty"`       // UUID
-	MarketUuid    string                 `protobuf:"bytes,3,opt,name=market_uuid,json=marketUuid,proto3" json:"market_uuid,omitempty"` // UUID
-	Type          v1.OrderType           `protobuf:"varint,4,opt,name=type,proto3,enum=types.v1.OrderType" json:"type,omitempty"`
-	Price         *v1.Money              `protobuf:"bytes,5,opt,name=price,proto3" json:"price,omitempty"`
-	Quantity      int64                  `protobuf:"varint,6,opt,name=quantity,proto3" json:"quantity,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Order) Reset() {
-	*x = Order{}
-	mi := &file_service_stockmarket_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Order) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Order) ProtoMessage() {}
-
-func (x *Order) ProtoReflect() protoreflect.Message {
-	mi := &file_service_stockmarket_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Order.ProtoReflect.Descriptor instead.
-func (*Order) Descriptor() ([]byte, []int) {
-	return file_service_stockmarket_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *Order) GetOrderUuid() string {
-	if x != nil {
-		return x.OrderUuid
-	}
-	return ""
-}
-
-func (x *Order) GetUserUuid() string {
-	if x != nil {
-		return x.UserUuid
-	}
-	return ""
-}
-
-func (x *Order) GetMarketUuid() string {
-	if x != nil {
-		return x.MarketUuid
-	}
-	return ""
-}
-
-func (x *Order) GetType() v1.OrderType {
-	if x != nil {
-		return x.Type
-	}
-	return v1.OrderType(0)
-}
-
-func (x *Order) GetPrice() *v1.Money {
-	if x != nil {
-		return x.Price
-	}
-	return nil
-}
-
-func (x *Order) GetQuantity() int64 {
-	if x != nil {
-		return x.Quantity
-	}
-	return 0
-}
-
 type ProcessOrderRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Order         *Order                 `protobuf:"bytes,1,opt,name=order,proto3" json:"order,omitempty"`
+	Order         *v1.Order              `protobuf:"bytes,1,opt,name=order,proto3" json:"order,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ProcessOrderRequest) Reset() {
 	*x = ProcessOrderRequest{}
-	mi := &file_service_stockmarket_proto_msgTypes[1]
+	mi := &file_service_stockmarket_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -127,7 +43,7 @@ func (x *ProcessOrderRequest) String() string {
 func (*ProcessOrderRequest) ProtoMessage() {}
 
 func (x *ProcessOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_service_stockmarket_proto_msgTypes[1]
+	mi := &file_service_stockmarket_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -140,10 +56,10 @@ func (x *ProcessOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProcessOrderRequest.ProtoReflect.Descriptor instead.
 func (*ProcessOrderRequest) Descriptor() ([]byte, []int) {
-	return file_service_stockmarket_proto_rawDescGZIP(), []int{1}
+	return file_service_stockmarket_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *ProcessOrderRequest) GetOrder() *Order {
+func (x *ProcessOrderRequest) GetOrder() *v1.Order {
 	if x != nil {
 		return x.Order
 	}
@@ -158,7 +74,7 @@ type ProcessOrderResponse struct {
 
 func (x *ProcessOrderResponse) Reset() {
 	*x = ProcessOrderResponse{}
-	mi := &file_service_stockmarket_proto_msgTypes[2]
+	mi := &file_service_stockmarket_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -170,7 +86,7 @@ func (x *ProcessOrderResponse) String() string {
 func (*ProcessOrderResponse) ProtoMessage() {}
 
 func (x *ProcessOrderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_service_stockmarket_proto_msgTypes[2]
+	mi := &file_service_stockmarket_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -183,25 +99,16 @@ func (x *ProcessOrderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProcessOrderResponse.ProtoReflect.Descriptor instead.
 func (*ProcessOrderResponse) Descriptor() ([]byte, []int) {
-	return file_service_stockmarket_proto_rawDescGZIP(), []int{2}
+	return file_service_stockmarket_proto_rawDescGZIP(), []int{1}
 }
 
 var File_service_stockmarket_proto protoreflect.FileDescriptor
 
 const file_service_stockmarket_proto_rawDesc = "" +
 	"\n" +
-	"\x19service/stockmarket.proto\x12\x0estockmarket.v1\x1a\x11types/money.proto\x1a\x12types/common.proto\"\xd0\x01\n" +
-	"\x05Order\x12\x1d\n" +
-	"\n" +
-	"order_uuid\x18\x01 \x01(\tR\torderUuid\x12\x1b\n" +
-	"\tuser_uuid\x18\x02 \x01(\tR\buserUuid\x12\x1f\n" +
-	"\vmarket_uuid\x18\x03 \x01(\tR\n" +
-	"marketUuid\x12'\n" +
-	"\x04type\x18\x04 \x01(\x0e2\x13.types.v1.OrderTypeR\x04type\x12%\n" +
-	"\x05price\x18\x05 \x01(\v2\x0f.types.v1.MoneyR\x05price\x12\x1a\n" +
-	"\bquantity\x18\x06 \x01(\x03R\bquantity\"B\n" +
-	"\x13ProcessOrderRequest\x12+\n" +
-	"\x05order\x18\x01 \x01(\v2\x15.stockmarket.v1.OrderR\x05order\"\x16\n" +
+	"\x19service/stockmarket.proto\x12\x0estockmarket.v1\x1a\x11types/order.proto\"<\n" +
+	"\x13ProcessOrderRequest\x12%\n" +
+	"\x05order\x18\x01 \x01(\v2\x0f.types.v1.OrderR\x05order\"\x16\n" +
 	"\x14ProcessOrderResponse2o\n" +
 	"\x12StockMarketService\x12Y\n" +
 	"\fProcessOrder\x12#.stockmarket.v1.ProcessOrderRequest\x1a$.stockmarket.v1.ProcessOrderResponseBLZJgithub.com/nullableocean/grpcservices/api/gen/stockmarket/v1;stockmarketv1b\x06proto3"
@@ -218,25 +125,21 @@ func file_service_stockmarket_proto_rawDescGZIP() []byte {
 	return file_service_stockmarket_proto_rawDescData
 }
 
-var file_service_stockmarket_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_service_stockmarket_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_service_stockmarket_proto_goTypes = []any{
-	(*Order)(nil),                // 0: stockmarket.v1.Order
-	(*ProcessOrderRequest)(nil),  // 1: stockmarket.v1.ProcessOrderRequest
-	(*ProcessOrderResponse)(nil), // 2: stockmarket.v1.ProcessOrderResponse
-	(v1.OrderType)(0),            // 3: types.v1.OrderType
-	(*v1.Money)(nil),             // 4: types.v1.Money
+	(*ProcessOrderRequest)(nil),  // 0: stockmarket.v1.ProcessOrderRequest
+	(*ProcessOrderResponse)(nil), // 1: stockmarket.v1.ProcessOrderResponse
+	(*v1.Order)(nil),             // 2: types.v1.Order
 }
 var file_service_stockmarket_proto_depIdxs = []int32{
-	3, // 0: stockmarket.v1.Order.type:type_name -> types.v1.OrderType
-	4, // 1: stockmarket.v1.Order.price:type_name -> types.v1.Money
-	0, // 2: stockmarket.v1.ProcessOrderRequest.order:type_name -> stockmarket.v1.Order
-	1, // 3: stockmarket.v1.StockMarketService.ProcessOrder:input_type -> stockmarket.v1.ProcessOrderRequest
-	2, // 4: stockmarket.v1.StockMarketService.ProcessOrder:output_type -> stockmarket.v1.ProcessOrderResponse
-	4, // [4:5] is the sub-list for method output_type
-	3, // [3:4] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2, // 0: stockmarket.v1.ProcessOrderRequest.order:type_name -> types.v1.Order
+	0, // 1: stockmarket.v1.StockMarketService.ProcessOrder:input_type -> stockmarket.v1.ProcessOrderRequest
+	1, // 2: stockmarket.v1.StockMarketService.ProcessOrder:output_type -> stockmarket.v1.ProcessOrderResponse
+	2, // [2:3] is the sub-list for method output_type
+	1, // [1:2] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_service_stockmarket_proto_init() }
@@ -250,7 +153,7 @@ func file_service_stockmarket_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_service_stockmarket_proto_rawDesc), len(file_service_stockmarket_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

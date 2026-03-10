@@ -7,7 +7,7 @@ import (
 	"github.com/nullableocean/grpcservices/shared/roles"
 
 	"github.com/nullableocean/grpcservices/orderservice/internal/domain"
-	"github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/mapping"
+	"github.com/nullableocean/grpcservices/orderservice/internal/transport/mapping"
 )
 
 type SpotClient struct {

@@ -32,6 +32,6 @@ func (h *AmqpOrderCreatedHandler) Handle(ctx context.Context, e inside.Event) {
 	if err := h.writer.Write(ctx, event); err != nil {
 		h.logger.Error("failed to write order created event to Kafka",
 			zap.Error(err),
-			zap.String("order_uuid", event.OrderUuid))
+			zap.String("order_uuid", event.Order.UUID))
 	}
 }

@@ -5,7 +5,7 @@ package order.v1;
 option go_package = "github.com/nullableocean/grpcservices/api/gen/order/v1;orderv1";
 
 import "types/money.proto";
-import "types/common.proto";
+import "types/order.proto";
 
 service Order {
     rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);

@@ -2,23 +2,26 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	stockmarketv1 "github.com/nullableocean/grpcservices/api/gen/stockmarket/v1"
 	"github.com/nullableocean/grpcservices/shared/intercepter"
 	"github.com/nullableocean/grpcservices/shared/telemetry"
 	"github.com/nullableocean/grpcservices/stockmarketservice/internal/config"
-	"github.com/nullableocean/grpcservices/stockmarketservice/internal/server"
 	"github.com/nullableocean/grpcservices/stockmarketservice/internal/service/event/order/updater"
 	"github.com/nullableocean/grpcservices/stockmarketservice/internal/service/market"
 	"github.com/nullableocean/grpcservices/stockmarketservice/internal/service/processor"
-	"github.com/nullableocean/grpcservices/stockmarketservice/internal/transport/amqp"
+	"github.com/nullableocean/grpcservices/stockmarketservice/internal/transport/amqp/listener"
+	"github.com/nullableocean/grpcservices/stockmarketservice/internal/transport/amqp/writer"
+	"github.com/nullableocean/grpcservices/stockmarketservice/internal/transport/grpc/server"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/segmentio/kafka-go"
@@ -42,6 +45,21 @@ func Start(cnf *config.Config, logger *zap.Logger) error {
 	})
 	kafkaWriter.AllowAutoTopicCreation = true
 
+	kfkDlqWriter := kafka.NewWriter(kafka.WriterConfig{
+		Brokers: []string{cnf.Kafka.Endpoint},
+		Topic:   cnf.Kafka.DLQTopic,
+	})
+	kfkDlqWriter.AllowAutoTopicCreation = true
+
+	kafkaReader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:        []string{cnf.Kafka.Endpoint},
+		Topic:          cnf.Kafka.OrderCreatedTopic,
+		GroupID:        cnf.Kafka.GroupID,
+		MaxWait:        time.Second * 5,
+		CommitInterval: 0,
+		StartOffset:    kafka.FirstOffset,
+	})
+
 	// metrics
 	grpcMetrics := grpc_prometheus.NewServerMetrics()
 
@@ -59,7 +77,7 @@ func Start(cnf *config.Config, logger *zap.Logger) error {
 
 	// service
 
-	updateWriter := amqp.NewOrderUpdateWriter(logger, kafkaWriter)
+	updateWriter := writer.NewOrderUpdateWriter(logger, kafkaWriter)
 	updater := updater.NewOrderUpdater(updateWriter)
 
 	dummyMarketService := market.NewMarketService()
@@ -67,6 +85,7 @@ func Start(cnf *config.Config, logger *zap.Logger) error {
 	stockServer := server.NewStockmarketServer(logger, stockProc)
 	stockmarketv1.RegisterStockMarketServiceServer(grpcServer, stockServer)
 
+	createOrderListener := listener.NewCreatedOrderListener(logger, kafkaReader, kfkDlqWriter, stockProc, listener.Option{})
 	// server init listen
 
 	mux := http.NewServeMux()
@@ -81,10 +100,10 @@ func Start(cnf *config.Config, logger *zap.Logger) error {
 		Handler: mux,
 	}
 
-	return upAndWaitShutdown(logger, cnf, grpcServer, httpServer)
+	return upAndWaitShutdown(logger, cnf, grpcServer, httpServer, createOrderListener)
 }
 
-func upAndWaitShutdown(logger *zap.Logger, cnf *config.Config, grpcServer *grpc.Server, httpServer *http.Server) error {
+func upAndWaitShutdown(logger *zap.Logger, cnf *config.Config, grpcServer *grpc.Server, httpServer *http.Server, eventListener *listener.CreatedOrderListener) error {
 	var err error
 	errChan := make(chan error, 1)
 
@@ -108,6 +127,20 @@ func upAndWaitShutdown(logger *zap.Logger, cnf *config.Config, grpcServer *grpc.
 		err = grpcServer.Serve(lis)
 		if err != nil {
 			errChan <- fmt.Errorf("start serve grpc error: %w", err)
+		}
+	}()
+
+	listenerCtx, cl := context.WithCancel(context.Background())
+	defer cl()
+
+	go func() {
+		err = eventListener.StartListen(listenerCtx)
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return
+			}
+
+			errChan <- fmt.Errorf("start broker listener error: %w", err)
 		}
 	}()
 
