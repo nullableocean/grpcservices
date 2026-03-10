@@ -129,6 +129,8 @@ func (l *CreatedOrderListener) handleMsg(parentCtx context.Context, msg kafka.Me
 	}
 
 	order := mapping.MapProtoOrderToDomainOrder(event.CreatedOrder)
+
+	logger.Info("start process orde from kafka event")
 	err = l.processor.Process(traceCtx, order)
 	if err != nil {
 		logger.Error("failed to process event order", zap.Error(err), zap.String("event_uuid", event.EventUuid))

@@ -1,7 +1,12 @@
 #!/bin/bash
 
+CLIENT_BIN="./orderserviceclient/bin/ordercli"
 USER_LOG="userservice/logs/logs.log"
 MARKET_LOG="spotinstrument/logs/logs.log"
+
+if [ ! -f "$CLIENT_BIN" ]; then
+    cd ./orderserviceclient && make build && cd ..
+fi
 
 if [ ! -f "$USER_LOG" ]; then
     echo "Файл логов пользователя не найден: $USER_LOG"
@@ -30,4 +35,5 @@ if [ -z "$MARKET_UUID" ]; then
 fi
 
 # вызываем клиент для создания оредров
+echo "./orderserviceclient/bin/ordercli create -a localhost:8091 -u "$USER_UUID" -m "$MARKET_UUID" -p 55.12344555 -q 10 -t buy"
 ./orderserviceclient/bin/ordercli create -a localhost:8091 -u "$USER_UUID" -m "$MARKET_UUID" -p 55.12344555 -q 10 -t buy

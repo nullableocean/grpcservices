@@ -142,7 +142,7 @@ func Run(cnf *config.Config, logger *zap.Logger) error {
 	stockMarketClient := transport.NewStockmarketClient(logger, stockmarketGrpcClient)
 	stockmarket := stockmarket.NewStockMarketService(logger, stockMarketClient)
 
-	eventsBus := bus.NewEventBus()
+	eventsBus := bus.NewEventBus(logger, bus.Option{})
 
 	updateStatusStreamer := insideHandler.NewStatusStreamer(logger, insideHandler.Option{MaxSendingProcess: 5})
 

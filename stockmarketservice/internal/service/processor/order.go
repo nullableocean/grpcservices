@@ -65,10 +65,14 @@ func (p *StockmarketProcessor) Process(ctx context.Context, o *domain.Order) err
 
 	p.mu.Lock()
 	if _, ex := p.processed[o.UUID]; ex {
+		p.mu.Unlock()
+
 		return errs.ErrAlreadyProcessed
 	}
 
 	if _, ex := p.processing[o.UUID]; ex {
+		p.mu.Unlock()
+
 		return errs.ErrAlreadyProcessing
 	}
 
