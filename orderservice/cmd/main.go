@@ -26,7 +26,9 @@ func main() {
 		log.Fatalf("logger init error: %v\n", err)
 	}
 
-	err = app.Run(cnf, zapLogger)
+	app := app.NewApp(cnf, zapLogger)
+
+	err = app.Run()
 	if err != nil {
 		log.Fatalf("start app error: %v\n", err)
 	}

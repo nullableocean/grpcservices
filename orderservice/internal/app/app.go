@@ -35,7 +35,6 @@ import (
 	transport "github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/client/stockmarket"
 	"github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/client/userservice"
 	"github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/server"
-	"github.com/nullableocean/grpcservices/shared/intercepter"
 	"github.com/nullableocean/grpcservices/shared/telemetry"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -47,230 +46,142 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func Run(cnf *config.Config, logger *zap.Logger) error {
-	redis, err := setupRedis(cnf)
-	if err != nil {
-		return fmt.Errorf("redis error: %w", err)
+type App struct {
+	config *config.Config
+	logger *zap.Logger
+
+	grpc struct {
+		server *grpc.Server
+
+		userservice    *grpc.ClientConn
+		spotinstrument *grpc.ClientConn
+		stockmarket    *grpc.ClientConn
 	}
 
-	kafkaReader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:        []string{cnf.Kafka.Endpoint},
-		Topic:          cnf.Kafka.OrderUpdatesTopic,
-		GroupID:        cnf.Kafka.GroupID,
-		MaxWait:        time.Second * 5,
-		CommitInterval: 0, // ручной коммит
-		StartOffset:    kafka.FirstOffset,
-	})
+	http struct {
+		server *http.Server
+	}
 
-	kafkaCreatedOrderWriter := kafka.NewWriter(kafka.WriterConfig{
-		Brokers: []string{cnf.Kafka.Endpoint},
-		Topic:   cnf.Kafka.OrderCreatedTopic,
-	})
-	kafkaCreatedOrderWriter.AllowAutoTopicCreation = true
+	prometheus struct {
+		reg            *prometheus.Registry
+		grpcMetricsSrv *grpc_prometheus.ServerMetrics
+		grpcMetricsCl  *grpc_prometheus.ClientMetrics
 
-	kfkDlqWriter := kafka.NewWriter(kafka.WriterConfig{
-		Brokers: []string{cnf.Kafka.Endpoint},
-		Topic:   cnf.Kafka.DLQTopic,
-	})
-	kfkDlqWriter.AllowAutoTopicCreation = true
+		serviceMetrics *metrics.OrderServiceMetrics
+	}
 
+	kafka struct {
+		updatesReader   *kafka.Reader
+		createdEvWriter *kafka.Writer
+		dlqWriter       *kafka.Writer
+	}
+
+	redis struct {
+		client *redis.Client
+	}
+
+	services struct {
+		stockmarketEventListener *listener.UpdateListener
+	}
+}
+
+func NewApp(config *config.Config, logger *zap.Logger) *App {
+	return &App{
+		config: config,
+		logger: logger,
+	}
+}
+
+func (app *App) Run() error {
+	err := app.setupRedis()
+	if err != nil {
+		return fmt.Errorf("failed setup redis: %w", err)
+	}
+
+	app.setupKafka()
 	//telemetry
 	collectRatio := float64(1)
-	shutdown, err := telemetry.InitTelemetryWithJaeger(cnf.App.Name, cnf.Telemetry.JaegerGrpcAddress, collectRatio)
+	shutdown, err := telemetry.InitTelemetryWithJaeger(app.config.App.Name, app.config.Telemetry.JaegerGrpcAddress, collectRatio)
 	if err != nil {
 		return fmt.Errorf("failed init telemetry jaeger exporter: %w", err)
 	}
 	defer shutdown(context.Background())
 
 	//metrics
-	serverMetrics := grpc_prometheus.NewServerMetrics()
-	clientMetrics := grpc_prometheus.NewClientMetrics()
-
-	promReg := prometheus.NewRegistry()
-	promReg.MustRegister(serverMetrics, clientMetrics)
-	orderServerMetrics := metrics.NewOrderMetrics(promReg)
+	app.setupMetrics()
 
 	//grpc server
-	grpcServer := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()), serverInterceptors(logger, serverMetrics))
+	app.setupGrpcServer()
 
-	//grpc client
-	clientInterceptors := clientsInterceptors(logger, clientMetrics)
-	spotGrpcConnect, err := grpc.NewClient(
-		cnf.Spot.Endpoint,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
-		clientInterceptors,
-	)
-
-	userGrpcConnetc, err := grpc.NewClient(
-		cnf.User.Endpoint,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
-		clientInterceptors,
-	)
+	//grpc clients
+	err = app.setupGrpcClients()
 	if err != nil {
-		return fmt.Errorf("failed grpc connect to user service: %w", err)
-	}
-
-	stockmarketGrpcConnect, err := grpc.NewClient(
-		cnf.Stockmarket.Endpoint,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
-		clientInterceptors,
-	)
-	if err != nil {
-		return fmt.Errorf("failed grpc connect to stockmarket service: %w", err)
+		return err
 	}
 
 	// services init
+	spotClient := spotinstrument.NewSpotClient(spotv1.NewSpotInstrumentClient(app.grpc.spotinstrument))
+	baseSpotSrvs := spot.NewSpotInstrument(spotClient)
 
-	marketsCache := rdb.NewMarketCache(redis, cnf.Redis.TTL)
+	marketsCache := rdb.NewMarketCache(app.redis.client, app.config.Redis.TTL)
+	cachedSpotSrvs := spot.NewCachedSpotInstrument(baseSpotSrvs, marketsCache, app.logger)
 
-	spotClient := spotinstrument.NewSpotClient(spotv1.NewSpotInstrumentClient(spotGrpcConnect))
-	spotInstrument := spot.NewSpotInstrument(spotClient)
+	userClient := userservice.NewUserClient(app.logger, userv1.NewUserClient(app.grpc.userservice))
+	userSrvs := user.NewUserService(userClient)
 
-	cachedSpotInstrument := spot.NewCachedSpotInstrument(spotInstrument, marketsCache, logger)
+	// events handlers
+	updateStatusStreamer := insideHandler.NewStatusStreamer(app.logger, insideHandler.Option{MaxSendingProcess: 5})
+	createdEventWriter := writer.NewCreatedEventWriter(app.logger, app.kafka.createdEvWriter)
+	createdAmqpEventHandler := insideHandler.NewAmqpOrderCreatedHandler(app.logger, createdEventWriter)
 
-	userClient := userservice.NewUserClient(logger, userv1.NewUserClient(userGrpcConnetc))
-	userService := user.NewUserService(userClient)
-
-	roleInspector := access.NewRoleInspector()
-
-	orderStore := ram.NewOrderStore()
-
-	stockmarketGrpcClient := stockmarketv1.NewStockMarketServiceClient(stockmarketGrpcConnect)
-	stockMarketClient := transport.NewStockmarketClient(logger, stockmarketGrpcClient)
-	stockmarket := stockmarket.NewStockMarketService(logger, stockMarketClient)
-
-	eventsBus := bus.NewEventBus(logger, bus.Option{})
-
-	updateStatusStreamer := insideHandler.NewStatusStreamer(logger, insideHandler.Option{MaxSendingProcess: 5})
-
-	createdEventWriter := writer.NewCreatedEventWriter(logger, kafkaCreatedOrderWriter)
-	createdAmqpEventHandler := insideHandler.NewAmqpOrderCreatedHandler(logger, createdEventWriter)
-
+	eventsBus := bus.NewEventBus(app.logger, bus.Option{})
 	eventsBus.RegisterHandler(context.Background(), string(inside.EVENT_NEW_ORDER_STATUS), updateStatusStreamer)
 	eventsBus.RegisterHandler(context.Background(), string(inside.EVENT_CREATED_ORDER), createdAmqpEventHandler)
 
-	orderService := order.NewOrderService(logger, orderStore, cachedSpotInstrument, userService, eventsBus, roleInspector)
+	//main service
+	orderSrvs := order.NewOrderService(
+		app.logger,
+		ram.NewOrderStore(),
+		cachedSpotSrvs,
+		userSrvs,
+		eventsBus,
+		access.NewRoleInspector(),
+	)
 
-	createdOrderStockmarketHandler := insideHandler.NewStockmarketCreatedOrderHandler(logger, orderService, stockmarket)
-	eventsBus.RegisterHandler(context.Background(), string(inside.EVENT_CREATED_ORDER), createdOrderStockmarketHandler)
+	if app.grpc.stockmarket != nil {
+		stockmarketGrpcClient := stockmarketv1.NewStockMarketServiceClient(app.grpc.stockmarket)
+		stockMarketClient := transport.NewStockmarketClient(app.logger, stockmarketGrpcClient)
+		stockmarket := stockmarket.NewStockMarketService(app.logger, stockMarketClient)
+		createdOrderStockmarketHandler := insideHandler.NewStockmarketCreatedOrderHandler(app.logger, orderSrvs, stockmarket)
+		eventsBus.RegisterHandler(context.Background(), string(inside.EVENT_CREATED_ORDER), createdOrderStockmarketHandler)
+	}
 
-	outsideEventStore := ram.NewEventStore()
+	stockmarketEventsStore := ram.NewEventStore()
 
-	updatesEventHandler := outsideHandlers.NewUpdateEventHandler(logger, orderService, outsideEventStore)
-	updatesEventListener := listener.NewUpdateListener(
-		logger,
-		kafkaReader,
-		kfkDlqWriter,
+	updatesEventHandler := outsideHandlers.NewUpdateEventHandler(app.logger, orderSrvs, stockmarketEventsStore)
+	app.services.stockmarketEventListener = listener.NewUpdateListener(
+		app.logger,
+		app.kafka.updatesReader,
+		app.kafka.dlqWriter,
 		updatesEventHandler,
 		listener.Option{
-			ProcessLimit: cnf.Events.ProcLimit,
-			MaxRetries:   cnf.Events.Retries,
+			ProcessLimit: app.config.Events.ProcLimit,
+			MaxRetries:   app.config.Events.Retries,
 		},
 	)
 
-	orderServer := server.NewOrderServer(logger, orderService, orderServerMetrics, updateStatusStreamer)
-	orderv1.RegisterOrderServer(grpcServer, orderServer)
+	orderServer := server.NewOrderServer(app.logger, orderSrvs, app.prometheus.serviceMetrics, updateStatusStreamer)
+	orderv1.RegisterOrderServer(app.grpc.server, orderServer)
 
 	//listen init
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
-
-	httpServer := &http.Server{
-		Addr:    ":" + cnf.Metrics.Port,
-		Handler: mux,
-	}
-
-	return upAndWaitShutdown(logger, cnf, grpcServer, httpServer, updatesEventListener)
-}
-
-func setupRedis(cnf *config.Config) (*redis.Client, error) {
-	c := redis.NewClient(&redis.Options{
-		Addr:     cnf.Redis.Address,
-		DB:       cnf.Redis.DB,
-		Username: cnf.Redis.Username,
-		Password: cnf.Redis.Password,
-	})
-
-	err := c.Ping(context.Background()).Err()
-	if err != nil {
-		return nil, fmt.Errorf("redis ping error: %w", err)
-	}
-
-	return c, nil
-}
-
-func serverInterceptors(logger *zap.Logger, serverMetrics *grpc_prometheus.ServerMetrics) grpc.ServerOption {
-	return grpc.ChainUnaryInterceptor(
-		intercepter.UnaryServerPanicRecovery(logger),
-		intercepter.UnaryServerLogger(logger),
-		intercepter.UnaryServerTelemtry(),
-		serverMetrics.UnaryServerInterceptor(),
-	)
-}
-
-func clientsInterceptors(logger *zap.Logger, clientMetrics *grpc_prometheus.ClientMetrics) grpc.DialOption {
-	return grpc.WithChainUnaryInterceptor(
-		intercepter.UnaryClientPanicRecovery(),
-		intercepter.UnaryClientXReqId(),
-		intercepter.UnaryClientXReqIdTelemtry(),
-		clientMetrics.UnaryClientInterceptor(),
-		intercepter.UnaryClientLogger(logger),
-	)
-}
-
-// gracefull
-func upAndWaitShutdown(
-	logger *zap.Logger, cnf *config.Config,
-	grpcServer *grpc.Server,
-	httpServer *http.Server,
-	updateListener *listener.UpdateListener,
-) error {
-	var err error
 	errChan := make(chan error, 1)
 
-	go func() {
-		logger.Info("start listen metrics http", zap.String("address", cnf.App.Address+":"+cnf.Metrics.Port))
-
-		err := httpServer.ListenAndServe()
-		if err != nil {
-			errChan <- err
-		}
-	}()
-
-	lis, err := net.Listen("tcp", cnf.App.Address+":"+cnf.App.Port)
-	if err != nil {
-		return fmt.Errorf("create listen tcp error: %w", err)
+	app.startHttpServer(errChan)
+	if err := app.startGrpcServer(errChan); err != nil {
+		return err
 	}
 
-	go func() {
-		logger.Info("order grpc service started", zap.String("address", cnf.App.Address+":"+cnf.App.Port))
-
-		err = grpcServer.Serve(lis)
-		if err != nil {
-			errChan <- fmt.Errorf("start serve grpc error: %w", err)
-		}
-	}()
-
-	listenerCtx, cl := context.WithCancel(context.Background())
-	defer cl()
-
-	go func() {
-		err = updateListener.StartListen(listenerCtx)
-		if err != nil {
-			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-				return
-			}
-
-			errChan <- fmt.Errorf("start broker listener error: %w", err)
-		}
-	}()
+	cancelListen := app.listenEvents(errChan)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGQUIT)
@@ -281,8 +192,168 @@ func upAndWaitShutdown(
 		err = e
 	}
 
-	grpcServer.GracefulStop()
-	httpServer.Shutdown(context.Background())
+	cancelListen()
+	app.grpc.server.GracefulStop()
+	app.http.server.Shutdown(context.Background())
 
 	return err
+}
+
+func (app *App) listenEvents(errChan chan<- error) context.CancelFunc {
+	cancelCtx, cl := context.WithCancel(context.Background())
+
+	go func() {
+		err := app.services.stockmarketEventListener.StartListen(cancelCtx)
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return
+			}
+
+			errChan <- fmt.Errorf("start broker listener error: %w", err)
+		}
+	}()
+
+	return cl
+}
+
+func (app *App) startGrpcServer(errChan chan<- error) error {
+	lis, err := net.Listen("tcp", app.config.App.Address+":"+app.config.App.Port)
+	if err != nil {
+		return fmt.Errorf("create listen tcp error: %w", err)
+	}
+
+	go func() {
+		app.logger.Info("order grpc server started", zap.String("address", app.config.App.Address+":"+app.config.App.Port))
+
+		err = app.grpc.server.Serve(lis)
+		if err != nil {
+			errChan <- fmt.Errorf("start serve grpc error: %w", err)
+		}
+	}()
+
+	return nil
+}
+
+func (app *App) startHttpServer(errChan chan<- error) {
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.HandlerFor(app.prometheus.reg, promhttp.HandlerOpts{}))
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+
+	app.http.server = &http.Server{
+		Addr:    ":" + app.config.Metrics.Port,
+		Handler: mux,
+	}
+
+	go func() {
+		app.logger.Info("start listen metrics http", zap.String("address", app.config.App.Address+":"+app.config.Metrics.Port))
+
+		err := app.http.server.ListenAndServe()
+		if err != nil {
+			errChan <- err
+		}
+	}()
+}
+
+func (app *App) setupGrpcServer() {
+	app.grpc.server = grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()), serverInterceptors(app.logger, app.prometheus.grpcMetricsSrv))
+}
+
+func (app *App) setupGrpcClients() error {
+	clientInterceptors := clientsInterceptors(app.logger, app.prometheus.grpcMetricsCl)
+
+	spotGrpcConnect, err := grpc.NewClient(
+		app.config.Spot.Endpoint,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+		clientInterceptors,
+	)
+	if err != nil {
+		return fmt.Errorf("failed grpc connect to spot service: %w", err)
+	}
+
+	userGrpcConnect, err := grpc.NewClient(
+		app.config.User.Endpoint,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+		clientInterceptors,
+	)
+	if err != nil {
+		return fmt.Errorf("failed grpc connect to user service: %w", err)
+	}
+
+	app.grpc.spotinstrument = spotGrpcConnect
+	app.grpc.userservice = userGrpcConnect
+
+	if app.config.Stockmarket.Endpoint != "" {
+		stockmarketGrpcConnect, err := grpc.NewClient(
+			app.config.Stockmarket.Endpoint,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+			clientInterceptors,
+		)
+		if err != nil {
+			return fmt.Errorf("failed grpc connect to stockmarket service: %w", err)
+		}
+
+		app.grpc.stockmarket = stockmarketGrpcConnect
+	}
+
+	return nil
+}
+
+func (app *App) setupMetrics() {
+	app.prometheus.grpcMetricsSrv = grpc_prometheus.NewServerMetrics()
+	app.prometheus.grpcMetricsCl = grpc_prometheus.NewClientMetrics()
+
+	app.prometheus.reg = prometheus.NewRegistry()
+	app.prometheus.reg.MustRegister(
+		app.prometheus.grpcMetricsSrv,
+		app.prometheus.grpcMetricsCl,
+	)
+
+	app.prometheus.serviceMetrics = metrics.NewOrderMetrics(app.prometheus.reg)
+}
+
+func (app *App) setupRedis() error {
+	c := redis.NewClient(&redis.Options{
+		Addr:     app.config.Redis.Address,
+		DB:       app.config.Redis.DB,
+		Username: app.config.Redis.Username,
+		Password: app.config.Redis.Password,
+	})
+
+	err := c.Ping(context.Background()).Err()
+	if err != nil {
+		return fmt.Errorf("redis ping error: %w", err)
+	}
+
+	app.redis.client = c
+
+	return nil
+}
+
+func (app *App) setupKafka() {
+	app.kafka.updatesReader = kafka.NewReader(kafka.ReaderConfig{
+		Brokers:        []string{app.config.Kafka.Endpoint},
+		Topic:          app.config.Kafka.OrderUpdatesTopic,
+		GroupID:        app.config.Kafka.GroupID,
+		MaxWait:        time.Second * 5,
+		CommitInterval: 0, // ручной коммит
+		StartOffset:    kafka.FirstOffset,
+	})
+
+	app.kafka.createdEvWriter = kafka.NewWriter(kafka.WriterConfig{
+		Brokers: []string{app.config.Kafka.Endpoint},
+		Topic:   app.config.Kafka.OrderCreatedTopic,
+	})
+	app.kafka.createdEvWriter.AllowAutoTopicCreation = true
+
+	app.kafka.dlqWriter = kafka.NewWriter(kafka.WriterConfig{
+		Brokers: []string{app.config.Kafka.Endpoint},
+		Topic:   app.config.Kafka.DLQTopic,
+	})
+	app.kafka.dlqWriter.AllowAutoTopicCreation = true
 }

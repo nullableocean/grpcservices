@@ -23,7 +23,7 @@ type Config struct {
 	}
 
 	Stockmarket struct {
-		Endpoint string `env:"STOCKMARKET_GRPC_ENDPOINT" env-required:"true"`
+		Endpoint string `env:"STOCKMARKET_GRPC_ENDPOINT" env-default:""`
 	}
 
 	Spot struct {
