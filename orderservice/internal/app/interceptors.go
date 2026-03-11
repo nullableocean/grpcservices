@@ -7,12 +7,19 @@ import (
 	"google.golang.org/grpc"
 )
 
-func serverInterceptors(logger *zap.Logger, serverMetrics *grpc_prometheus.ServerMetrics) grpc.ServerOption {
+func serverUnaryInterceptors(logger *zap.Logger, serverMetrics *grpc_prometheus.ServerMetrics) grpc.ServerOption {
 	return grpc.ChainUnaryInterceptor(
 		intercepter.UnaryServerPanicRecovery(logger),
 		intercepter.UnaryServerLogger(logger),
 		intercepter.UnaryServerTelemtry(),
 		serverMetrics.UnaryServerInterceptor(),
+	)
+}
+
+func serverStreamInterceptors(logger *zap.Logger, serverMetrics *grpc_prometheus.ServerMetrics) grpc.ServerOption {
+	return grpc.ChainStreamInterceptor(
+		intercepter.StreamServerPanicRecovery(logger),
+		serverMetrics.StreamServerInterceptor(),
 	)
 }
 

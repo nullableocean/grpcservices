@@ -3,7 +3,6 @@ package intercepter
 import (
 	"context"
 	"fmt"
-	"runtime/debug"
 
 	"github.com/nullableocean/grpcservices/shared/xrequestid"
 	"go.opentelemetry.io/otel/attribute"
@@ -45,13 +44,29 @@ func UnaryServerPanicRecovery(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		defer func() {
 			if r := recover(); r != nil {
-				stack := debug.Stack()
 				msg := fmt.Sprintf("grpc request panic: %v", r)
-				logger.Warn("failed grpc request, got panic", zap.String("error", msg), zap.String("stacktrace", string(stack)))
+				logger.Warn("failed grpc request, got panic", zap.String("error", msg), zap.Stack("stack"))
 				err = status.Error(codes.Internal, msg)
 			}
 		}()
 
 		return handler(ctx, req)
+	}
+}
+
+func StreamServerPanicRecovery(logger *zap.Logger) grpc.StreamServerInterceptor {
+	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				msg := fmt.Sprintf("grpc stream panic: %v", r)
+				logger.Warn("failed grpc stream, got panic",
+					zap.String("method", info.FullMethod),
+					zap.String("error", msg),
+					zap.Stack("stack"),
+				)
+				err = status.Error(codes.Internal, msg)
+			}
+		}()
+		return handler(srv, stream)
 	}
 }

@@ -258,7 +258,11 @@ func (app *App) startHttpServer(errChan chan<- error) {
 }
 
 func (app *App) setupGrpcServer() {
-	app.grpc.server = grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()), serverInterceptors(app.logger, app.prometheus.grpcMetricsSrv))
+	app.grpc.server = grpc.NewServer(
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+		serverUnaryInterceptors(app.logger, app.prometheus.grpcMetricsSrv),
+		serverStreamInterceptors(app.logger, app.prometheus.grpcMetricsSrv),
+	)
 }
 
 func (app *App) setupGrpcClients() error {
