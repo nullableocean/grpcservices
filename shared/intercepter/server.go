@@ -45,7 +45,7 @@ func UnaryServerPanicRecovery(logger *zap.Logger) grpc.UnaryServerInterceptor {
 		defer func() {
 			if r := recover(); r != nil {
 				msg := fmt.Sprintf("grpc request panic: %v", r)
-				logger.Warn("failed grpc request, got panic", zap.String("error", msg), zap.Stack("stack"))
+				logger.Error("failed grpc request, got panic", zap.String("error", msg), zap.Stack("stack"))
 				err = status.Error(codes.Internal, msg)
 			}
 		}()
@@ -59,7 +59,7 @@ func StreamServerPanicRecovery(logger *zap.Logger) grpc.StreamServerInterceptor 
 		defer func() {
 			if r := recover(); r != nil {
 				msg := fmt.Sprintf("grpc stream panic: %v", r)
-				logger.Warn("failed grpc stream, got panic",
+				logger.Error("failed grpc stream, got panic",
 					zap.String("method", info.FullMethod),
 					zap.String("error", msg),
 					zap.Stack("stack"),

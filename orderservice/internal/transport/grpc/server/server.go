@@ -44,7 +44,7 @@ func NewOrderServer(logger *zap.Logger, orderService *order.OrderService, metric
 func (serv *OrderServer) CreateOrder(ctx context.Context, req *orderv1.CreateOrderRequest) (*orderv1.CreateOrderResponse, error) {
 	orderCreatingData := mapping.MapCreateOrderRequestToOrderDto(req)
 
-	serv.logger.Info("request create order",
+	serv.logger.Info("create order request",
 		zap.String("user_id", orderCreatingData.UserUuid),
 		zap.String("market_id", orderCreatingData.UserUuid),
 		zap.Int64("quantity", orderCreatingData.Quantity),
@@ -143,6 +143,7 @@ func (serv *OrderServer) StreamOrderUpdates(req *orderv1.GetStatusRequest, strea
 	}
 	defer serv.statusStreamer.Unsubscribe(ctx, orderUuid, sub.Id)
 
+	logger.Info("stream open")
 	for newStatusEvent := range sub.EventCh {
 		logger.Info("send updated status in stream", zap.String("new_status", newStatusEvent.NewStatus.String()))
 
@@ -155,6 +156,7 @@ func (serv *OrderServer) StreamOrderUpdates(req *orderv1.GetStatusRequest, strea
 		}
 	}
 
+	logger.Info("stream closed")
 	return nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/order"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/stockmarket"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 )
 
@@ -24,6 +25,9 @@ func NewStockmarketCreatedOrderHandler(logger *zap.Logger, orderService *order.O
 }
 
 func (h *StockmarketOrderCreatedHandler) Handle(ctx context.Context, e inside.Event) {
+	ctx, span := otel.Tracer("stockmarket_created_event_handler").Start(ctx, "handle_event")
+	defer span.End()
+
 	event, ok := e.(*inside.OrderCreatedEvent)
 	if !ok {
 		h.logger.Error("unexpected event type in stockmarket order created events handler",
@@ -31,8 +35,8 @@ func (h *StockmarketOrderCreatedHandler) Handle(ctx context.Context, e inside.Ev
 			zap.String("got", e.EventType()))
 		return
 	}
-	h.logger.Info("process created order event with stockmarket", zap.String("order_uuid", event.Order.UUID))
 
+	h.logger.Info("process created order event with stockmarket service", zap.String("order_uuid", event.Order.UUID))
 	if err := h.stockmarket.Process(ctx, event.Order); err != nil {
 		h.logger.Error("failed process order in stockmarket service",
 			zap.String("order_uuid", event.Order.UUID),

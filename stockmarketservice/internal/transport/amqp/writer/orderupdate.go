@@ -30,7 +30,13 @@ func NewOrderUpdateWriter(l *zap.Logger, kw *kafka.Writer) *OrderUpdateWriter {
 
 func (w *OrderUpdateWriter) Write(ctx context.Context, event *domain.OrderUpdate) error {
 	ctx = context.WithoutCancel(ctx)
+
 	reqId := w.getRequestId(ctx)
+
+	ctx, span := otel.Tracer("update_order_event_writer").Start(ctx, "write_update_event")
+	defer span.End()
+
+	span.SetAttributes(attribute.String(xrequestid.XREQUEST_ID_KEY, reqId))
 
 	logger := w.logger.With(
 		zap.String(xrequestid.XREQUEST_ID_KEY, reqId),
@@ -40,17 +46,15 @@ func (w *OrderUpdateWriter) Write(ctx context.Context, event *domain.OrderUpdate
 
 	data, err := w.marshalToBytes(event)
 	if err != nil {
+		span.AddEvent("failed marshal event")
 		logger.Error("failed to marshal event", zap.Error(err))
+
 		return err
 	}
 
 	logger.Info("writing event for update order", zap.String("topic", w.kafkaWriter.Topic))
 
-	traceCtx, span := otel.Tracer("stockmarket_update_writer").Start(ctx, "order_update_write")
-	span.SetAttributes(attribute.String(xrequestid.XREQUEST_ID_KEY, reqId))
-	defer span.End()
-
-	headers := w.getHeaders(traceCtx, reqId)
+	headers := w.getHeaders(ctx, reqId)
 	msg := kafka.Message{
 		Key:     []byte(event.OrderUuid),
 		Value:   data,
@@ -58,7 +62,7 @@ func (w *OrderUpdateWriter) Write(ctx context.Context, event *domain.OrderUpdate
 		Time:    event.CreatedAt,
 	}
 
-	err = w.kafkaWriter.WriteMessages(traceCtx, msg)
+	err = w.kafkaWriter.WriteMessages(ctx, msg)
 	if err != nil {
 		logger.Error("failed write event", zap.Error(err))
 		span.AddEvent("failed write event")

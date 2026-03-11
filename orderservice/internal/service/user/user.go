@@ -5,6 +5,7 @@ import (
 
 	"github.com/nullableocean/grpcservices/orderservice/internal/domain"
 	"github.com/nullableocean/grpcservices/shared/roles"
+	"go.opentelemetry.io/otel"
 )
 
 type UserClient interface {
@@ -22,12 +23,13 @@ func NewUserService(client UserClient) *UserService {
 }
 
 func (s *UserService) GetUser(ctx context.Context, userUuid string) (*domain.User, error) {
+	ctx, span := otel.Tracer("user_service").Start(ctx, "get_user")
+	defer span.End()
+
 	rls, err := s.client.GetUserRoles(ctx, userUuid)
 	if err != nil {
 		return nil, err
 	}
-
-	// TODO: cache user
 
 	user := &domain.User{
 		UUID:  userUuid,

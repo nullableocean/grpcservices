@@ -49,7 +49,7 @@ func (s *MStore) Get(ctx context.Context, uuid string) (*domain.Market, error) {
 	return m, nil
 }
 
-func (s *MStore) GetAll(ctx context.Context) []*domain.Market {
+func (s *MStore) GetAll(ctx context.Context) ([]*domain.Market, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -59,7 +59,7 @@ func (s *MStore) GetAll(ctx context.Context) []*domain.Market {
 		out = append(out, v)
 	}
 
-	return out
+	return out, nil
 }
 
 func (s *MStore) GetEnabled(ctx context.Context) []*domain.Market {

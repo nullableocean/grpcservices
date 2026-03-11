@@ -102,21 +102,22 @@ func (l *CreatedOrderListener) StartListen(ctx context.Context) error {
 	}
 }
 
-func (l *CreatedOrderListener) handleMsg(parentCtx context.Context, msg kafka.Message) {
+func (l *CreatedOrderListener) handleMsg(ctx context.Context, msg kafka.Message) {
 	defer l.processLimiter.Release()
 
-	traceCtx, span := l.startTracing(parentCtx, msg)
+	traceCtx, span := l.startTracing(ctx, msg)
 	defer span.End()
 
 	msgKey := string(msg.Key)
 	reqId := l.getRequestIdFromHeaders(msg.Headers)
+	span.SetAttributes(attribute.String(xrequestid.XREQUEST_ID_KEY, reqId))
+
 	logger := l.logger.With(
 		zap.String(xrequestid.XREQUEST_ID_KEY, reqId),
 		zap.String("msg_key", msgKey),
 	)
 
-	logger.Info("read created order event from kafka", zap.String("topice", l.kafkaReader.Config().Topic))
-	span.SetAttributes(attribute.String(xrequestid.XREQUEST_ID_KEY, reqId))
+	logger.Info("read created order event from kafka", zap.String("topic", l.kafkaReader.Config().Topic))
 
 	event, err := l.unmarshalEvent(msg.Value)
 	if err != nil {
@@ -179,7 +180,7 @@ func (l *CreatedOrderListener) startTracing(ctx context.Context, msg kafka.Messa
 	}
 
 	ctx = propagator.Extract(ctx, carrier)
-	traceCtx, span := otel.Tracer("stockmarket_created_order_listener").Start(ctx, "handle_created_order")
+	traceCtx, span := otel.Tracer("stockmarket_created_order_listener").Start(ctx, "handle_created_order_event")
 	return traceCtx, span
 }
 

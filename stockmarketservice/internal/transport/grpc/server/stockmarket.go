@@ -30,27 +30,28 @@ func NewStockmarketServer(logger *zap.Logger, p *processor.StockmarketProcessor)
 }
 
 func (s *StockmarketServer) ProcessOrder(ctx context.Context, req *stockmarketv1.ProcessOrderRequest) (*stockmarketv1.ProcessOrderResponse, error) {
-	ctx, span := otel.Tracer("stockmarket_service").Start(ctx, "process_order")
+	ctx, span := otel.Tracer("stockmarket_server").Start(ctx, "process_order")
 	defer span.End()
 
 	o := mapping.MapProtoProcessOrderRequestToDomain(req)
-	s.logger.Info("start order process from grpc server", zap.String("order_uuid", o.UUID))
 
 	span.SetAttributes(attribute.String("order_uuid", o.UUID))
+	s.logger.Info("start order process from grpc server", zap.String("order_uuid", o.UUID))
 
 	err := s.processor.Process(ctx, o)
 	if err != nil {
+		span.AddEvent("failed process order")
 		s.logger.Info("failed order process", zap.String("order_uuid", o.UUID), zap.Error(err))
 
 		if !errors.Is(err, errs.ErrAlreadyProcessed) && !errors.Is(err, errs.ErrAlreadyProcessing) {
-			return nil, s.handleError(err)
+			return nil, s.getGrpcError(err)
 		}
 	}
 
 	return &stockmarketv1.ProcessOrderResponse{}, nil
 }
 
-func (s *StockmarketServer) handleError(err error) error {
+func (s *StockmarketServer) getGrpcError(err error) error {
 	if errors.Is(err, errs.ErrInvalidData) {
 		return status.Error(codes.InvalidArgument, err.Error())
 	}

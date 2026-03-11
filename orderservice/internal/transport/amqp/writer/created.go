@@ -33,6 +33,10 @@ func (w *CreatedEventWriter) Write(ctx context.Context, insideEvent *inside.Orde
 	orderUuid := insideEvent.Order.UUID
 	reqId := w.getRequestId(ctx)
 
+	ctx, span := otel.Tracer("order_event_writer").Start(ctx, "write_created_event")
+	defer span.End()
+
+	span.SetAttributes(attribute.String(xrequestid.XREQUEST_ID_KEY, reqId))
 	logger := w.logger.With(
 		zap.String("order_uuid", orderUuid),
 		zap.String(xrequestid.XREQUEST_ID_KEY, reqId),
@@ -48,11 +52,6 @@ func (w *CreatedEventWriter) Write(ctx context.Context, insideEvent *inside.Orde
 		logger.Error("failed to marshal created order event", zap.Error(err))
 		return err
 	}
-
-	ctx, span := otel.Tracer("order_event_writer").Start(ctx, "created_order_event")
-	defer span.End()
-
-	span.SetAttributes(attribute.String(xrequestid.XREQUEST_ID_KEY, reqId))
 
 	headers := w.prepareHeaders(ctx, reqId)
 	msg := kafka.Message{
@@ -72,7 +71,7 @@ func (w *CreatedEventWriter) Write(ctx context.Context, insideEvent *inside.Orde
 		return err
 	}
 
-	logger.Info("order created event writed to kafka")
+	logger.Info("writed event to kafka", zap.String("event_uuid", protoEvent.EventUuid))
 	return nil
 }
 

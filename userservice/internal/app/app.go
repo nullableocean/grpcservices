@@ -53,7 +53,7 @@ func Start(cnf *config.Config, logger *zap.Logger) error {
 	// service
 
 	userStore := ram.NewUserStore()
-	userService := user.NewUserService(userStore, &auth.PasswordHasher{})
+	userService := user.NewUserService(logger, userStore, &auth.PasswordHasher{})
 	userServer := transport.NewUserServer(logger, userService)
 
 	userv1.RegisterUserServer(gprcServer, userServer)

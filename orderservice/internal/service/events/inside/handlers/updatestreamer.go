@@ -7,6 +7,7 @@ import (
 
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside"
 	"github.com/nullableocean/grpcservices/shared/limiter"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 )
 
@@ -107,6 +108,9 @@ func (s *StatusStreamer) Unsubscribe(ctx context.Context, orderUuid string, subI
 }
 
 func (s *StatusStreamer) Handle(ctx context.Context, e inside.Event) {
+	ctx, span := otel.Tracer("stream_notifier").Start(ctx, "handle_update_event")
+	defer span.End()
+
 	statusEvent, ok := e.(*inside.NewStatusEvent)
 	if !ok {
 		return
@@ -119,19 +123,28 @@ func (s *StatusStreamer) Handle(ctx context.Context, e inside.Event) {
 
 	ctx = context.WithoutCancel(ctx)
 	if s.isFinalEvent(statusEvent) {
+		s.logger.Info("send update to subsribers and close all", zap.String("order_uuid", statusEvent.OrderUuid))
+
 		go s.dispatchAndClose(ctx, statusEvent)
 		return
 	}
 
+	s.logger.Info("send update to subsribers", zap.String("order_uuid", statusEvent.OrderUuid))
 	go s.dispatchToSubscribers(ctx, statusEvent)
 }
 
 func (s *StatusStreamer) dispatchAndClose(ctx context.Context, event *inside.NewStatusEvent) {
+	ctx, span := otel.Tracer("stream_notifier").Start(ctx, "dispatch_to_subscribers_and_close")
+	defer span.End()
+
 	s.dispatchToSubscribers(ctx, event)
 	s.closeOrderSubs(event.OrderUuid)
 }
 
 func (s *StatusStreamer) dispatchToSubscribers(ctx context.Context, event *inside.NewStatusEvent) {
+	ctx, span := otel.Tracer("stream_notifier").Start(ctx, "dispatch_to_subscribers")
+	defer span.End()
+
 	defer s.processLimits.Release()
 	defer s.handlePanic()
 

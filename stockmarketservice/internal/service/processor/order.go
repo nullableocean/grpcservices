@@ -53,7 +53,11 @@ func NewProcessor(logger *zap.Logger, ms MarketService, oUpdater OrderUpdater, p
 }
 
 func (p *StockmarketProcessor) Process(ctx context.Context, o *domain.Order) error {
+	ctx, span := otel.Tracer("stockmarket_order_processor").Start(ctx, "start_process_order")
+	defer span.End()
+
 	if err := validator.ValidateOrder(o); err != nil {
+		span.AddEvent("validation error")
 		return err
 	}
 
@@ -65,12 +69,14 @@ func (p *StockmarketProcessor) Process(ctx context.Context, o *domain.Order) err
 
 	p.mu.Lock()
 	if _, ex := p.processed[o.UUID]; ex {
+		span.AddEvent("already processed")
 		p.mu.Unlock()
 
 		return errs.ErrAlreadyProcessed
 	}
 
 	if _, ex := p.processing[o.UUID]; ex {
+		span.AddEvent("already processing")
 		p.mu.Unlock()
 
 		return errs.ErrAlreadyProcessing
@@ -85,6 +91,7 @@ func (p *StockmarketProcessor) Process(ctx context.Context, o *domain.Order) err
 	return nil
 }
 
+// имитация процессинга
 func (p *StockmarketProcessor) process(ctx context.Context, o *domain.Order) {
 	defer p.limiter.Release()
 
@@ -101,7 +108,7 @@ func (p *StockmarketProcessor) process(ctx context.Context, o *domain.Order) {
 	p.logger.Info("pending order", zap.String("order_uuid", o.UUID))
 	err = p.ordUpdater.Pending(ctx, o.UUID)
 	if err != nil {
-		p.logger.Warn("failed updating, stop process", zap.Error(err))
+		p.logger.Error("failed updating, stop process", zap.Error(err))
 		span.AddEvent("failed updating order")
 		return
 	}
@@ -112,11 +119,11 @@ func (p *StockmarketProcessor) process(ctx context.Context, o *domain.Order) {
 
 		err := p.market.Buy(ctx, o)
 		if err != nil {
-			p.logger.Warn("failed buy", zap.String("order_uuid", o.UUID), zap.Error(err))
+			p.logger.Error("failed buy", zap.String("order_uuid", o.UUID), zap.Error(err))
 
 			err = p.ordUpdater.Reject(ctx, o.UUID)
 			if err != nil {
-				p.logger.Warn("failed updating status", zap.Error(err))
+				p.logger.Error("failed updating status", zap.Error(err))
 				span.AddEvent("failed processing order")
 				return
 			}
@@ -127,7 +134,7 @@ func (p *StockmarketProcessor) process(ctx context.Context, o *domain.Order) {
 		p.logger.Info("success buy process order", zap.String("order_uuid", o.UUID))
 		err = p.ordUpdater.Complete(ctx, o.UUID)
 		if err != nil {
-			p.logger.Warn("failed updating status", zap.Error(err))
+			p.logger.Error("failed updating status", zap.Error(err))
 			span.AddEvent("failed processing order")
 			return
 		}
@@ -138,12 +145,12 @@ func (p *StockmarketProcessor) process(ctx context.Context, o *domain.Order) {
 
 		err := p.market.Sell(ctx, o)
 		if err != nil {
-			p.logger.Warn("failed sell", zap.String("order_uuid", o.UUID), zap.Error(err))
+			p.logger.Error("failed sell", zap.String("order_uuid", o.UUID), zap.Error(err))
 			span.AddEvent("failed processing order")
 
 			err = p.ordUpdater.Reject(ctx, o.UUID)
 			if err != nil {
-				p.logger.Warn("failed updating status", zap.Error(err))
+				p.logger.Error("failed updating status", zap.Error(err))
 				span.AddEvent("failed updating order")
 				return
 			}
@@ -155,7 +162,7 @@ func (p *StockmarketProcessor) process(ctx context.Context, o *domain.Order) {
 
 		err = p.ordUpdater.Complete(ctx, o.UUID)
 		if err != nil {
-			p.logger.Warn("failed updating status", zap.Error(err))
+			p.logger.Error("failed updating status", zap.Error(err))
 			span.AddEvent("failed updating order")
 			return
 		}

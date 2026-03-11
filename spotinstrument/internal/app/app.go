@@ -56,7 +56,7 @@ func Start(cnf *config.Config, logger *zap.Logger) error {
 	marketStore := ram.NewMarketStore()
 
 	roleInspector := guard.NewRoleInspector()
-	spotInstrumentService := spot.NewSpotInstrument(marketStore, roleInspector)
+	spotInstrumentService := spot.NewSpotInstrument(logger, marketStore, roleInspector)
 
 	spotMetrics := metrics.NewSpotMetrics(promReg)
 	spotServer := server.NewSpotInstrumentServer(spotInstrumentService, logger, spotMetrics)

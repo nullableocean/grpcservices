@@ -13,6 +13,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside"
 	"github.com/nullableocean/grpcservices/shared/order"
 	"github.com/nullableocean/grpcservices/shared/roles"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 )
 
@@ -125,6 +126,9 @@ func (s *OrderService) FindOrder(ctx context.Context, orderUuid string) (*domain
 }
 
 func (s *OrderService) CreateOrder(ctx context.Context, orderData *dto.CreateOrderDto) (*domain.Order, error) {
+	ctx, span := otel.Tracer("order_service").Start(ctx, "create_order")
+	defer span.End()
+
 	if err := orderData.Validate(); err != nil {
 		return nil, err
 	}
@@ -132,6 +136,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderData *dto.CreateOrd
 	s.logger.Info("get user", zap.String("user_uuid", orderData.UserUuid))
 	user, err := s.userService.GetUser(ctx, orderData.UserUuid)
 	if err != nil {
+		span.AddEvent("failed get user")
 		return nil, err
 	}
 
@@ -139,7 +144,9 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderData *dto.CreateOrd
 		s.logger.Info(
 			"user havent access for this order type",
 			zap.String("user_uuid", orderData.UserUuid),
-			zap.String("type", orderData.OrderType.String()))
+			zap.String("type", orderData.OrderType.String()),
+		)
+		span.AddEvent("user havent permission")
 
 		return nil, fmt.Errorf("%w: user havent permission for create this order", errs.ErrNotAllowed)
 	}
@@ -147,6 +154,8 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderData *dto.CreateOrd
 	s.logger.Info("get allowed markets")
 	allowedMarkets, err := s.spotInstrument.ViewMarkets(ctx, user.GetRoles())
 	if err != nil {
+		span.AddEvent("failed get markets")
+
 		return nil, err
 	}
 
@@ -159,6 +168,8 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderData *dto.CreateOrd
 	}
 	if !ok {
 		s.logger.Info("market not allowed for user")
+		span.AddEvent("market not allowed")
+
 		return nil, fmt.Errorf("%w:market_uuid: %s", errs.ErrNotAllowedMarket, orderData.MarketUuid)
 	}
 
@@ -174,13 +185,15 @@ func (s *OrderService) CreateOrder(ctx context.Context, orderData *dto.CreateOrd
 		CreatedAt:  createdAt,
 	}
 
-	s.logger.Info("save order")
-
+	s.logger.Info("store order")
 	err = s.store.Save(ctx, newOrder)
 	if err != nil {
-		return nil, fmt.Errorf("save order error: %w", err)
+		span.AddEvent("failed store order")
+
+		return nil, fmt.Errorf("store order error: %w", err)
 	}
 
+	s.logger.Info("dispatch created event")
 	s.eventDispatcher.Dispatch(ctx, &inside.OrderCreatedEvent{
 		Order: newOrder,
 	})

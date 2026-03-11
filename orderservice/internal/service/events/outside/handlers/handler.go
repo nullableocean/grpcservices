@@ -32,7 +32,7 @@ func NewUpdateEventHandler(logger *zap.Logger, oService *order.OrderService, sto
 }
 
 func (h *UpdateEventHandler) Handle(ctx context.Context, event *outside.UpdateStatusEvent) error {
-	ctx, span := otel.Tracer("order_service_event_handler").Start(ctx, "handle_update_event")
+	ctx, span := otel.Tracer("update_order_event_handler").Start(ctx, "handle_update_event")
 	defer span.End()
 
 	span.SetAttributes(attribute.String("event_uuid", event.UUID))
@@ -56,8 +56,8 @@ func (h *UpdateEventHandler) Handle(ctx context.Context, event *outside.UpdateSt
 		event.ProcessingStatus = outside.EVENT_STATUS_PROCESSING
 		err := h.store.Save(ctx, event)
 		if err != nil {
-			span.AddEvent("save event error")
-			h.logger.Warn("event handle error save event", zap.Error(err))
+			span.AddEvent("failed store event")
+			h.logger.Error("failed store event", zap.Error(err))
 
 			return err
 		}
@@ -71,7 +71,7 @@ func (h *UpdateEventHandler) Handle(ctx context.Context, event *outside.UpdateSt
 		event.ProcessingStatus = outside.EVENT_STATUS_ERROR
 		if err := h.store.Update(ctx, event); err != nil {
 			span.AddEvent("update event status error")
-			h.logger.Warn("failed update event status", zap.Error(err))
+			h.logger.Error("failed update event status", zap.Error(err))
 		}
 
 		return err
@@ -85,7 +85,7 @@ func (h *UpdateEventHandler) Handle(ctx context.Context, event *outside.UpdateSt
 	event.ProcessingStatus = outside.EVENT_STATUS_PROCESSED
 	if err := h.store.Update(ctx, event); err != nil {
 		span.AddEvent("update event status error")
-		h.logger.Warn("failed update event status", zap.Error(err))
+		h.logger.Error("failed update event status", zap.Error(err))
 	}
 
 	return nil

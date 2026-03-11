@@ -20,7 +20,7 @@ func TestMetricsCollects(t *testing.T) {
 
 	store := ram.NewMarketStore()
 	roleInspector := guard.NewRoleInspector()
-	spotService := spot.NewSpotInstrument(store, roleInspector)
+	spotService := spot.NewSpotInstrument(zap.NewNop(), store, roleInspector)
 	logger := zap.NewNop()
 
 	reg := prometheus.NewRegistry()

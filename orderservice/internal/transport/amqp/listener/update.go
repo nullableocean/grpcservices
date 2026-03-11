@@ -189,7 +189,7 @@ func (l *UpdateListener) startTracing(ctx context.Context, msg kafka.Message) (c
 	}
 
 	ctx = propagator.Extract(ctx, carrier)
-	traceCtx, span := otel.Tracer("order_update_listener").Start(ctx, "got_event")
+	traceCtx, span := otel.Tracer("order_updates_listener").Start(ctx, "got_update_event")
 
 	return traceCtx, span
 }

@@ -120,7 +120,7 @@ func (app *App) Run() error {
 	}
 
 	// services init
-	spotClient := spotinstrument.NewSpotClient(spotv1.NewSpotInstrumentClient(app.grpc.spotinstrument))
+	spotClient := spotinstrument.NewSpotClient(app.logger, spotv1.NewSpotInstrumentClient(app.grpc.spotinstrument))
 	baseSpotSrvs := spot.NewSpotInstrument(spotClient)
 
 	marketsCache := rdb.NewMarketCache(app.redis.client, app.config.Redis.TTL)

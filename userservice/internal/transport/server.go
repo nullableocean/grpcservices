@@ -7,6 +7,7 @@ import (
 	userv1 "github.com/nullableocean/grpcservices/api/gen/user/v1"
 	"github.com/nullableocean/grpcservices/userservice/internal/errs"
 	"github.com/nullableocean/grpcservices/userservice/internal/service/user"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -27,12 +28,16 @@ func NewUserServer(l *zap.Logger, us *user.UserService) *UserServer {
 }
 
 func (s *UserServer) CreateUser(ctx context.Context, req *userv1.CreateUserRequest) (*userv1.CreateUserResponse, error) {
+	ctx, span := otel.Tracer("user_server").Start(ctx, "create_user_request")
+	defer span.End()
+
 	dto := MapProtoCreateRequestToCreateDto(req)
 
 	s.logger.Info("create user request", zap.String("username", dto.Username))
 
 	user, err := s.userService.CreateUser(ctx, dto)
 	if err != nil {
+		span.AddEvent("failed create user")
 		s.logger.Info("failed user create", zap.Error(err))
 
 		return nil, s.handleError(err)
@@ -44,12 +49,16 @@ func (s *UserServer) CreateUser(ctx context.Context, req *userv1.CreateUserReque
 }
 
 func (s *UserServer) GetUserRoles(ctx context.Context, req *userv1.UserRolesRequest) (*userv1.UserRolesResponse, error) {
+	ctx, span := otel.Tracer("user_server").Start(ctx, "get_user_roles_request")
+	defer span.End()
+
 	userUuid := req.UserUuid
 
 	s.logger.Info("get user roles request", zap.String("uuid", userUuid))
 
 	user, err := s.userService.GetUser(ctx, userUuid)
 	if err != nil {
+		span.AddEvent("failed get roles")
 		s.logger.Info("failed get user roles request", zap.Error(err))
 
 		return nil, s.handleError(err)

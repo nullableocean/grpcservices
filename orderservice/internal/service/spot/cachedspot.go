@@ -6,6 +6,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/domain"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/cache"
 	"github.com/nullableocean/grpcservices/shared/roles"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 )
 
@@ -30,18 +31,24 @@ func NewCachedSpotInstrument(baseInstrument *SpotInstrument, cache MarketCache, 
 }
 
 func (c *CachedSpotInstrument) ViewMarkets(ctx context.Context, rls []roles.UserRole) ([]*domain.Market, error) {
+	ctx, span := otel.Tracer("cached_spotinstrument_service").Start(ctx, "get_markets")
+	defer span.End()
+
 	cachedMarkets, err := c.marketsCache.Get(ctx, rls)
 	if err != nil && err != cache.ErrMissed {
 		c.logger.Warn("failed to get markets from cache", zap.Error(err))
+		span.AddEvent("failed get cached markets")
 	}
 
 	if err == nil {
 		c.logger.Debug("cache hit for markets", zap.Strings("roles", roles.MapSliceToStrings(rls)))
+		span.AddEvent("hit cached markets")
 
 		return cachedMarkets, nil
 	}
 
 	c.logger.Debug("cache miss for markets", zap.Strings("roles", roles.MapSliceToStrings(rls)))
+	span.AddEvent("miss cached markets")
 
 	markets, err := c.baseInstrument.ViewMarkets(ctx, rls)
 	if err != nil {
@@ -51,6 +58,7 @@ func (c *CachedSpotInstrument) ViewMarkets(ctx context.Context, rls []roles.User
 	err = c.marketsCache.Set(ctx, rls, markets)
 	if err != nil {
 		c.logger.Warn("failed to cache markets", zap.Error(err))
+		span.AddEvent("failed cache")
 	}
 
 	return markets, nil
