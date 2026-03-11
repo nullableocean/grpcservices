@@ -2,10 +2,13 @@ package spot
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/nullableocean/grpcservices/shared/eventbus"
 	"github.com/nullableocean/grpcservices/shared/roles"
 	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/domain"
+	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/service/events"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 )
@@ -21,16 +24,23 @@ type MarketStore interface {
 	Delete(ctx context.Context, uuid string) error
 }
 
+type EventBus interface {
+	Dispatch(ctx context.Context, e eventbus.Event)
+}
+
 type SpotInstrument struct {
 	store      MarketStore
 	roleAccess RoleAccess
-	logger     *zap.Logger
+	eventBus   EventBus
+
+	logger *zap.Logger
 }
 
-func NewSpotInstrument(logger *zap.Logger, store MarketStore, roleAccessService RoleAccess) *SpotInstrument {
+func NewSpotInstrument(logger *zap.Logger, store MarketStore, roleAccessService RoleAccess, eventBus EventBus) *SpotInstrument {
 	return &SpotInstrument{
 		store:      store,
 		roleAccess: roleAccessService,
+		eventBus:   eventBus,
 
 		logger: logger,
 	}
@@ -92,6 +102,11 @@ func (s *SpotInstrument) NewMarket(ctx context.Context, dto *domain.CreateMarket
 		return nil, err
 	}
 
+	s.eventBus.Dispatch(ctx, &events.MarketUpdateEvent{
+		MarketUuid: newMarket.UUID,
+		UpdateAt:   time.Now(),
+	})
+
 	return newMarket, nil
 }
 
@@ -99,6 +114,11 @@ func (s *SpotInstrument) DeleteMarket(ctx context.Context, uuid string) error {
 	ctx, span := otel.Tracer("spotinstrument_service").Start(ctx, "delete_market")
 	defer span.End()
 	s.logger.Info("delete market", zap.String("market_uuid", uuid))
+
+	s.eventBus.Dispatch(ctx, &events.MarketUpdateEvent{
+		MarketUuid: uuid,
+		UpdateAt:   time.Now(),
+	})
 
 	return s.store.Delete(ctx, uuid)
 }

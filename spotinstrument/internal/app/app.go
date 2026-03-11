@@ -12,20 +12,25 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/segmentio/kafka-go"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	spotv1 "github.com/nullableocean/grpcservices/api/gen/spot/v1"
+	"github.com/nullableocean/grpcservices/shared/eventbus"
 	"github.com/nullableocean/grpcservices/shared/intercepter"
 	"github.com/nullableocean/grpcservices/shared/telemetry"
 	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/config"
 	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/seed"
-	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/server"
 	guard "github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/service/auth"
+	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/service/events"
+	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/service/events/handlers"
 	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/service/metrics"
 	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/service/spot"
 	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/store/ram"
+	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/transport/amqp/writer"
+	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/transport/grpc/server"
 )
 
 func Start(cnf *config.Config, logger *zap.Logger) error {
@@ -36,6 +41,13 @@ func Start(cnf *config.Config, logger *zap.Logger) error {
 		return fmt.Errorf("telemtry init error: %w", err)
 	}
 	defer shutdown(context.Background())
+
+	//kafka
+	kafkaWriter := kafka.NewWriter(kafka.WriterConfig{
+		Brokers: []string{cnf.Kafka.Endpoint},
+		Topic:   cnf.Kafka.MarketsUpdateTopic,
+	})
+	kafkaWriter.AllowAutoTopicCreation = true
 
 	// metrics
 	grpcMetrics := grpc_prometheus.NewServerMetrics()
@@ -56,7 +68,15 @@ func Start(cnf *config.Config, logger *zap.Logger) error {
 	marketStore := ram.NewMarketStore()
 
 	roleInspector := guard.NewRoleInspector()
-	spotInstrumentService := spot.NewSpotInstrument(logger, marketStore, roleInspector)
+
+	eventBus := eventbus.NewEventBus(logger, eventbus.Option{})
+
+	updateEventWriter := writer.NewUpdateWriter(logger, kafkaWriter)
+	marketUpdateEvHandler := handlers.NewMarketUpdatesEventHandler(logger, updateEventWriter)
+
+	eventBus.RegisterHandler(context.Background(), events.MARKETS_UPDATE_EVENTS, marketUpdateEvHandler)
+
+	spotInstrumentService := spot.NewSpotInstrument(logger, marketStore, roleInspector, eventBus)
 
 	spotMetrics := metrics.NewSpotMetrics(promReg)
 	spotServer := server.NewSpotInstrumentServer(spotInstrumentService, logger, spotMetrics)

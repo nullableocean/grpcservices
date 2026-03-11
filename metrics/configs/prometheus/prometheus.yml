@@ -5,7 +5,7 @@ scrape_configs:
   - job_name: 'spot-service'
     metrics_path: /metrics
     static_configs:
-      - targets: ['spotapp:9092'] # service name in docker; resolve by docker networks
+      - targets: ['spotapp:9055'] # service name in docker; resolve by docker networks
         labels:
           service: 'spot-instrument'
 

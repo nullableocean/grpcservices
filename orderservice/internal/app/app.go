@@ -21,7 +21,6 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/access"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/cache/rdb"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside"
-	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside/bus"
 	insideHandler "github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside/handlers"
 	outsideHandlers "github.com/nullableocean/grpcservices/orderservice/internal/service/events/outside/handlers"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/order"
@@ -35,6 +34,7 @@ import (
 	transport "github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/client/stockmarket"
 	"github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/client/userservice"
 	"github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/server"
+	"github.com/nullableocean/grpcservices/shared/eventbus"
 	"github.com/nullableocean/grpcservices/shared/telemetry"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -71,9 +71,10 @@ type App struct {
 	}
 
 	kafka struct {
-		updatesReader   *kafka.Reader
-		createdEvWriter *kafka.Writer
-		dlqWriter       *kafka.Writer
+		updatesReader        *kafka.Reader
+		marketsUpdatesReader *kafka.Reader
+		createdEvWriter      *kafka.Writer
+		dlqWriter            *kafka.Writer
 	}
 
 	redis struct {
@@ -82,6 +83,7 @@ type App struct {
 
 	services struct {
 		stockmarketEventListener *listener.UpdateListener
+		marketsUpdateListener    *listener.SpotInstrumentUpdateListener
 	}
 }
 
@@ -123,7 +125,7 @@ func (app *App) Run() error {
 	spotClient := spotinstrument.NewSpotClient(app.logger, spotv1.NewSpotInstrumentClient(app.grpc.spotinstrument))
 	baseSpotSrvs := spot.NewSpotInstrument(spotClient)
 
-	marketsCache := rdb.NewMarketCache(app.redis.client, app.config.Redis.TTL)
+	marketsCache := rdb.NewMarketCache(app.logger, app.redis.client, app.config.Redis.TTL)
 	cachedSpotSrvs := spot.NewCachedSpotInstrument(baseSpotSrvs, marketsCache, app.logger)
 
 	userClient := userservice.NewUserClient(app.logger, userv1.NewUserClient(app.grpc.userservice))
@@ -134,7 +136,7 @@ func (app *App) Run() error {
 	createdEventWriter := writer.NewCreatedEventWriter(app.logger, app.kafka.createdEvWriter)
 	createdAmqpEventHandler := insideHandler.NewAmqpOrderCreatedHandler(app.logger, createdEventWriter)
 
-	eventsBus := bus.NewEventBus(app.logger, bus.Option{})
+	eventsBus := eventbus.NewEventBus(app.logger, eventbus.Option{})
 	eventsBus.RegisterHandler(context.Background(), string(inside.EVENT_NEW_ORDER_STATUS), updateStatusStreamer)
 	eventsBus.RegisterHandler(context.Background(), string(inside.EVENT_CREATED_ORDER), createdAmqpEventHandler)
 
@@ -170,6 +172,8 @@ func (app *App) Run() error {
 		},
 	)
 
+	app.services.marketsUpdateListener = listener.NewSpotInstrumentUpdateListener(app.logger, app.kafka.marketsUpdatesReader, marketsCache)
+
 	orderServer := server.NewOrderServer(app.logger, orderSrvs, app.prometheus.serviceMetrics, updateStatusStreamer)
 	orderv1.RegisterOrderServer(app.grpc.server, orderServer)
 
@@ -181,7 +185,7 @@ func (app *App) Run() error {
 		return err
 	}
 
-	cancelListen := app.listenEvents(errChan)
+	cancelListen := app.startEventListeners(errChan)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGQUIT)
@@ -199,7 +203,7 @@ func (app *App) Run() error {
 	return err
 }
 
-func (app *App) listenEvents(errChan chan<- error) context.CancelFunc {
+func (app *App) startEventListeners(errChan chan<- error) context.CancelFunc {
 	cancelCtx, cl := context.WithCancel(context.Background())
 
 	go func() {
@@ -209,7 +213,18 @@ func (app *App) listenEvents(errChan chan<- error) context.CancelFunc {
 				return
 			}
 
-			errChan <- fmt.Errorf("start broker listener error: %w", err)
+			errChan <- fmt.Errorf("failed start stockmarket updates listener: %w", err)
+		}
+	}()
+
+	go func() {
+		err := app.services.marketsUpdateListener.StartListen(cancelCtx)
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return
+			}
+
+			errChan <- fmt.Errorf("failed start spotmarkets updates listener: %w", err)
 		}
 	}()
 
@@ -346,6 +361,15 @@ func (app *App) setupKafka() {
 		GroupID:        app.config.Kafka.GroupID,
 		MaxWait:        time.Second * 5,
 		CommitInterval: 0, // ручной коммит
+		StartOffset:    kafka.FirstOffset,
+	})
+
+	app.kafka.marketsUpdatesReader = kafka.NewReader(kafka.ReaderConfig{
+		Brokers:        []string{app.config.Kafka.Endpoint},
+		Topic:          app.config.Kafka.MarketsUpdateTopic,
+		GroupID:        app.config.Kafka.GroupID,
+		MaxWait:        time.Second * 5,
+		CommitInterval: 0,
 		StartOffset:    kafka.FirstOffset,
 	})
 

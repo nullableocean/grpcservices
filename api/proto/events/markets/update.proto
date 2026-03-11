@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package events.markets.v1;
+
+option go_package = "github.com/nullableocean/grpcservices/api/gen/events/markets/v1;marketseventsv1";
+
+import "google/protobuf/timestamp.proto";
+
+message MarketUpdated {
+    string market_uuid = 1;
+    google.protobuf.Timestamp updated_at = 2;
+}

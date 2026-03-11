@@ -11,6 +11,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/dto"
 	"github.com/nullableocean/grpcservices/orderservice/internal/errs"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside"
+	"github.com/nullableocean/grpcservices/shared/eventbus"
 	"github.com/nullableocean/grpcservices/shared/order"
 	"github.com/nullableocean/grpcservices/shared/roles"
 	"go.opentelemetry.io/otel"
@@ -31,7 +32,7 @@ type OrderStore interface {
 }
 
 type EventDispatcher interface {
-	Dispatch(ctx context.Context, e inside.Event)
+	Dispatch(ctx context.Context, e eventbus.Event)
 }
 
 type RoleInspector interface {

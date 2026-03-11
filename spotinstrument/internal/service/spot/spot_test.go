@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/nullableocean/grpcservices/shared/eventbus"
 	"github.com/nullableocean/grpcservices/shared/roles"
 	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/domain"
 	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/service"
@@ -38,7 +39,7 @@ func TestSpotService_ViewMarkets(t *testing.T) {
 		}
 
 		roleInspector := guard.NewRoleInspector()
-		spot := NewSpotInstrument(zap.NewNop(), store, roleInspector)
+		spot := NewSpotInstrument(zap.NewNop(), store, roleInspector, eventbus.NewEventBus(zap.NewNop(), eventbus.Option{}))
 		result, _ := spot.ViewMarkets(ctx, []roles.UserRole{roles.USER_ADMIN})
 		assert.Empty(t, result)
 	})
@@ -46,7 +47,7 @@ func TestSpotService_ViewMarkets(t *testing.T) {
 	t.Run("should return markets allowed for user roles", func(t *testing.T) {
 		store := ram.NewMarketStore()
 		roleInspector := guard.NewRoleInspector()
-		spot := NewSpotInstrument(zap.NewNop(), store, roleInspector)
+		spot := NewSpotInstrument(zap.NewNop(), store, roleInspector, eventbus.NewEventBus(zap.NewNop(), eventbus.Option{}))
 
 		allowedRoles := []roles.UserRole{roles.USER_ADMIN, roles.USER_VERIFIED}
 
@@ -96,7 +97,7 @@ func TestSpotService_ViewMarkets(t *testing.T) {
 	t.Run("dont return disabled markets", func(t *testing.T) {
 		store := ram.NewMarketStore()
 		roleInspector := guard.NewRoleInspector()
-		spot := NewSpotInstrument(zap.NewNop(), store, roleInspector)
+		spot := NewSpotInstrument(zap.NewNop(), store, roleInspector, eventbus.NewEventBus(zap.NewNop(), eventbus.Option{}))
 
 		allowedRoles := []roles.UserRole{roles.USER_ADMIN}
 		market := &domain.Market{
@@ -133,7 +134,7 @@ func TestSpotService_NewMarket(t *testing.T) {
 	t.Run("should create new market successfully", func(t *testing.T) {
 		store := ram.NewMarketStore()
 		roleInspector := guard.NewRoleInspector()
-		spot := NewSpotInstrument(zap.NewNop(), store, roleInspector)
+		spot := NewSpotInstrument(zap.NewNop(), store, roleInspector, eventbus.NewEventBus(zap.NewNop(), eventbus.Option{}))
 
 		allowedRoles := []roles.UserRole{roles.USER_ADMIN, roles.USER_VERIFIED}
 		dto := &domain.CreateMarketDto{
@@ -163,7 +164,7 @@ func TestSpotService_DeleteMarket(t *testing.T) {
 	t.Run("should delete market successfully", func(t *testing.T) {
 		store := ram.NewMarketStore()
 		roleInspector := guard.NewRoleInspector()
-		spotService := NewSpotInstrument(zap.NewNop(), store, roleInspector)
+		spotService := NewSpotInstrument(zap.NewNop(), store, roleInspector, eventbus.NewEventBus(zap.NewNop(), eventbus.Option{}))
 
 		newMarket := &domain.Market{
 			UUID:         uuid.NewString(),
@@ -173,23 +174,23 @@ func TestSpotService_DeleteMarket(t *testing.T) {
 		}
 
 		market, err := store.Save(ctx, newMarket)
-		assert.NoError(t, err)
-		assert.NotZero(t, market.UUID)
+		assert.NoError(t, err, "expect not error save")
+		assert.NotZero(t, market.UUID, "expect not zero uuid")
 
 		err = spotService.DeleteMarket(ctx, market.UUID)
-		assert.NoError(t, err)
+		assert.NoError(t, err, "need not error")
 
 		_, err = store.Get(ctx, market.UUID)
-		assert.Error(t, err)
+		assert.Error(t, err, "need get error not found")
 
-		assert.True(t, market.IsDeleted())
-		assert.False(t, market.IsEnabled())
+		assert.True(t, market.IsDeleted(), "need isDeleted true")
+		assert.False(t, market.IsEnabled(), "need isEnabled false")
 	})
 
 	t.Run("should return error when market not found", func(t *testing.T) {
 		store := ram.NewMarketStore()
 		roleInspector := guard.NewRoleInspector()
-		spot := NewSpotInstrument(zap.NewNop(), store, roleInspector)
+		spot := NewSpotInstrument(zap.NewNop(), store, roleInspector, eventbus.NewEventBus(zap.NewNop(), eventbus.Option{}))
 
 		uuid := "not-exist-uuid"
 		err := spot.DeleteMarket(ctx, uuid)

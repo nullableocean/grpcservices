@@ -5,6 +5,7 @@ import (
 
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside"
 	"github.com/nullableocean/grpcservices/orderservice/internal/transport/amqp/writer"
+	"github.com/nullableocean/grpcservices/shared/eventbus"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 )
@@ -21,7 +22,7 @@ func NewAmqpOrderCreatedHandler(logger *zap.Logger, writer *writer.CreatedEventW
 	}
 }
 
-func (h *AmqpOrderCreatedHandler) Handle(ctx context.Context, e inside.Event) {
+func (h *AmqpOrderCreatedHandler) Handle(ctx context.Context, e eventbus.Event) {
 	ctx, span := otel.Tracer("amqp_created_event_handler").Start(ctx, "handle_event")
 	defer span.End()
 

@@ -15,6 +15,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/order"
 	"github.com/nullableocean/grpcservices/orderservice/internal/store/ram"
 	"github.com/nullableocean/grpcservices/orderservice/internal/transport/grpc/server"
+	"github.com/nullableocean/grpcservices/shared/eventbus"
 	"github.com/nullableocean/grpcservices/shared/roles"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
@@ -52,7 +53,7 @@ type mockEventDispatcher struct {
 	mock.Mock
 }
 
-func (m *mockEventDispatcher) Dispatch(ctx context.Context, e inside.Event) {
+func (m *mockEventDispatcher) Dispatch(ctx context.Context, e eventbus.Event) {
 	m.Called(ctx, e)
 }
 
@@ -80,7 +81,7 @@ func TestMetrics(t *testing.T) {
 	spotInstrument.On("ViewMarkets", mock.Anything, user.Roles.GetSlice()).Return([]*domain.Market{market}, nil)
 
 	eventDispatcher := &mockEventDispatcher{}
-	eventDispatcher.On("Dispatch", mock.Anything, mock.MatchedBy(func(e inside.Event) bool {
+	eventDispatcher.On("Dispatch", mock.Anything, mock.MatchedBy(func(e eventbus.Event) bool {
 		_, ok := e.(*inside.OrderCreatedEvent)
 		return ok
 	})).Return().Times(2)

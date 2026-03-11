@@ -43,11 +43,12 @@ type Config struct {
 	}
 
 	Kafka struct {
-		Endpoint          string `env:"KAFKA_ENDPOINT" env-required:"true"`
-		OrderUpdatesTopic string `env:"KAFKA_ORDER_UPDATES_TOPIC" env-required:"true"`
-		OrderCreatedTopic string `env:"KAFKA_ORDER_CREATED_TOPIC" env-required:"true"`
-		DLQTopic          string `env:"KAFKA_DLQ_TOPIC" env-required:"true"`
-		GroupID           string `env:"KAFKA_GROUP" env-required:"true"`
+		Endpoint           string `env:"KAFKA_ENDPOINT" env-required:"true"`
+		MarketsUpdateTopic string `env:"KAFKA_MARKETS_UPDATES_TOPIC" env-required:"true"`
+		OrderUpdatesTopic  string `env:"KAFKA_ORDER_UPDATES_TOPIC" env-required:"true"`
+		OrderCreatedTopic  string `env:"KAFKA_ORDER_CREATED_TOPIC" env-required:"true"`
+		DLQTopic           string `env:"KAFKA_DLQ_TOPIC" env-required:"true"`
+		GroupID            string `env:"KAFKA_GROUP" env-required:"true"`
 	}
 
 	Redis struct {

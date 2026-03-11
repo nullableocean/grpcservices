@@ -1,20 +1,23 @@
-package bus
+package eventbus
 
 import (
 	"context"
 	"sync"
 
-	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside"
 	"github.com/nullableocean/grpcservices/shared/limiter"
 	"go.uber.org/zap"
 )
 
 var (
-	defaultProcLimit = 5
+	defaultEventProcessLimit = 10
 )
 
+type Event interface {
+	EventType() string
+}
+
 type EventHandler interface {
-	Handle(ctx context.Context, e inside.Event)
+	Handle(ctx context.Context, e Event)
 }
 
 type EventBus struct {
@@ -31,7 +34,7 @@ type Option struct {
 
 func NewEventBus(logger *zap.Logger, opt Option) *EventBus {
 	if opt.HandleProcessLimit <= 0 {
-		opt.HandleProcessLimit = defaultProcLimit
+		opt.HandleProcessLimit = defaultEventProcessLimit
 	}
 
 	return &EventBus{
@@ -42,7 +45,7 @@ func NewEventBus(logger *zap.Logger, opt Option) *EventBus {
 	}
 }
 
-func (b *EventBus) Dispatch(ctx context.Context, e inside.Event) {
+func (b *EventBus) Dispatch(ctx context.Context, e Event) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 

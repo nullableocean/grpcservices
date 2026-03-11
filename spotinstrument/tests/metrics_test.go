@@ -5,11 +5,12 @@ import (
 	"testing"
 
 	spotv1 "github.com/nullableocean/grpcservices/api/gen/spot/v1"
-	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/server"
+	"github.com/nullableocean/grpcservices/shared/eventbus"
 	guard "github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/service/auth"
 	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/service/metrics"
 	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/service/spot"
 	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/store/ram"
+	"github.com/nullableocean/grpcservices/spotinstrumentinstrument/internal/transport/grpc/server"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,7 +21,7 @@ func TestMetricsCollects(t *testing.T) {
 
 	store := ram.NewMarketStore()
 	roleInspector := guard.NewRoleInspector()
-	spotService := spot.NewSpotInstrument(zap.NewNop(), store, roleInspector)
+	spotService := spot.NewSpotInstrument(zap.NewNop(), store, roleInspector, eventbus.NewEventBus(zap.NewNop(), eventbus.Option{}))
 	logger := zap.NewNop()
 
 	reg := prometheus.NewRegistry()

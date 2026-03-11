@@ -54,6 +54,8 @@ func (m *Market) GetDeletedAt() time.Time {
 }
 
 func (m *Market) Delete() {
+	m.Disable()
+
 	now := time.Now()
 	m.DeletedAt = &now
 }

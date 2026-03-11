@@ -25,6 +25,12 @@ type Config struct {
 		JaegerGrpcAddress string `env:"JUEGER_GRPC_ADDRESS" env-required:"true"`
 	}
 
+	Kafka struct {
+		Endpoint           string `env:"KAFKA_ENDPOINT" env-required:"true"`
+		MarketsUpdateTopic string `env:"KAFKA_MARKETS_UPDATES_TOPIC" env-required:"true"`
+		GroupID            string `env:"KAFKA_GROUP" env-required:"true"`
+	}
+
 	Log struct {
 		LogLevel  string `env:"LOG_LEVEL" env-default:"info"`
 		LogToFile bool   `env:"ENABLE_LOGFILE" env-default:"false"`

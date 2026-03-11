@@ -14,6 +14,7 @@ services:
     networks:
       - monitoringnet
       - grpcservices
+      - brokernet
     healthcheck:
        test: ["CMD", "curl", "-f", "http://localhost:${METRICS_PORT}/health"]
        interval: 30s
@@ -31,3 +32,6 @@ networks:
   grpcservices:
     external: true
     name: grpcservices
+  brokernet:
+    external: true
+    name: brokernet

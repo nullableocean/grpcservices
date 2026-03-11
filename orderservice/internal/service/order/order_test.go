@@ -10,6 +10,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/dto"
 	"github.com/nullableocean/grpcservices/orderservice/internal/errs"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside"
+	"github.com/nullableocean/grpcservices/shared/eventbus"
 	"github.com/nullableocean/grpcservices/shared/money"
 	sharedOrder "github.com/nullableocean/grpcservices/shared/order"
 	"github.com/nullableocean/grpcservices/shared/roles"
@@ -73,7 +74,7 @@ type MockEventDispatcher struct {
 	mock.Mock
 }
 
-func (m *MockEventDispatcher) Dispatch(ctx context.Context, e inside.Event) {
+func (m *MockEventDispatcher) Dispatch(ctx context.Context, e eventbus.Event) {
 	m.Called(ctx, e)
 }
 
@@ -143,12 +144,12 @@ func (s *OrderServiceTestSuite) TestChangeStatus_Success() {
 	oldOrder.Status = sharedOrder.ORDER_STATUS_CREATED
 	newStatus := sharedOrder.ORDER_STATUS_COMPLETED
 
-	s.mockStore.On("Get", s.ctx, orderUUID).Return(oldOrder, nil).Once()
-	s.mockStore.On("Save", s.ctx, mock.MatchedBy(func(o *domain.Order) bool {
+	s.mockStore.On("Get", mock.Anything, orderUUID).Return(oldOrder, nil).Once()
+	s.mockStore.On("Save", mock.Anything, mock.MatchedBy(func(o *domain.Order) bool {
 		return o.UUID == orderUUID && o.Status == newStatus
 	})).Return(nil).Once()
 
-	s.mockEventDisp.On("Dispatch", s.ctx, mock.MatchedBy(func(e inside.Event) bool {
+	s.mockEventDisp.On("Dispatch", mock.Anything, mock.MatchedBy(func(e inside.Event) bool {
 		ev, ok := e.(*inside.NewStatusEvent)
 		return ok && ev.OrderUuid == orderUUID && ev.NewStatus == newStatus
 	})).Return().Once()
@@ -163,7 +164,7 @@ func (s *OrderServiceTestSuite) TestChangeStatus_Success() {
 
 func (s *OrderServiceTestSuite) TestChangeStatus_OrderNotFound() {
 	orderUUID := uuid.New().String()
-	s.mockStore.On("Get", s.ctx, orderUUID).Return(nil, errors.New("not found")).Once()
+	s.mockStore.On("Get", mock.Anything, orderUUID).Return(nil, errors.New("not found")).Once()
 
 	status, err := s.service.ChangeStatus(s.ctx, orderUUID, sharedOrder.ORDER_STATUS_COMPLETED)
 	s.Error(err)
@@ -180,7 +181,7 @@ func (s *OrderServiceTestSuite) TestChangeStatus_InvalidTransition() {
 
 	invalidStatus := sharedOrder.ORDER_STATUS_CREATED
 
-	s.mockStore.On("Get", s.ctx, orderUUID).Return(changingOrder, nil).Once()
+	s.mockStore.On("Get", mock.Anything, orderUUID).Return(changingOrder, nil).Once()
 
 	status, err := s.service.ChangeStatus(s.ctx, orderUUID, invalidStatus)
 	s.Error(err)
@@ -195,8 +196,8 @@ func (s *OrderServiceTestSuite) TestChangeStatus_SaveError() {
 	oldOrder.Status = sharedOrder.ORDER_STATUS_CREATED
 	newStatus := sharedOrder.ORDER_STATUS_COMPLETED
 
-	s.mockStore.On("Get", s.ctx, orderUUID).Return(oldOrder, nil).Once()
-	s.mockStore.On("Save", s.ctx, mock.Anything).Return(errors.New("db error")).Once()
+	s.mockStore.On("Get", mock.Anything, orderUUID).Return(oldOrder, nil).Once()
+	s.mockStore.On("Save", mock.Anything, mock.Anything).Return(errors.New("db error")).Once()
 
 	status, err := s.service.ChangeStatus(s.ctx, orderUUID, newStatus)
 	s.Error(err)
@@ -211,7 +212,7 @@ func (s *OrderServiceTestSuite) TestGetOrderStatus_Success() {
 	orderObj := s.newTestOrder(orderUUID, userUUID)
 	orderObj.Status = sharedOrder.ORDER_STATUS_CREATED
 
-	s.mockStore.On("Get", s.ctx, orderUUID).Return(orderObj, nil).Once()
+	s.mockStore.On("Get", mock.Anything, orderUUID).Return(orderObj, nil).Once()
 
 	status, err := s.service.GetOrderStatus(s.ctx, orderUUID, userUUID)
 	s.NoError(err)
@@ -222,7 +223,7 @@ func (s *OrderServiceTestSuite) TestGetOrderStatus_OrderNotFound() {
 	orderUUID := uuid.New().String()
 	userUUID := uuid.New().String()
 
-	s.mockStore.On("Get", s.ctx, orderUUID).Return(nil, errors.New("not found")).Once()
+	s.mockStore.On("Get", mock.Anything, orderUUID).Return(nil, errors.New("not found")).Once()
 
 	status, err := s.service.GetOrderStatus(s.ctx, orderUUID, userUUID)
 	s.Error(err)
@@ -236,7 +237,7 @@ func (s *OrderServiceTestSuite) TestGetOrderStatus_WrongUser() {
 	wrongUserUUID := uuid.New().String()
 	orderObj := s.newTestOrder(orderUUID, userUUID)
 
-	s.mockStore.On("Get", s.ctx, orderUUID).Return(orderObj, nil).Once()
+	s.mockStore.On("Get", mock.Anything, orderUUID).Return(orderObj, nil).Once()
 
 	status, err := s.service.GetOrderStatus(s.ctx, orderUUID, wrongUserUUID)
 	s.Error(err)
@@ -250,7 +251,7 @@ func (s *OrderServiceTestSuite) TestFindOrder_Success() {
 	userUUID := uuid.New().String()
 	orderObj := s.newTestOrder(orderUUID, userUUID)
 
-	s.mockStore.On("Get", s.ctx, orderUUID).Return(orderObj, nil).Once()
+	s.mockStore.On("Get", mock.Anything, orderUUID).Return(orderObj, nil).Once()
 
 	found, err := s.service.FindOrderForUser(s.ctx, orderUUID, userUUID)
 	s.NoError(err)
@@ -261,7 +262,7 @@ func (s *OrderServiceTestSuite) TestFindOrder_NotFound() {
 	orderUUID := uuid.New().String()
 	userUUID := uuid.New().String()
 
-	s.mockStore.On("Get", s.ctx, orderUUID).Return(nil, errors.New("not found")).Once()
+	s.mockStore.On("Get", mock.Anything, orderUUID).Return(nil, errors.New("not found")).Once()
 
 	found, err := s.service.FindOrderForUser(s.ctx, orderUUID, userUUID)
 	s.Error(err)
@@ -275,7 +276,7 @@ func (s *OrderServiceTestSuite) TestFindOrder_WrongUser() {
 	wrongUserUUID := uuid.New().String()
 	orderObj := s.newTestOrder(orderUUID, userUUID)
 
-	s.mockStore.On("Get", s.ctx, orderUUID).Return(orderObj, nil).Once()
+	s.mockStore.On("Get", mock.Anything, orderUUID).Return(orderObj, nil).Once()
 
 	found, err := s.service.FindOrderForUser(s.ctx, orderUUID, wrongUserUUID)
 	s.Error(err)
@@ -308,17 +309,17 @@ func (s *OrderServiceTestSuite) TestCreateOrder_Success() {
 		{UUID: marketUUID, Name: "BTC/USD"},
 	}
 
-	s.mockUserSvc.On("GetUser", s.ctx, userUUID).Return(user, nil).Once()
+	s.mockUserSvc.On("GetUser", mock.Anything, userUUID).Return(user, nil).Once()
 	s.mockRoleInsp.On("CanCreate", user, orderType).Return(true).Once()
-	s.mockSpot.On("ViewMarkets", s.ctx, user.Roles.GetSlice()).Return(markets, nil).Once()
-	s.mockStore.On("Save", s.ctx, mock.MatchedBy(func(o *domain.Order) bool {
+	s.mockSpot.On("ViewMarkets", mock.Anything, user.Roles.GetSlice()).Return(markets, nil).Once()
+	s.mockStore.On("Save", mock.Anything, mock.MatchedBy(func(o *domain.Order) bool {
 		return o.UserUuid == userUUID &&
 			o.MarketUuid == marketUUID &&
 			o.Status == sharedOrder.ORDER_STATUS_CREATED &&
 			o.UUID != ""
 	})).Return(nil).Once()
 
-	s.mockEventDisp.On("Dispatch", s.ctx, mock.MatchedBy(func(e inside.Event) bool {
+	s.mockEventDisp.On("Dispatch", mock.Anything, mock.MatchedBy(func(e inside.Event) bool {
 		ev, ok := e.(*inside.OrderCreatedEvent)
 		return ok && ev.Order.UUID != ""
 	})).Return().Once()
@@ -366,7 +367,7 @@ func (s *OrderServiceTestSuite) TestCreateOrder_GetUserNotFoundError() {
 		OrderType:  sharedOrder.ORDER_TYPE_BUY,
 	}
 
-	s.mockUserSvc.On("GetUser", s.ctx, userUUID).Return(nil, errs.ErrNotFound).Once()
+	s.mockUserSvc.On("GetUser", mock.Anything, userUUID).Return(nil, errs.ErrNotFound).Once()
 
 	order, err := s.service.CreateOrder(s.ctx, createDto)
 	s.Error(err)
@@ -385,7 +386,7 @@ func (s *OrderServiceTestSuite) TestCreateOrder_NoPermission() {
 	}
 	user := &domain.User{UUID: userUUID, Roles: roles.NewRoles()}
 
-	s.mockUserSvc.On("GetUser", s.ctx, userUUID).Return(user, nil).Once()
+	s.mockUserSvc.On("GetUser", mock.Anything, userUUID).Return(user, nil).Once()
 	s.mockRoleInsp.On("CanCreate", user, createDto.OrderType).Return(false).Once()
 
 	order, err := s.service.CreateOrder(s.ctx, createDto)
@@ -407,9 +408,9 @@ func (s *OrderServiceTestSuite) TestCreateOrder_ViewMarketsError() {
 
 	errorMsg := "failed spot service connect"
 
-	s.mockUserSvc.On("GetUser", s.ctx, userUUID).Return(user, nil).Once()
+	s.mockUserSvc.On("GetUser", mock.Anything, userUUID).Return(user, nil).Once()
 	s.mockRoleInsp.On("CanCreate", user, createDto.OrderType).Return(true).Once()
-	s.mockSpot.On("ViewMarkets", s.ctx, user.Roles.GetSlice()).Return(nil, errors.New(errorMsg)).Once()
+	s.mockSpot.On("ViewMarkets", mock.Anything, user.Roles.GetSlice()).Return(nil, errors.New(errorMsg)).Once()
 
 	order, err := s.service.CreateOrder(s.ctx, createDto)
 	s.Error(err)
@@ -430,9 +431,9 @@ func (s *OrderServiceTestSuite) TestCreateOrder_MarketNotAllowed() {
 
 	allowedMarkets := []*domain.Market{{UUID: "market-uuid-2", Name: "ETH/USD"}}
 
-	s.mockUserSvc.On("GetUser", s.ctx, userUUID).Return(user, nil).Once()
+	s.mockUserSvc.On("GetUser", mock.Anything, userUUID).Return(user, nil).Once()
 	s.mockRoleInsp.On("CanCreate", user, createDto.OrderType).Return(true).Once()
-	s.mockSpot.On("ViewMarkets", s.ctx, user.Roles.GetSlice()).Return(allowedMarkets, nil).Once()
+	s.mockSpot.On("ViewMarkets", mock.Anything, user.Roles.GetSlice()).Return(allowedMarkets, nil).Once()
 
 	order, err := s.service.CreateOrder(s.ctx, createDto)
 	s.Error(err)
@@ -453,12 +454,12 @@ func (s *OrderServiceTestSuite) TestCreateOrder_StoreSaveError() {
 	user := &domain.User{UUID: userUUID, Roles: roles.NewRoles(roles.USER_VERIFIED)}
 	markets := []*domain.Market{{UUID: requestedMarket, Name: "BTC/USD"}}
 
-	s.mockUserSvc.On("GetUser", s.ctx, userUUID).Return(user, nil).Once()
+	s.mockUserSvc.On("GetUser", mock.Anything, userUUID).Return(user, nil).Once()
 	s.mockRoleInsp.On("CanCreate", user, createDto.OrderType).Return(true).Once()
-	s.mockSpot.On("ViewMarkets", s.ctx, user.Roles.GetSlice()).Return(markets, nil).Once()
+	s.mockSpot.On("ViewMarkets", mock.Anything, user.Roles.GetSlice()).Return(markets, nil).Once()
 
 	saveError := "store cant connect to db"
-	s.mockStore.On("Save", s.ctx, mock.Anything).Return(errors.New(saveError)).Once()
+	s.mockStore.On("Save", mock.Anything, mock.Anything).Return(errors.New(saveError)).Once()
 
 	order, err := s.service.CreateOrder(s.ctx, createDto)
 	s.Error(err)

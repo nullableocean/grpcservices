@@ -6,6 +6,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/order"
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/stockmarket"
+	"github.com/nullableocean/grpcservices/shared/eventbus"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 )
@@ -24,7 +25,7 @@ func NewStockmarketCreatedOrderHandler(logger *zap.Logger, orderService *order.O
 	}
 }
 
-func (h *StockmarketOrderCreatedHandler) Handle(ctx context.Context, e inside.Event) {
+func (h *StockmarketOrderCreatedHandler) Handle(ctx context.Context, e eventbus.Event) {
 	ctx, span := otel.Tracer("stockmarket_created_event_handler").Start(ctx, "handle_event")
 	defer span.End()
 

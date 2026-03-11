@@ -42,7 +42,7 @@ down-mon:
 up-broker:
 	@echo "=== UP KAFKA BROKER ==="
 	cd kafka && make up
-	@sleep 3
+	@sleep 10
 
 down-broker:
 	@echo "=== DOWN KAFKA BROKER ==="

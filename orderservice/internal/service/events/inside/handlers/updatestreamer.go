@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/nullableocean/grpcservices/orderservice/internal/service/events/inside"
+	"github.com/nullableocean/grpcservices/shared/eventbus"
 	"github.com/nullableocean/grpcservices/shared/limiter"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
@@ -107,7 +108,7 @@ func (s *StatusStreamer) Unsubscribe(ctx context.Context, orderUuid string, subI
 	})
 }
 
-func (s *StatusStreamer) Handle(ctx context.Context, e inside.Event) {
+func (s *StatusStreamer) Handle(ctx context.Context, e eventbus.Event) {
 	ctx, span := otel.Tracer("stream_notifier").Start(ctx, "handle_update_event")
 	defer span.End()
 
