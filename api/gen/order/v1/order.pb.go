@@ -7,7 +7,7 @@
 package orderv1
 
 import (
-	v1 "github.com/nullableocean/grpcservices/api/gen/types/v1"
+	v1 "github.com/nullableocean/grpcservices/api/gen/models/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -76,7 +76,7 @@ func (x *GetStatusRequest) GetUserUuid() string {
 
 type GetStatusResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        v1.OrderStatus         `protobuf:"varint,1,opt,name=status,proto3,enum=types.v1.OrderStatus" json:"status,omitempty"`
+	Status        v1.OrderStatus         `protobuf:"varint,1,opt,name=status,proto3,enum=models.v1.OrderStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -120,11 +120,12 @@ func (x *GetStatusResponse) GetStatus() v1.OrderStatus {
 
 type CreateOrderRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserUuid      string                 `protobuf:"bytes,1,opt,name=user_uuid,json=userUuid,proto3" json:"user_uuid,omitempty"` //uuid
-	MarketId      string                 `protobuf:"bytes,2,opt,name=market_id,json=marketId,proto3" json:"market_id,omitempty"` //uuid
-	OrderType     v1.OrderType           `protobuf:"varint,3,opt,name=order_type,json=orderType,proto3,enum=types.v1.OrderType" json:"order_type,omitempty"`
-	Price         *v1.Money              `protobuf:"bytes,4,opt,name=price,proto3" json:"price,omitempty"`
-	Quantity      int64                  `protobuf:"varint,5,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	UserUuid      string                 `protobuf:"bytes,1,opt,name=user_uuid,json=userUuid,proto3" json:"user_uuid,omitempty"`       //uuid
+	MarketUuid    string                 `protobuf:"bytes,2,opt,name=market_uuid,json=marketUuid,proto3" json:"market_uuid,omitempty"` //uuid
+	OrderType     v1.OrderType           `protobuf:"varint,3,opt,name=order_type,json=orderType,proto3,enum=models.v1.OrderType" json:"order_type,omitempty"`
+	OrderSide     v1.OrderSide           `protobuf:"varint,4,opt,name=order_side,json=orderSide,proto3,enum=models.v1.OrderSide" json:"order_side,omitempty"`
+	Price         *v1.Money              `protobuf:"bytes,5,opt,name=price,proto3" json:"price,omitempty"`
+	Quantity      *v1.Decimal            `protobuf:"bytes,6,opt,name=quantity,proto3" json:"quantity,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -166,9 +167,9 @@ func (x *CreateOrderRequest) GetUserUuid() string {
 	return ""
 }
 
-func (x *CreateOrderRequest) GetMarketId() string {
+func (x *CreateOrderRequest) GetMarketUuid() string {
 	if x != nil {
-		return x.MarketId
+		return x.MarketUuid
 	}
 	return ""
 }
@@ -180,6 +181,13 @@ func (x *CreateOrderRequest) GetOrderType() v1.OrderType {
 	return v1.OrderType(0)
 }
 
+func (x *CreateOrderRequest) GetOrderSide() v1.OrderSide {
+	if x != nil {
+		return x.OrderSide
+	}
+	return v1.OrderSide(0)
+}
+
 func (x *CreateOrderRequest) GetPrice() *v1.Money {
 	if x != nil {
 		return x.Price
@@ -187,17 +195,17 @@ func (x *CreateOrderRequest) GetPrice() *v1.Money {
 	return nil
 }
 
-func (x *CreateOrderRequest) GetQuantity() int64 {
+func (x *CreateOrderRequest) GetQuantity() *v1.Decimal {
 	if x != nil {
 		return x.Quantity
 	}
-	return 0
+	return nil
 }
 
 type CreateOrderResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OrderUuid     string                 `protobuf:"bytes,1,opt,name=order_uuid,json=orderUuid,proto3" json:"order_uuid,omitempty"` // uuid
-	Status        v1.OrderStatus         `protobuf:"varint,2,opt,name=status,proto3,enum=types.v1.OrderStatus" json:"status,omitempty"`
+	Status        v1.OrderStatus         `protobuf:"varint,2,opt,name=status,proto3,enum=models.v1.OrderStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -250,24 +258,27 @@ var File_service_order_proto protoreflect.FileDescriptor
 
 const file_service_order_proto_rawDesc = "" +
 	"\n" +
-	"\x13service/order.proto\x12\border.v1\x1a\x11types/money.proto\x1a\x11types/order.proto\"N\n" +
+	"\x13service/order.proto\x12\border.v1\x1a\x12models/money.proto\x1a\x14models/decimal.proto\x1a\x12models/order.proto\"N\n" +
 	"\x10GetStatusRequest\x12\x1d\n" +
 	"\n" +
 	"order_uuid\x18\x01 \x01(\tR\torderUuid\x12\x1b\n" +
-	"\tuser_uuid\x18\x02 \x01(\tR\buserUuid\"B\n" +
-	"\x11GetStatusResponse\x12-\n" +
-	"\x06status\x18\x01 \x01(\x0e2\x15.types.v1.OrderStatusR\x06status\"\xc5\x01\n" +
+	"\tuser_uuid\x18\x02 \x01(\tR\buserUuid\"C\n" +
+	"\x11GetStatusResponse\x12.\n" +
+	"\x06status\x18\x01 \x01(\x0e2\x16.models.v1.OrderStatusR\x06status\"\x94\x02\n" +
 	"\x12CreateOrderRequest\x12\x1b\n" +
-	"\tuser_uuid\x18\x01 \x01(\tR\buserUuid\x12\x1b\n" +
-	"\tmarket_id\x18\x02 \x01(\tR\bmarketId\x122\n" +
+	"\tuser_uuid\x18\x01 \x01(\tR\buserUuid\x12\x1f\n" +
+	"\vmarket_uuid\x18\x02 \x01(\tR\n" +
+	"marketUuid\x123\n" +
 	"\n" +
-	"order_type\x18\x03 \x01(\x0e2\x13.types.v1.OrderTypeR\torderType\x12%\n" +
-	"\x05price\x18\x04 \x01(\v2\x0f.types.v1.MoneyR\x05price\x12\x1a\n" +
-	"\bquantity\x18\x05 \x01(\x03R\bquantity\"c\n" +
+	"order_type\x18\x03 \x01(\x0e2\x14.models.v1.OrderTypeR\torderType\x123\n" +
+	"\n" +
+	"order_side\x18\x04 \x01(\x0e2\x14.models.v1.OrderSideR\torderSide\x12&\n" +
+	"\x05price\x18\x05 \x01(\v2\x10.models.v1.MoneyR\x05price\x12.\n" +
+	"\bquantity\x18\x06 \x01(\v2\x12.models.v1.DecimalR\bquantity\"d\n" +
 	"\x13CreateOrderResponse\x12\x1d\n" +
 	"\n" +
-	"order_uuid\x18\x01 \x01(\tR\torderUuid\x12-\n" +
-	"\x06status\x18\x02 \x01(\x0e2\x15.types.v1.OrderStatusR\x06status2\xef\x01\n" +
+	"order_uuid\x18\x01 \x01(\tR\torderUuid\x12.\n" +
+	"\x06status\x18\x02 \x01(\x0e2\x16.models.v1.OrderStatusR\x06status2\xef\x01\n" +
 	"\x05Order\x12J\n" +
 	"\vCreateOrder\x12\x1c.order.v1.CreateOrderRequest\x1a\x1d.order.v1.CreateOrderResponse\x12I\n" +
 	"\x0eGetOrderStatus\x12\x1a.order.v1.GetStatusRequest\x1a\x1b.order.v1.GetStatusResponse\x12O\n" +
@@ -291,26 +302,30 @@ var file_service_order_proto_goTypes = []any{
 	(*GetStatusResponse)(nil),   // 1: order.v1.GetStatusResponse
 	(*CreateOrderRequest)(nil),  // 2: order.v1.CreateOrderRequest
 	(*CreateOrderResponse)(nil), // 3: order.v1.CreateOrderResponse
-	(v1.OrderStatus)(0),         // 4: types.v1.OrderStatus
-	(v1.OrderType)(0),           // 5: types.v1.OrderType
-	(*v1.Money)(nil),            // 6: types.v1.Money
+	(v1.OrderStatus)(0),         // 4: models.v1.OrderStatus
+	(v1.OrderType)(0),           // 5: models.v1.OrderType
+	(v1.OrderSide)(0),           // 6: models.v1.OrderSide
+	(*v1.Money)(nil),            // 7: models.v1.Money
+	(*v1.Decimal)(nil),          // 8: models.v1.Decimal
 }
 var file_service_order_proto_depIdxs = []int32{
-	4, // 0: order.v1.GetStatusResponse.status:type_name -> types.v1.OrderStatus
-	5, // 1: order.v1.CreateOrderRequest.order_type:type_name -> types.v1.OrderType
-	6, // 2: order.v1.CreateOrderRequest.price:type_name -> types.v1.Money
-	4, // 3: order.v1.CreateOrderResponse.status:type_name -> types.v1.OrderStatus
-	2, // 4: order.v1.Order.CreateOrder:input_type -> order.v1.CreateOrderRequest
-	0, // 5: order.v1.Order.GetOrderStatus:input_type -> order.v1.GetStatusRequest
-	0, // 6: order.v1.Order.StreamOrderUpdates:input_type -> order.v1.GetStatusRequest
-	3, // 7: order.v1.Order.CreateOrder:output_type -> order.v1.CreateOrderResponse
-	1, // 8: order.v1.Order.GetOrderStatus:output_type -> order.v1.GetStatusResponse
-	1, // 9: order.v1.Order.StreamOrderUpdates:output_type -> order.v1.GetStatusResponse
-	7, // [7:10] is the sub-list for method output_type
-	4, // [4:7] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	4, // 0: order.v1.GetStatusResponse.status:type_name -> models.v1.OrderStatus
+	5, // 1: order.v1.CreateOrderRequest.order_type:type_name -> models.v1.OrderType
+	6, // 2: order.v1.CreateOrderRequest.order_side:type_name -> models.v1.OrderSide
+	7, // 3: order.v1.CreateOrderRequest.price:type_name -> models.v1.Money
+	8, // 4: order.v1.CreateOrderRequest.quantity:type_name -> models.v1.Decimal
+	4, // 5: order.v1.CreateOrderResponse.status:type_name -> models.v1.OrderStatus
+	2, // 6: order.v1.Order.CreateOrder:input_type -> order.v1.CreateOrderRequest
+	0, // 7: order.v1.Order.GetOrderStatus:input_type -> order.v1.GetStatusRequest
+	0, // 8: order.v1.Order.StreamOrderUpdates:input_type -> order.v1.GetStatusRequest
+	3, // 9: order.v1.Order.CreateOrder:output_type -> order.v1.CreateOrderResponse
+	1, // 10: order.v1.Order.GetOrderStatus:output_type -> order.v1.GetStatusResponse
+	1, // 11: order.v1.Order.StreamOrderUpdates:output_type -> order.v1.GetStatusResponse
+	9, // [9:12] is the sub-list for method output_type
+	6, // [6:9] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_service_order_proto_init() }

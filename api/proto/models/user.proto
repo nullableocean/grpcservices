@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package models.v1;
+
+option go_package = "github.com/nullableocean/grpcservices/api/gen/models/v1;modelsv1";
+
+enum UserRole {
+    USER_ROLE_UNSPECIFIED = 0;
+    USER_ROLE_GUEST = 1;
+    USER_ROLE_TRADER = 2;
+    USER_ROLE_MARKET_MAKER = 3;
+    USER_ROLE_MODER = 4;
+    USER_ROLE_ADMIN = 5;  
+}

@@ -8,4 +8,4 @@ gen:
 		--go_out=. \
 		--go-grpc_opt=module=$(MODULE) \
 		--go-grpc_out=. \
-		./proto/types/*.proto ./proto/service/*.proto ./proto/events/order/*.proto ./proto/events/markets/*.proto
+		./proto/models/*.proto ./proto/service/*.proto ./proto/events/order/*.proto ./proto/events/markets/*.proto

@@ -4,8 +4,9 @@ package order.v1;
 
 option go_package = "github.com/nullableocean/grpcservices/api/gen/order/v1;orderv1";
 
-import "types/money.proto";
-import "types/order.proto";
+import "models/money.proto";
+import "models/decimal.proto";
+import "models/order.proto";
 
 service Order {
     rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
@@ -19,18 +20,19 @@ message GetStatusRequest {
 }
 
 message GetStatusResponse {
-    types.v1.OrderStatus status = 1;
+    models.v1.OrderStatus status = 1;
 }
 
 message CreateOrderRequest {
     string user_uuid = 1; //uuid
-    string market_id = 2; //uuid
-    types.v1.OrderType order_type = 3;
-    types.v1.Money price = 4;
-    int64 quantity = 5;
+    string market_uuid = 2; //uuid
+    models.v1.OrderType order_type = 3;
+    models.v1.OrderSide order_side = 4;
+    models.v1.Money price = 5;
+    models.v1.Decimal quantity = 6;
 }
 
 message CreateOrderResponse {
     string order_uuid = 1; // uuid
-    types.v1.OrderStatus status = 2;
+    models.v1.OrderStatus status = 2;
 }

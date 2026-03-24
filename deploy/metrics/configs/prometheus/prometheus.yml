@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'spot_instrument'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['spot_instrument:9091'] # docker networks service
+        labels:
+          service: 'spot-instrument'
+
+  - job_name: 'order_service'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['order_service:9092']
+        labels:
+          service: 'order'

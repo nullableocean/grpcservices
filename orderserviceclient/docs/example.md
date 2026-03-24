@@ -1,1 +1,0 @@
-./bin/ordercli create -a localhost:8091 -u e256251e-e113-4968-90c1-865a78c10935 -m ed4a32d9-7e5c-4a8c-81aa-f282c79ea9ae -p 55.12344555 -q 10 -t buy

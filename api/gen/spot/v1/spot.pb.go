@@ -7,7 +7,7 @@
 package spotv1
 
 import (
-	v1 "github.com/nullableocean/grpcservices/api/gen/types/v1"
+	v1 "github.com/nullableocean/grpcservices/api/gen/models/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -68,7 +68,7 @@ func (x *ViewMarketsResponse) GetMarkets() []*Market {
 
 type ViewMarketsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserRoles     []v1.UserRole          `protobuf:"varint,1,rep,packed,name=user_roles,json=userRoles,proto3,enum=types.v1.UserRole" json:"user_roles,omitempty"`
+	UserRoles     []v1.UserRole          `protobuf:"varint,1,rep,packed,name=user_roles,json=userRoles,proto3,enum=models.v1.UserRole" json:"user_roles,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -113,7 +113,6 @@ func (x *ViewMarketsRequest) GetUserRoles() []v1.UserRole {
 type Market struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Uuid          string                 `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"` //uuid
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -155,26 +154,18 @@ func (x *Market) GetUuid() string {
 	return ""
 }
 
-func (x *Market) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
 var File_service_spot_proto protoreflect.FileDescriptor
 
 const file_service_spot_proto_rawDesc = "" +
 	"\n" +
-	"\x12service/spot.proto\x12\aspot.v1\x1a\x10types/user.proto\"@\n" +
+	"\x12service/spot.proto\x12\aspot.v1\x1a\x11models/user.proto\"@\n" +
 	"\x13ViewMarketsResponse\x12)\n" +
-	"\amarkets\x18\x01 \x03(\v2\x0f.spot.v1.MarketR\amarkets\"G\n" +
-	"\x12ViewMarketsRequest\x121\n" +
+	"\amarkets\x18\x01 \x03(\v2\x0f.spot.v1.MarketR\amarkets\"H\n" +
+	"\x12ViewMarketsRequest\x122\n" +
 	"\n" +
-	"user_roles\x18\x01 \x03(\x0e2\x12.types.v1.UserRoleR\tuserRoles\"0\n" +
+	"user_roles\x18\x01 \x03(\x0e2\x13.models.v1.UserRoleR\tuserRoles\"\x1c\n" +
 	"\x06Market\x12\x12\n" +
-	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name2Z\n" +
+	"\x04uuid\x18\x01 \x01(\tR\x04uuid2Z\n" +
 	"\x0eSpotInstrument\x12H\n" +
 	"\vViewMarkets\x12\x1b.spot.v1.ViewMarketsRequest\x1a\x1c.spot.v1.ViewMarketsResponseB>Z<github.com/nullableocean/grpcservices/api/gen/spot/v1;spotv1b\x06proto3"
 
@@ -195,11 +186,11 @@ var file_service_spot_proto_goTypes = []any{
 	(*ViewMarketsResponse)(nil), // 0: spot.v1.ViewMarketsResponse
 	(*ViewMarketsRequest)(nil),  // 1: spot.v1.ViewMarketsRequest
 	(*Market)(nil),              // 2: spot.v1.Market
-	(v1.UserRole)(0),            // 3: types.v1.UserRole
+	(v1.UserRole)(0),            // 3: models.v1.UserRole
 }
 var file_service_spot_proto_depIdxs = []int32{
 	2, // 0: spot.v1.ViewMarketsResponse.markets:type_name -> spot.v1.Market
-	3, // 1: spot.v1.ViewMarketsRequest.user_roles:type_name -> types.v1.UserRole
+	3, // 1: spot.v1.ViewMarketsRequest.user_roles:type_name -> models.v1.UserRole
 	1, // 2: spot.v1.SpotInstrument.ViewMarkets:input_type -> spot.v1.ViewMarketsRequest
 	0, // 3: spot.v1.SpotInstrument.ViewMarkets:output_type -> spot.v1.ViewMarketsResponse
 	3, // [3:4] is the sub-list for method output_type

@@ -1,0 +1,66 @@
+services:
+  spot_instrument:
+    build:
+      context: ../../
+      dockerfile: deploy/spot_instrument/Dockerfile
+    container_name: spot_instrument
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+      - "${METRICS_PORT}:${METRICS_PORT}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - appnet
+      - spot
+    labels:
+      - promtail_logs=true
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: spot_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASS}
+      POSTGRES_DB: spot_instrument
+    expose:
+      - "5432"
+    volumes:
+      - spot_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER} -d spot_instrument"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - spot
+
+  migrator:
+    image: migrate/migrate
+    container_name: spot_migrator
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../../spot_instrument/migrations:/migrations
+    command: [
+      "-path", "/migrations",
+      "-database", "postgres://${PG_USER}:${PG_PASS}@${PG_HOST}:${PG_PORT}/${PG_DBNAME}?sslmode=disable",
+      "up"
+    ]
+    networks:
+      - spot
+    restart: "no"
+
+networks:
+  appnet:
+    external: true
+  spot:
+    driver: bridge
+
+volumes:
+  spot_postgres_data:

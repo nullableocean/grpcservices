@@ -23,8 +23,8 @@ func GetFromIncomingCtx(ctx context.Context) string {
 	return val[0]
 }
 
-// NewForOutCtx генерирует x-request-id и записывает в исходящий контекст
-func NewForOutCtx(ctx context.Context) context.Context {
+// CreateToOutCtx генерирует x-request-id и записывает в исходящий контекст
+func CreateToOutCtx(ctx context.Context) context.Context {
 	xrequestId := NewXRequestId()
 	return SetInOutCtx(xrequestId, ctx)
 }

@@ -4,9 +4,9 @@ package events.order.v1;
 
 option go_package = "github.com/nullableocean/grpcservices/api/gen/events/order/v1;ordereventsv1";
 
-import "types/order.proto";
+import "models/order.proto";
 
 message CreatedOrderEvent {
     string event_uuid = 1;
-    types.v1.Order created_order = 2;
+    models.v1.Order created_order = 2;
 }

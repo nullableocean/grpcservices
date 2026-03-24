@@ -1,5 +1,0 @@
-logs/*
-.env
-bin/*
-cmd/bin/*
-go.sum

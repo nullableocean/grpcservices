@@ -7,7 +7,7 @@
 package ordereventsv1
 
 import (
-	v1 "github.com/nullableocean/grpcservices/api/gen/types/v1"
+	v1 "github.com/nullableocean/grpcservices/api/gen/models/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -78,11 +78,11 @@ var File_events_order_created_proto protoreflect.FileDescriptor
 
 const file_events_order_created_proto_rawDesc = "" +
 	"\n" +
-	"\x1aevents/order/created.proto\x12\x0fevents.order.v1\x1a\x11types/order.proto\"h\n" +
+	"\x1aevents/order/created.proto\x12\x0fevents.order.v1\x1a\x12models/order.proto\"i\n" +
 	"\x11CreatedOrderEvent\x12\x1d\n" +
 	"\n" +
-	"event_uuid\x18\x01 \x01(\tR\teventUuid\x124\n" +
-	"\rcreated_order\x18\x02 \x01(\v2\x0f.types.v1.OrderR\fcreatedOrderBMZKgithub.com/nullableocean/grpcservices/api/gen/events/order/v1;ordereventsv1b\x06proto3"
+	"event_uuid\x18\x01 \x01(\tR\teventUuid\x125\n" +
+	"\rcreated_order\x18\x02 \x01(\v2\x10.models.v1.OrderR\fcreatedOrderBMZKgithub.com/nullableocean/grpcservices/api/gen/events/order/v1;ordereventsv1b\x06proto3"
 
 var (
 	file_events_order_created_proto_rawDescOnce sync.Once
@@ -99,10 +99,10 @@ func file_events_order_created_proto_rawDescGZIP() []byte {
 var file_events_order_created_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_events_order_created_proto_goTypes = []any{
 	(*CreatedOrderEvent)(nil), // 0: events.order.v1.CreatedOrderEvent
-	(*v1.Order)(nil),          // 1: types.v1.Order
+	(*v1.Order)(nil),          // 1: models.v1.Order
 }
 var file_events_order_created_proto_depIdxs = []int32{
-	1, // 0: events.order.v1.CreatedOrderEvent.created_order:type_name -> types.v1.Order
+	1, // 0: events.order.v1.CreatedOrderEvent.created_order:type_name -> models.v1.Order
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
