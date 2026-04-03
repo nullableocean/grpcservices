@@ -59,14 +59,17 @@ services:
     depends_on:
       - prometheus
 
-  jaeger:
-    image: jaegertracing/all-in-one:latest
+  tempo:
+    image: grafana/tempo:2.6.0
     restart: unless-stopped
+    command: [ "-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./configs/tempo/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo_data:/tmp/tempo
+    user: "0:0" # опасно, default 10001:10001, тогда нужно создать volume под этого юзера, иначе ошибки доступа при запуске контейнера
     ports:
-      - "16686:16686" # ui
-      - "4317:4317" # OTLP gRPC
-    environment:
-      - COLLECTOR_OTLP_ENABLED=true
+      - "3200:3200"
+      - "4317:4317"    # OTLP gRPC
     networks:
       - monitoringnet
       - appnet
@@ -83,3 +86,4 @@ volumes:
   prom_data:
   grafana_data:
   loki_data:
+  tempo_data:

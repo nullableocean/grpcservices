@@ -30,24 +30,24 @@ type OutboxRelay struct {
 }
 
 type Options struct {
-	interval  time.Duration
-	batchSize int
+	Interval  time.Duration
+	BatchSize int
 }
 
 func NewRelay(l *zap.Logger, pool *pgxpool.Pool, publisher ports.EventPublisher, opt Options) *OutboxRelay {
-	if opt.interval <= 0 {
-		opt.interval = defaultInterval
+	if opt.Interval <= 0 {
+		opt.Interval = defaultInterval
 	}
-	if opt.batchSize <= 0 {
-		opt.batchSize = defaultBatchSize
+	if opt.BatchSize <= 0 {
+		opt.BatchSize = defaultBatchSize
 	}
 
 	return &OutboxRelay{
 		reader:    NewOutboxReader(pool),
 		publisher: publisher,
 		pgpool:    pool,
-		interval:  opt.interval,
-		batchSize: opt.batchSize,
+		interval:  opt.Interval,
+		batchSize: opt.BatchSize,
 		logger:    l,
 	}
 }

@@ -17,16 +17,16 @@ func main() {
 
 	var zapLogger *zap.Logger
 	if cnf.Log.LogToFile {
-		zapLogger, err = logger.NewLoggerWithPath(cnf.Log.LogLevel, cnf.Log.LogPath)
+		zapLogger, err = logger.NewLoggerWithPath(cnf.Log.Level, cnf.Log.Path)
 	} else {
-		zapLogger, err = logger.NewStdoutLogger(cnf.Log.LogLevel)
+		zapLogger, err = logger.NewStdoutLogger(cnf.Log.Level)
 	}
 
 	if err != nil {
 		log.Fatalln("failed init logger", err)
 	}
 
-	err = app.NewApp(cnf, zapLogger).Run()
+	err = app.New(cnf, zapLogger).Run()
 	if err != nil {
 		log.Fatalln("failed start app", err)
 	}

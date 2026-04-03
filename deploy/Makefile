@@ -23,7 +23,6 @@ up: create-net
 	make up-order
 
 	@echo "grafana: http://localhost:3000"
-	@echo "jaeger: http://localhost:16686"
 
 up-srvs: up-spot up-order
 

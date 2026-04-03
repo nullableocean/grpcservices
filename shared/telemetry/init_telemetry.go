@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"context"
+	"errors"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -14,19 +15,19 @@ import (
 )
 
 // закрываем grpc и трейсинг
-type ShutdownFunc func(ctx context.Context)
+type ShutdownFunc func(ctx context.Context) error
 
-// InitTelemetryWithJaeger инициализирует глобальный трейсинг-провайдер с экспортом в Jaeger
+// InitOpenTelemtryGrpcProvider инициализирует глобальный трейсинг-провайдер с экспортом по grpc
 //
 // serviceName имя сервиса
 //
-// jaegerGrpcAddress адрес коллектора exmp: jaeghost:4317
+// exporterGrpcAddr grpc адрес коллектора exmp: jaeger:4317, tempo:4317
 //
 // ratioSampler частотность трейсинга 0 <= ratio <= 1
-func InitTelemetryWithJaeger(serviceName, jaegerGrpcAddress string, ratioSampler float64) (ShutdownFunc, error) {
+func InitOpenTelemtryGrpcProvider(serviceName, exporterGrpcAddr string, ratioSampler float64) (ShutdownFunc, error) {
 	ctx := context.Background()
 	conn, err := grpc.NewClient(
-		jaegerGrpcAddress,
+		exporterGrpcAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
@@ -66,9 +67,8 @@ func InitTelemetryWithJaeger(serviceName, jaegerGrpcAddress string, ratioSampler
 
 	otel.SetTracerProvider(provider)
 
-	shutdown := func(ctx context.Context) {
-		defer conn.Close()
-		defer provider.Shutdown(ctx)
+	shutdown := func(ctx context.Context) error {
+		return errors.Join(provider.Shutdown(ctx), conn.Close())
 	}
 
 	return shutdown, nil

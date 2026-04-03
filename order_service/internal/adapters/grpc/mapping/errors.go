@@ -34,9 +34,5 @@ func MapErrorToGrpcStatus(e error) error {
 		return status.Error(codes.InvalidArgument, e.Error())
 	}
 
-	if errors.Is(e, errs.ErrCantUpdate) {
-		return status.Error(codes.OK, e.Error())
-	}
-
 	return status.Error(codes.Internal, e.Error())
 }
