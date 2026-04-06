@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	orderv1 "github.com/nullableocean/grpcservices/api/gen/order/v1"
-	"github.com/nullableocean/grpcservices/shared/intercepter"
+	"github.com/nullableocean/grpcservices/shared/interceptors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -20,5 +20,5 @@ func newConnection(addr string) (orderv1.OrderClient, error) {
 }
 
 func connectionUnaryInterceptors() grpc.DialOption {
-	return grpc.WithChainUnaryInterceptor(intercepter.UnaryClientXReqId())
+	return grpc.WithChainUnaryInterceptor(interceptors.UnaryClientXReqId())
 }

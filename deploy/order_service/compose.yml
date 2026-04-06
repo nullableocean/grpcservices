@@ -13,6 +13,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - appnet
       - order
@@ -39,6 +41,20 @@ services:
     networks:
       - appnet
       - order
+  
+  redis:
+    container_name: order_redis
+    image: redis:8.6.2-alpine
+    environment:
+      - REDIS_PASSWORD=${IDEMPOTENCY_REDIS_PASSWORD}
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - appnet
+    mem_limit: 512m
+    volumes:
+      - redisdata:/data
 
   migrator:
     image: migrate/migrate
@@ -65,3 +81,4 @@ networks:
 
 volumes:
   order_postgres_data:
+  redisdata:

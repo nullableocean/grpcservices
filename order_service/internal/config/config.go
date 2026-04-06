@@ -25,6 +25,7 @@ type Config struct {
 	Retry          RetryConfig
 	Kafka          KafkaConfig
 	Outbox         OutboxConfig
+	Idempotency    IdempotencyConfig
 	Env            EnvConfig
 }
 
@@ -41,6 +42,18 @@ type EnvConfig struct {
 
 type AuthConfig struct {
 	JWTSecret string `env:"JWT_SECRET" env-required:"true"`
+}
+
+type IdempotencyConfig struct {
+	RedisAddr     string        `env:"IDEMPOTENCY_REDIS_ADDR" env-default:"redis:6379"`
+	RedisPassword string        `env:"IDEMPOTENCY_REDIS_PASSWORD" env-default:""`
+	RedisDB       int           `env:"IDEMPOTENCY_REDIS_DB" env-default:"0"`
+	TTL           time.Duration `env:"IDEMPOTENCY_TTL" env-default:"10m"`
+	DialTimeout   time.Duration `env:"IDEMPOTENCY_DIAL_TIMEOUT" env-default:"5s"`
+	ReadTimeout   time.Duration `env:"IDEMPOTENCY_READ_TIMEOUT" env-default:"3s"`
+	WriteTimeout  time.Duration `env:"IDEMPOTENCY_WRITE_TIMEOUT" env-default:"3s"`
+	PoolSize      int           `env:"IDEMPOTENCY_REDIS_POOL_SIZE" env-default:"10"`
+	MaxRetries    int           `env:"IDEMPOTENCY_REDIS_MAX_RETRIES" env-default:"3"`
 }
 
 type PostgresConfig struct {

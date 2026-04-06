@@ -30,6 +30,7 @@ message CreateOrderRequest {
     models.v1.OrderSide order_side = 4;
     models.v1.Money price = 5;
     models.v1.Decimal quantity = 6;
+    string idempotency_key = 7; // uuid
 }
 
 message CreateOrderResponse {

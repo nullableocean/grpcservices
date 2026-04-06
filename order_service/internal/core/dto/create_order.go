@@ -9,15 +9,20 @@ import (
 )
 
 type CreateOrderParameters struct {
-	User       *model.User
-	MarketUUID string
-	Price      decimal.Decimal
-	Quantity   decimal.Decimal
-	Type       model.OrderType
-	Side       model.OrderSide
+	IdempotencyKey string
+	User           *model.User
+	MarketUUID     string
+	Price          decimal.Decimal
+	Quantity       decimal.Decimal
+	Type           model.OrderType
+	Side           model.OrderSide
 }
 
 func (d *CreateOrderParameters) Validate() error {
+	if d.IdempotencyKey == "" {
+		return fmt.Errorf("%w: empty idempotency key", errs.ErrIncorrectData)
+	}
+
 	if d.MarketUUID == "" {
 		return fmt.Errorf("%w: empty market uuid", errs.ErrIncorrectData)
 	}

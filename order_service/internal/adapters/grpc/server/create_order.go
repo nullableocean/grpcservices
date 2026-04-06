@@ -74,6 +74,7 @@ func (srv *OrderServer) mapCreateRequestToDto(req *orderv1.CreateOrderRequest, u
 	quantity := mapping.MapProtoDecimalToDecimal(req.Quantity)
 
 	return &dto.CreateOrderParameters{
+		IdempotencyKey: req.IdempotencyKey,
 		User: &model.User{
 			UUID:  userUUID,
 			Roles: roles,

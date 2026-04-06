@@ -119,15 +119,16 @@ func (x *GetStatusResponse) GetStatus() v1.OrderStatus {
 }
 
 type CreateOrderRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserUuid      string                 `protobuf:"bytes,1,opt,name=user_uuid,json=userUuid,proto3" json:"user_uuid,omitempty"`       //uuid
-	MarketUuid    string                 `protobuf:"bytes,2,opt,name=market_uuid,json=marketUuid,proto3" json:"market_uuid,omitempty"` //uuid
-	OrderType     v1.OrderType           `protobuf:"varint,3,opt,name=order_type,json=orderType,proto3,enum=models.v1.OrderType" json:"order_type,omitempty"`
-	OrderSide     v1.OrderSide           `protobuf:"varint,4,opt,name=order_side,json=orderSide,proto3,enum=models.v1.OrderSide" json:"order_side,omitempty"`
-	Price         *v1.Money              `protobuf:"bytes,5,opt,name=price,proto3" json:"price,omitempty"`
-	Quantity      *v1.Decimal            `protobuf:"bytes,6,opt,name=quantity,proto3" json:"quantity,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	UserUuid       string                 `protobuf:"bytes,1,opt,name=user_uuid,json=userUuid,proto3" json:"user_uuid,omitempty"`       //uuid
+	MarketUuid     string                 `protobuf:"bytes,2,opt,name=market_uuid,json=marketUuid,proto3" json:"market_uuid,omitempty"` //uuid
+	OrderType      v1.OrderType           `protobuf:"varint,3,opt,name=order_type,json=orderType,proto3,enum=models.v1.OrderType" json:"order_type,omitempty"`
+	OrderSide      v1.OrderSide           `protobuf:"varint,4,opt,name=order_side,json=orderSide,proto3,enum=models.v1.OrderSide" json:"order_side,omitempty"`
+	Price          *v1.Money              `protobuf:"bytes,5,opt,name=price,proto3" json:"price,omitempty"`
+	Quantity       *v1.Decimal            `protobuf:"bytes,6,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	IdempotencyKey string                 `protobuf:"bytes,7,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"` // uuid
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CreateOrderRequest) Reset() {
@@ -202,6 +203,13 @@ func (x *CreateOrderRequest) GetQuantity() *v1.Decimal {
 	return nil
 }
 
+func (x *CreateOrderRequest) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
 type CreateOrderResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OrderUuid     string                 `protobuf:"bytes,1,opt,name=order_uuid,json=orderUuid,proto3" json:"order_uuid,omitempty"` // uuid
@@ -264,7 +272,7 @@ const file_service_order_proto_rawDesc = "" +
 	"order_uuid\x18\x01 \x01(\tR\torderUuid\x12\x1b\n" +
 	"\tuser_uuid\x18\x02 \x01(\tR\buserUuid\"C\n" +
 	"\x11GetStatusResponse\x12.\n" +
-	"\x06status\x18\x01 \x01(\x0e2\x16.models.v1.OrderStatusR\x06status\"\x94\x02\n" +
+	"\x06status\x18\x01 \x01(\x0e2\x16.models.v1.OrderStatusR\x06status\"\xbd\x02\n" +
 	"\x12CreateOrderRequest\x12\x1b\n" +
 	"\tuser_uuid\x18\x01 \x01(\tR\buserUuid\x12\x1f\n" +
 	"\vmarket_uuid\x18\x02 \x01(\tR\n" +
@@ -274,7 +282,8 @@ const file_service_order_proto_rawDesc = "" +
 	"\n" +
 	"order_side\x18\x04 \x01(\x0e2\x14.models.v1.OrderSideR\torderSide\x12&\n" +
 	"\x05price\x18\x05 \x01(\v2\x10.models.v1.MoneyR\x05price\x12.\n" +
-	"\bquantity\x18\x06 \x01(\v2\x12.models.v1.DecimalR\bquantity\"d\n" +
+	"\bquantity\x18\x06 \x01(\v2\x12.models.v1.DecimalR\bquantity\x12'\n" +
+	"\x0fidempotency_key\x18\a \x01(\tR\x0eidempotencyKey\"d\n" +
 	"\x13CreateOrderResponse\x12\x1d\n" +
 	"\n" +
 	"order_uuid\x18\x01 \x01(\tR\torderUuid\x12.\n" +

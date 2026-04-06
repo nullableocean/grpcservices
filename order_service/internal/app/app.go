@@ -16,6 +16,7 @@ import (
 	orderv1 "github.com/nullableocean/grpcservices/api/gen/order/v1"
 	spotv1 "github.com/nullableocean/grpcservices/api/gen/spot/v1"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/access"
+	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/cache/rdb"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/publishers"
 	updatenotifier "github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/publishers/update_notifier"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/client"
@@ -31,6 +32,7 @@ import (
 	shared_telemetry "github.com/nullableocean/grpcservices/shared/telemetry"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/redis/go-redis/v9"
 	"github.com/sony/gobreaker"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
@@ -43,6 +45,7 @@ type App struct {
 	cnf    *config.Config
 	logger *zap.Logger
 
+	idemRedis      *redis.Client
 	pgPool         *pgxpool.Pool
 	metricsReg     *prometheus.Registry
 	grpcMetricsSrv *grpc_prometheus.ServerMetrics
@@ -69,6 +72,10 @@ func New(cfg *config.Config, logger *zap.Logger) *App {
 
 func (a *App) Run() error {
 	if err := a.initTelemetry(); err != nil {
+		return err
+	}
+
+	if err := a.initCache(); err != nil {
 		return err
 	}
 
@@ -162,6 +169,31 @@ func (a *App) initTelemetry() error {
 	a.closers = append(a.closers, func() error {
 		return shutdown(context.Background())
 	})
+
+	return nil
+}
+
+func (a *App) initCache() error {
+	client := redis.NewClient(&redis.Options{
+		Addr:         a.cnf.Idempotency.RedisAddr,
+		Password:     a.cnf.Idempotency.RedisPassword,
+		DB:           a.cnf.Idempotency.RedisDB,
+		DialTimeout:  a.cnf.Idempotency.DialTimeout,
+		ReadTimeout:  a.cnf.Idempotency.ReadTimeout,
+		WriteTimeout: a.cnf.Idempotency.WriteTimeout,
+		PoolSize:     a.cnf.Idempotency.PoolSize,
+		MaxRetries:   a.cnf.Idempotency.MaxRetries,
+	})
+
+	if err := client.Ping(context.Background()).Err(); err != nil {
+		return fmt.Errorf("failed redis ping: %w", err)
+	}
+
+	a.closers = append(a.closers, func() error {
+		return client.Close()
+	})
+
+	a.idemRedis = client
 
 	return nil
 }
@@ -311,6 +343,7 @@ func (a *App) initServices() error {
 		spotInstrument,
 		accessService,
 		metricsRecorder,
+		rdb.NewRedisIdempotencyCache(a.idemRedis, a.cnf.Idempotency.TTL),
 	)
 
 	pubBus := publishers.NewEventPublisherBus()

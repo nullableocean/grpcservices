@@ -19,6 +19,7 @@ var _ Service = &OrderService{}
 
 type OrderService struct {
 	orderRepo      ports.OrderRepository
+	idemCache      ports.IdempotencyCache
 	spotInstrument ports.SpotInstrument
 	accessService  ports.AccessService
 	metrics        ports.ServiceMetricsRecorder
@@ -26,8 +27,17 @@ type OrderService struct {
 	logger *zap.Logger
 }
 
-func NewOrderService(l *zap.Logger, oRepo ports.OrderRepository, spotInst ports.SpotInstrument, accessService ports.AccessService, metrics ports.ServiceMetricsRecorder) *OrderService {
+func NewOrderService(
+	l *zap.Logger,
+	oRepo ports.OrderRepository,
+	spotInst ports.SpotInstrument,
+	accessService ports.AccessService,
+	metrics ports.ServiceMetricsRecorder,
+	idemCache ports.IdempotencyCache,
+) *OrderService {
+
 	return &OrderService{
+		idemCache:      idemCache,
 		orderRepo:      oRepo,
 		spotInstrument: spotInst,
 		accessService:  accessService,

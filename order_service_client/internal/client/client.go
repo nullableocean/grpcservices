@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/google/uuid"
 	orderv1 "github.com/nullableocean/grpcservices/api/gen/order/v1"
 	"github.com/nullableocean/grpcservices/orderserviceclient/internal/dto"
 	"google.golang.org/grpc/metadata"
@@ -36,12 +37,13 @@ func (c *Client) CreateOrder(ctx context.Context, token string, dto *dto.CreateO
 	}
 
 	req := &orderv1.CreateOrderRequest{
-		UserUuid:   dto.UserUUID,
-		MarketUuid: dto.MarketUUID,
-		OrderType:  MapOrderTypeToProtoType(dto.Type),
-		OrderSide:  MapOrderSideToProtoSide(dto.Side),
-		Price:      MapDecimalToProtoMoney(dto.Price),
-		Quantity:   MapDecimalToProtoDeciaml(dto.Price),
+		UserUuid:       dto.UserUUID,
+		MarketUuid:     dto.MarketUUID,
+		OrderType:      MapOrderTypeToProtoType(dto.Type),
+		OrderSide:      MapOrderSideToProtoSide(dto.Side),
+		Price:          MapDecimalToProtoMoney(dto.Price),
+		Quantity:       MapDecimalToProtoDeciaml(dto.Price),
+		IdempotencyKey: uuid.NewString(),
 	}
 
 	md := metadata.New(map[string]string{
