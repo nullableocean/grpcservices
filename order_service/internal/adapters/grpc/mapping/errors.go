@@ -34,5 +34,9 @@ func MapErrorToGrpcStatus(e error) error {
 		return status.Error(codes.InvalidArgument, e.Error())
 	}
 
+	if errors.Is(e, errs.ErrIdempotencyProcessing) {
+		return status.Error(codes.Aborted, e.Error())
+	}
+
 	return status.Error(codes.Internal, e.Error())
 }

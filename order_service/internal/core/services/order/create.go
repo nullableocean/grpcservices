@@ -38,7 +38,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, data *dto.CreateOrderPar
 		Status: model.IdempotencyProcessing,
 	})
 	if err != nil {
-		logger.Error("failed set idempotent key in cache")
+		logger.Error("failed set idempotent key in cache", zap.Error(err))
 		return nil, errs.ErrIdempotencyInternal
 	}
 

@@ -61,7 +61,7 @@ func (r *IdempotencyCache) SetIfNotExist(ctx context.Context, key string, data *
 		Mode: "NX",
 		TTL:  r.ttl,
 	}).Result()
-	if err != nil {
+	if err != nil && err != redis.Nil {
 		return false, err
 	}
 
