@@ -8,6 +8,7 @@ import "models/user.proto";
 
 service SpotInstrument {
     rpc ViewMarkets(ViewMarketsRequest) returns (ViewMarketsResponse);
+    rpc FindMarket(FindMarketRequest) returns (FindMarketResponse);
 }
 
 message ViewMarketsResponse {
@@ -16,6 +17,15 @@ message ViewMarketsResponse {
 
 message ViewMarketsRequest {
     repeated models.v1.UserRole user_roles = 1;
+}
+
+message FindMarketRequest {
+    string market_uuid = 1;
+    repeated models.v1.UserRole user_roles = 2;
+}
+
+message FindMarketResponse {
+    Market market = 1;
 }
 
 message Market {

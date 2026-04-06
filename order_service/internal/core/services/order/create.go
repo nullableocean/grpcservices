@@ -88,10 +88,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, data *dto.CreateOrderPar
 	}
 
 	logger.Info("create order")
-	markets, err := s.spotInstrument.ViewMarkets(ctx, user.Roles)
+
+	_, err = s.spotInstrument.FindMarket(ctx, data.MarketUUID, user.Roles)
 	if err != nil {
 		s.metrics.OrderFailedCreate(ctx)
-		logger.Error("failed create order. failed get markets", zap.Error(err))
+		logger.Error("failed create order. failed get market", zap.Error(err))
 
 		cacheErr := s.idemCache.Update(ctx, data.IdempotencyKey, &model.IdempotencyData{
 			Status: model.IdempotencyFailed,
@@ -101,33 +102,14 @@ func (s *OrderService) CreateOrder(ctx context.Context, data *dto.CreateOrderPar
 		}
 
 		if errors.Is(err, ports.ErrNotFound) {
-			return nil, fmt.Errorf("failed create order: failed get markets: %w", errs.ErrNotFound)
+			return nil, fmt.Errorf("failed create order: failed get market: %w", errs.ErrNotFound)
 		}
 
-		return nil, fmt.Errorf("failed create order: failed get markets: %w", err)
-	}
-
-	hasOrderMarket := false
-CHECK_MARKET:
-	for _, m := range markets {
-		if data.MarketUUID == m.UUID {
-			hasOrderMarket = true
-			break CHECK_MARKET
-		}
-	}
-
-	if !hasOrderMarket {
-		s.metrics.OrderFailedCreate(ctx)
-		logger.Error("failed create order. failed find order market in allowed markets", zap.Error(err))
-
-		cacheErr := s.idemCache.Update(ctx, data.IdempotencyKey, &model.IdempotencyData{
-			Status: model.IdempotencyFailed,
-		})
-		if cacheErr != nil {
-			logger.Error("failed update idempotency cache data", zap.Error(cacheErr))
+		if errors.Is(err, ports.ErrNotAllowed) {
+			return nil, fmt.Errorf("failed create order: market not allowed for user: %w", errs.ErrNotAllowed)
 		}
 
-		return nil, fmt.Errorf("failed create order: market uuid not exist in allowed markets: %w", errs.ErrNotAllowed)
+		return nil, fmt.Errorf("failed create order: failed get market: %w", err)
 	}
 
 	newOrder := s.createOrder(data)

@@ -43,12 +43,20 @@ type mockSpotInstrument struct {
 	mock.Mock
 }
 
-func (m *mockSpotInstrument) ViewMarkets(ctx context.Context, userRoles []model.UserRole) ([]model.Market, error) {
+func (m *mockSpotInstrument) ViewMarkets(ctx context.Context, userRoles []model.UserRole) ([]*model.Market, error) {
 	args := m.Called(ctx, userRoles)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]model.Market), args.Error(1)
+	return args.Get(0).([]*model.Market), args.Error(1)
+}
+
+func (m *mockSpotInstrument) FindMarket(ctx context.Context, marketUuid string, userRoles []model.UserRole) (*model.Market, error) {
+	args := m.Called(ctx, marketUuid, userRoles)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Market), args.Error(1)
 }
 
 type mockAccessService struct {
@@ -129,8 +137,8 @@ func newTestUser(roles ...model.UserRole) *model.User {
 	}
 }
 
-func newTestMarket(marketUUID string) model.Market {
-	return model.Market{UUID: marketUUID}
+func newTestMarket(marketUUID string) *model.Market {
+	return &model.Market{UUID: marketUUID}
 }
 
 func newTestOrder(uuid, userUUID, marketUUID string, side model.OrderSide, typ model.OrderType, price, quantity decimal.Decimal, status model.OrderStatus) *model.Order {
@@ -204,7 +212,7 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		})).Return(nil).Once()
 
 		accessSvc.On("CanCreateOrder", mock.Anything, params.User, params).Return(nil).Once()
-		spotInst.On("ViewMarkets", mock.Anything, params.User.Roles).Return([]model.Market{newTestMarket("BTC-USDT")}, nil).Once()
+		spotInst.On("FindMarket", mock.Anything, params.MarketUUID, params.User.Roles).Return(newTestMarket("BTC-USDT"), nil).Once()
 		orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*model.Order"), mock.Anything).Return(nil).Once()
 		metrics.On("OrderCreated", mock.Anything).Return().Once()
 
@@ -259,7 +267,7 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		cache.AssertExpectations(t)
 		orderRepo.AssertExpectations(t)
 		accessSvc.AssertNotCalled(t, "CanCreateOrder")
-		spotInst.AssertNotCalled(t, "ViewMarkets")
+		spotInst.AssertNotCalled(t, "FindMarket")
 		metrics.AssertNotCalled(t, "OrderCreated")
 		metrics.AssertNotCalled(t, "OrderFailedCreate")
 	})
@@ -299,7 +307,7 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		cache.AssertExpectations(t)
 		orderRepo.AssertNotCalled(t, "Save")
 		accessSvc.AssertNotCalled(t, "CanCreateOrder")
-		spotInst.AssertNotCalled(t, "ViewMarkets")
+		spotInst.AssertNotCalled(t, "FindMarket")
 	})
 
 	t.Run("business logic fails – key updated to failed", func(t *testing.T) {
@@ -327,7 +335,7 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		})).Return(nil).Once()
 
 		accessSvc.On("CanCreateOrder", mock.Anything, params.User, params).Return(nil).Once()
-		spotInst.On("ViewMarkets", mock.Anything, params.User.Roles).Return(nil, errors.New("market service unavailable")).Once()
+		spotInst.On("FindMarket", mock.Anything, params.MarketUUID, params.User.Roles).Return(nil, errors.New("market service unavailable")).Once()
 		metrics.On("OrderFailedCreate", mock.Anything).Return().Once()
 
 		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, cache)
@@ -410,7 +418,7 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		cache.AssertExpectations(t)
 		orderRepo.AssertExpectations(t)
 		accessSvc.AssertNotCalled(t, "CanCreateOrder")
-		spotInst.AssertNotCalled(t, "ViewMarkets")
+		spotInst.AssertNotCalled(t, "FindMarket")
 	})
 }
 

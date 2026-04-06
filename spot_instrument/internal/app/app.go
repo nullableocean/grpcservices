@@ -186,6 +186,7 @@ func (a *App) initGRPCServer() error {
 		shared_inters.UnaryServerLogger(a.logger),
 		shared_inters.UnaryServerTelemtry(),
 		a.grpcMetricsSrv.UnaryServerInterceptor(),
+		shared_inters.ValidationUnaryInterceptor(),
 		shared_inters.UnaryJwtAuthInterceptor(a.logger, jwtAuthorizer),
 	)
 

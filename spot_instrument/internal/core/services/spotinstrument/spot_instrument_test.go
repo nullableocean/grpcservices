@@ -60,6 +60,10 @@ func (m *mockSpotInstrumentMetrics) FailedViewMarkets(ctx context.Context) {
 	m.Called(ctx)
 }
 
+func (m *mockSpotInstrumentMetrics) FailedFindMarket(ctx context.Context) {
+	m.Called(ctx)
+}
+
 // --- Helpers ---
 
 func newTestMarket(uuid, name string, enabled bool, roles []model.UserRole) *model.Market {

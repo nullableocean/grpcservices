@@ -277,6 +277,241 @@ var _ interface {
 	ErrorName() string
 } = ViewMarketsRequestValidationError{}
 
+// Validate checks the field values on FindMarketRequest with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *FindMarketRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on FindMarketRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// FindMarketRequestMultiError, or nil if none found.
+func (m *FindMarketRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *FindMarketRequest) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for MarketUuid
+
+	if len(errors) > 0 {
+		return FindMarketRequestMultiError(errors)
+	}
+
+	return nil
+}
+
+// FindMarketRequestMultiError is an error wrapping multiple validation errors
+// returned by FindMarketRequest.ValidateAll() if the designated constraints
+// aren't met.
+type FindMarketRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m FindMarketRequestMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m FindMarketRequestMultiError) AllErrors() []error { return m }
+
+// FindMarketRequestValidationError is the validation error returned by
+// FindMarketRequest.Validate if the designated constraints aren't met.
+type FindMarketRequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e FindMarketRequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e FindMarketRequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e FindMarketRequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e FindMarketRequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e FindMarketRequestValidationError) ErrorName() string {
+	return "FindMarketRequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e FindMarketRequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sFindMarketRequest.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = FindMarketRequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = FindMarketRequestValidationError{}
+
+// Validate checks the field values on FindMarketResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *FindMarketResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on FindMarketResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// FindMarketResponseMultiError, or nil if none found.
+func (m *FindMarketResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *FindMarketResponse) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetMarket()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, FindMarketResponseValidationError{
+					field:  "Market",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, FindMarketResponseValidationError{
+					field:  "Market",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetMarket()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return FindMarketResponseValidationError{
+				field:  "Market",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return FindMarketResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// FindMarketResponseMultiError is an error wrapping multiple validation errors
+// returned by FindMarketResponse.ValidateAll() if the designated constraints
+// aren't met.
+type FindMarketResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m FindMarketResponseMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m FindMarketResponseMultiError) AllErrors() []error { return m }
+
+// FindMarketResponseValidationError is the validation error returned by
+// FindMarketResponse.Validate if the designated constraints aren't met.
+type FindMarketResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e FindMarketResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e FindMarketResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e FindMarketResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e FindMarketResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e FindMarketResponseValidationError) ErrorName() string {
+	return "FindMarketResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e FindMarketResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sFindMarketResponse.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = FindMarketResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = FindMarketResponseValidationError{}
+
 // Validate checks the field values on Market with the rules defined in the
 // proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.

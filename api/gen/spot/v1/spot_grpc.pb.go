@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	SpotInstrument_ViewMarkets_FullMethodName = "/spot.v1.SpotInstrument/ViewMarkets"
+	SpotInstrument_FindMarket_FullMethodName  = "/spot.v1.SpotInstrument/FindMarket"
 )
 
 // SpotInstrumentClient is the client API for SpotInstrument service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SpotInstrumentClient interface {
 	ViewMarkets(ctx context.Context, in *ViewMarketsRequest, opts ...grpc.CallOption) (*ViewMarketsResponse, error)
+	FindMarket(ctx context.Context, in *FindMarketRequest, opts ...grpc.CallOption) (*FindMarketResponse, error)
 }
 
 type spotInstrumentClient struct {
@@ -47,11 +49,22 @@ func (c *spotInstrumentClient) ViewMarkets(ctx context.Context, in *ViewMarketsR
 	return out, nil
 }
 
+func (c *spotInstrumentClient) FindMarket(ctx context.Context, in *FindMarketRequest, opts ...grpc.CallOption) (*FindMarketResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FindMarketResponse)
+	err := c.cc.Invoke(ctx, SpotInstrument_FindMarket_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SpotInstrumentServer is the server API for SpotInstrument service.
 // All implementations must embed UnimplementedSpotInstrumentServer
 // for forward compatibility.
 type SpotInstrumentServer interface {
 	ViewMarkets(context.Context, *ViewMarketsRequest) (*ViewMarketsResponse, error)
+	FindMarket(context.Context, *FindMarketRequest) (*FindMarketResponse, error)
 	mustEmbedUnimplementedSpotInstrumentServer()
 }
 
@@ -64,6 +77,9 @@ type UnimplementedSpotInstrumentServer struct{}
 
 func (UnimplementedSpotInstrumentServer) ViewMarkets(context.Context, *ViewMarketsRequest) (*ViewMarketsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ViewMarkets not implemented")
+}
+func (UnimplementedSpotInstrumentServer) FindMarket(context.Context, *FindMarketRequest) (*FindMarketResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method FindMarket not implemented")
 }
 func (UnimplementedSpotInstrumentServer) mustEmbedUnimplementedSpotInstrumentServer() {}
 func (UnimplementedSpotInstrumentServer) testEmbeddedByValue()                        {}
@@ -104,6 +120,24 @@ func _SpotInstrument_ViewMarkets_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SpotInstrument_FindMarket_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FindMarketRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SpotInstrumentServer).FindMarket(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SpotInstrument_FindMarket_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SpotInstrumentServer).FindMarket(ctx, req.(*FindMarketRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SpotInstrument_ServiceDesc is the grpc.ServiceDesc for SpotInstrument service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +148,10 @@ var SpotInstrument_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ViewMarkets",
 			Handler:    _SpotInstrument_ViewMarkets_Handler,
+		},
+		{
+			MethodName: "FindMarket",
+			Handler:    _SpotInstrument_FindMarket_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

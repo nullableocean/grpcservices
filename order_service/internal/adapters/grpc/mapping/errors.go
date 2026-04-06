@@ -13,7 +13,8 @@ import (
 func MapGrpcStatusToError(e error) error {
 	s, ok := status.FromError(e)
 	if ok {
-		if s.Code() == codes.NotFound {
+		switch s.Code() {
+		case codes.NotFound:
 			return fmt.Errorf("%w: %w", e, ports.ErrNotFound)
 		}
 	}

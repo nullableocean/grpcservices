@@ -8,8 +8,6 @@ import (
 
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
-	"github.com/sony/gobreaker"
-	"go.opentelemetry.io/otel/codes"
 )
 
 type Config struct {
@@ -106,21 +104,18 @@ type KeepaliveConfig struct {
 }
 
 type CircuitBreakerConfig struct {
-	MaxRequests uint32                             `env:"BREAKER_MAX_REQUESTS" env-default:"3"`
-	Interval    time.Duration                      `env:"BREAKER_INTERVAL" env-default:"10s"`
-	Timeout     time.Duration                      `env:"BREAKER_TIMEOUT" env-default:"30s"`
-	ReadyToTrip func(counts gobreaker.Counts) bool // не из env, задаётся в коде
+	MaxRequests uint32        `env:"BREAKER_MAX_REQUESTS" env-default:"3"`
+	Interval    time.Duration `env:"BREAKER_INTERVAL" env-default:"10s"`
+	Timeout     time.Duration `env:"BREAKER_TIMEOUT" env-default:"30s"`
 }
 
 type RetryConfig struct {
 	MaxRetries uint          `env:"RETRY_MAX" env-default:"3"`
-	Backoff    time.Duration `env:"RETRY_BACKOFF" env-default:"100ms"` // начальная задержка
-	MaxBackoff time.Duration `env:"RETRY_MAX_BACKOFF" env-default:"2s"`
-	RetryCodes []codes.Code  `env:"-"` // задаётся в коде
+	Backoff    time.Duration `env:"RETRY_BACKOFF" env-default:"100ms"`
 }
 
 type KafkaConfig struct {
-	Brokers             []string      `env:"KAFKA_BROKERS" env-required:"false"` // разделённые запятыми
+	Brokers             []string      `env:"KAFKA_BROKERS" env-required:"false"` // broker1addr,broker2addr
 	TopicUpdates        string        `env:"KAFKA_TOPIC_UPDATES" env-default:"order-updates"`
 	TopicMarketsUpdates string        `env:"KAFKA_TOPIC_MARKETS_UPDATES" env-default:"markets-updates"`
 	TopicCreated        string        `env:"KAFKA_TOPIC_CREATED" env-default:"order-created"`

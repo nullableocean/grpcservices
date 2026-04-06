@@ -41,7 +41,7 @@ func NewSpotInstrumentClient(l *zap.Logger, grpcClient spotv1.SpotInstrumentClie
 	}
 }
 
-func (cl *SpotInstrumentClient) ViewMarkets(ctx context.Context, userRoles []model.UserRole) ([]model.Market, error) {
+func (cl *SpotInstrumentClient) ViewMarkets(ctx context.Context, userRoles []model.UserRole) ([]*model.Market, error) {
 	ctx, span := otel.Tracer("spot_grpc_client").Start(ctx, "view_markets")
 	defer span.End()
 
@@ -66,4 +66,25 @@ func (cl *SpotInstrumentClient) ViewMarkets(ctx context.Context, userRoles []mod
 	span.AddEvent("success grpc call")
 
 	return mapping.MapProtoMarketsToMarkets(response.Markets), nil
+}
+
+func (cl *SpotInstrumentClient) FindMarket(ctx context.Context, marketUuid string, userRoles []model.UserRole) (*model.Market, error) {
+	ctx, span := otel.Tracer("spot_grpc_client").Start(ctx, "find_marketы")
+	defer span.End()
+
+	cl.logger.Info("call FindMarket from SpotInstrument grpc server")
+
+	request := &spotv1.FindMarketRequest{
+		MarketUuid: marketUuid,
+		UserRoles:  mapping.MapRolesToProtoUserRoles(userRoles),
+	}
+
+	res, err := cl.client.FindMarket(ctx, request)
+	if err != nil {
+		cl.logger.Warn("failed get market from spot instrument", zap.Error(err))
+
+		return nil, mapping.MapGrpcStatusToError(err)
+	}
+
+	return mapping.MapProtoMarketToMarket(res.Market), nil
 }

@@ -37,6 +37,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 )
@@ -294,7 +295,11 @@ func (a *App) initGRPCClients() error {
 		Timeout:     a.cnf.CircuitBreaker.Timeout,
 	})
 
-	retryOpts := []retry.CallOption{}
+	retryOpts := []retry.CallOption{
+		retry.WithMax(uint(a.cnf.Retry.MaxRetries)),
+		retry.WithBackoff(retry.BackoffExponential(a.cnf.Retry.Backoff)),
+		retry.WithCodes(codes.Unavailable, codes.DeadlineExceeded, codes.ResourceExhausted),
+	}
 
 	interceptors := grpc.WithChainUnaryInterceptor(
 		shared_inters.UnaryClientPanicRecovery(),         // panic

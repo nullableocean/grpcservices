@@ -27,6 +27,39 @@ func NewSpotInstrumentServer(l *zap.Logger, spotInstrument *spotinstrument.SpotI
 	}
 }
 
+func (srv *SpotInstrumentServer) FindMarket(ctx context.Context, req *spotv1.FindMarketRequest) (*spotv1.FindMarketResponse, error) {
+	ctx, span := otel.Tracer("spot_instrument_server").Start(ctx, "find_market")
+	defer span.End()
+
+	userUUID, ok := ctx.Value("user_uuid").(string)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "user uuid missing")
+	}
+
+	logger := srv.logger.With(zap.String("user_uuid", userUUID))
+
+	logger.Info("got grpc call FindMarket in SpotInstrumentServer")
+
+	roles := mapping.MapProtoUserRolesToRoles(req.UserRoles)
+
+	market, err := srv.spotInstrument.FindWithRoles(ctx, req.MarketUuid, roles)
+	if err != nil {
+		span.AddEvent("failed find market")
+		logger.Error("failed find market", zap.Error(err))
+
+		return nil, srv.getGrpcError(err)
+	}
+
+	span.AddEvent("success find markets")
+	logger.Info("market found", zap.String("market_uuid", market.UUID))
+
+	response := &spotv1.FindMarketResponse{
+		Market: mapping.MapMarketToProtoMarket(market),
+	}
+
+	return response, nil
+}
+
 func (srv *SpotInstrumentServer) ViewMarkets(ctx context.Context, req *spotv1.ViewMarketsRequest) (*spotv1.ViewMarketsResponse, error) {
 	ctx, span := otel.Tracer("spot_instrument_server").Start(ctx, "view_markets")
 	defer span.End()

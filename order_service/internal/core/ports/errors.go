@@ -7,4 +7,5 @@ var (
 	ErrNotFound            = errors.New("not found")
 	ErrService             = errors.New("service error")
 	ErrAlreadyExist        = errors.New("already exist")
+	ErrNotAllowed          = errors.New("not allowed")
 )
