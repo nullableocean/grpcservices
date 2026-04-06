@@ -250,10 +250,11 @@ func (a *App) initGRPCServer() error {
 	jwtAuthorizer := shared_auth.NewHmacJwtAuth(a.cnf.Auth.JWTSecret)
 
 	unaryInteseptors := grpc.ChainUnaryInterceptor(
-		shared_inters.UnaryServerPanicRecovery(a.logger),               // panic recovery
-		shared_inters.UnaryServerLogger(a.logger),                      // logging request
-		shared_inters.UnaryServerTelemtry(),                            // telemetry tracing
-		a.grpcMetricsSrv.UnaryServerInterceptor(),                      // request metrics
+		shared_inters.UnaryServerPanicRecovery(a.logger), // panic recovery
+		shared_inters.UnaryServerLogger(a.logger),        // logging request
+		shared_inters.UnaryServerTelemtry(),              // telemetry tracing
+		a.grpcMetricsSrv.UnaryServerInterceptor(),        // request metrics
+		shared_inters.ValidationUnaryInterceptor(),
 		shared_inters.UnaryJwtAuthInterceptor(a.logger, jwtAuthorizer), // authorize jwt
 	)
 
