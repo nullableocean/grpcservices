@@ -69,7 +69,7 @@ func (cl *SpotInstrumentClient) ViewMarkets(ctx context.Context, userRoles []mod
 }
 
 func (cl *SpotInstrumentClient) FindMarket(ctx context.Context, marketUuid string, userRoles []model.UserRole) (*model.Market, error) {
-	ctx, span := otel.Tracer("spot_grpc_client").Start(ctx, "find_marketы")
+	ctx, span := otel.Tracer("spot_grpc_client").Start(ctx, "find_markets")
 	defer span.End()
 
 	cl.logger.Info("call FindMarket from SpotInstrument grpc server")

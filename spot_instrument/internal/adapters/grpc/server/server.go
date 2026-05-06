@@ -4,6 +4,7 @@ import (
 	"context"
 
 	spotv1 "github.com/nullableocean/grpcservices/api/gen/spot/v1"
+	shared_inters "github.com/nullableocean/grpcservices/shared/interceptors"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/adapters/grpc/mapping"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/core/model"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/core/services/spotinstrument"
@@ -31,9 +32,9 @@ func (srv *SpotInstrumentServer) FindMarket(ctx context.Context, req *spotv1.Fin
 	ctx, span := otel.Tracer("spot_instrument_server").Start(ctx, "find_market")
 	defer span.End()
 
-	userUUID, ok := ctx.Value("user_uuid").(string)
-	if !ok {
-		return nil, status.Error(codes.Unauthenticated, "user uuid missing")
+	userUUID, ok := shared_inters.UserUUIDFromContext(ctx)
+	if !ok || userUUID == "" {
+		return nil, status.Error(codes.Unauthenticated, "user uuid not provided")
 	}
 
 	logger := srv.logger.With(zap.String("user_uuid", userUUID))

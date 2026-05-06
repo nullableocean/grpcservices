@@ -6,7 +6,6 @@ import (
 	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/app"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/config"
-	"go.uber.org/zap"
 )
 
 func main() {
@@ -15,13 +14,7 @@ func main() {
 		log.Fatalln("failed init config", err)
 	}
 
-	var zapLogger *zap.Logger
-	if cnf.Log.LogToFile {
-		zapLogger, err = logger.NewLoggerWithPath(cnf.Log.Level, cnf.Log.Path)
-	} else {
-		zapLogger, err = logger.NewStdoutLogger(cnf.Log.Level)
-	}
-
+	zapLogger, err := logger.NewLogger(cnf.Log.Level, logger.Options{LogPath: cnf.Log.Path})
 	if err != nil {
 		log.Fatalln("failed init logger", err)
 	}

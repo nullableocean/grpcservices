@@ -19,7 +19,7 @@ func (srv *OrderServer) CreateOrder(ctx context.Context, req *orderv1.CreateOrde
 	ctx, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("order_grpc_server").Start(ctx, "create_order")
 	defer span.End()
 
-	userUUID, ok := ctx.Value(shared_inters.UserCtxKey).(string)
+	userUUID, ok := shared_inters.UserUUIDFromContext(ctx)
 	if !ok || userUUID == "" {
 		return nil, status.Error(codes.Unauthenticated, "user not found in context")
 	}
@@ -28,21 +28,17 @@ func (srv *OrderServer) CreateOrder(ctx context.Context, req *orderv1.CreateOrde
 	logger := srv.logger.With(zap.String("user_uuid", userUUID))
 	logger.Info("grpc received call for create order")
 
-	rolesRaw := ctx.Value(shared_inters.RolesCtxKey)
+	ctxRoles, ok := shared_inters.RolesFromContext(ctx)
+	if !ok {
+		logger.Warn("roles not provided in context")
+	}
 
 	var roles []model.UserRole
-	if rolesRaw != nil {
-		r, ok := rolesRaw.([]string)
-		if ok {
-			roles = make([]model.UserRole, len(r))
-			for i, roleStr := range r {
-				roles[i] = model.UserRole(roleStr)
-			}
-		} else {
-			logger.Warn("roles not casted to []string")
+	if len(ctxRoles) > 0 {
+		roles = make([]model.UserRole, len(ctxRoles))
+		for i, roleStr := range ctxRoles {
+			roles[i] = model.UserRole(roleStr)
 		}
-	} else {
-		logger.Warn("roles dont provided")
 	}
 
 	params, err := srv.mapCreateRequestToDto(req, userUUID, roles)

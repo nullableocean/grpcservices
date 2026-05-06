@@ -26,13 +26,13 @@ message GetStatusResponse {
 }
 
 message CreateOrderRequest {
-    string user_uuid = 1 [(validate.rules).string = {uuid: true, len: 36}];
-    string market_uuid = 2 [(validate.rules).string = {uuid: true, len: 36}];
+    string user_uuid = 1 [(validate.rules).string = {uuid: true}];
+    string market_uuid = 2 [(validate.rules).string = {uuid: true}];
     models.v1.OrderType order_type = 3 [(validate.rules).enum = {defined_only: true, not_in: [0]}];
     models.v1.OrderSide order_side = 4 [(validate.rules).enum = {defined_only: true, not_in: [0]}];
     models.v1.Money price = 5 [(validate.rules).message = {required: true}];
     models.v1.Decimal quantity = 6 [(validate.rules).message = {required: true}];
-    string idempotency_key = 7 [(validate.rules).string = {uuid: true, len: 36}];
+    string idempotency_key = 7 [(validate.rules).string = {uuid: true}];
 }
 
 message CreateOrderResponse {

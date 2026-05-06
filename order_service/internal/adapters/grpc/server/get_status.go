@@ -18,7 +18,7 @@ func (srv *OrderServer) GetOrderStatus(ctx context.Context, req *orderv1.GetStat
 	ctx, span := otel.Tracer("order_grpc_server").Start(ctx, "get_order_status")
 	defer span.End()
 
-	userUUID, ok := ctx.Value(shared_inters.UserCtxKey).(string)
+	userUUID, ok := shared_inters.UserUUIDFromContext(ctx)
 	if !ok || userUUID == "" {
 		return nil, status.Error(codes.Unauthenticated, "user not found in context")
 	}

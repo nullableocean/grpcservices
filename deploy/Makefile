@@ -1,9 +1,10 @@
+KAFKA_DIR = kafka
 SPOT_DIR = spot_instrument
 ORDER_DIR = order_service
 METRICS_DIR = metrics
 APP_NETWORK = appnet
 
-.PHONY: help up up-networks up-spot up-order up-metrics down clean
+.PHONY: help up up-networks up-spot up-order up-metrics down clean up-kafka
 
 help:
 	@echo "Available targets:"
@@ -18,6 +19,8 @@ help:
 up: create-net
 	make up-metrics
 	@sleep 5
+	make up-kafka
+	@sleep 5
 	make up-spot
 	@sleep 3
 	make up-order
@@ -25,6 +28,9 @@ up: create-net
 	@echo "grafana: http://localhost:3000"
 
 up-srvs: up-spot up-order
+
+up-kafka:
+	cd $(KAFKA_DIR) && make up
 
 up-spot:
 	cd $(SPOT_DIR) && make up
@@ -34,6 +40,9 @@ up-order:
 
 up-metrics:
 	cd $(METRICS_DIR) && make up
+
+down-kafka:
+	cd $(KAFKA_DIR) && make down
 
 down-spot:
 	cd $(SPOT_DIR) && make down

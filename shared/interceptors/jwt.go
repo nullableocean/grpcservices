@@ -13,6 +13,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type ctxKey string
+
 const (
 	TokenMetadataKey = "authorization"
 
@@ -20,10 +22,25 @@ const (
 	RolesClaimKey   = "rls"
 	ExpiredClaimKey = "exp"
 
-	UserCtxKey  = "user_uuid"
-	RolesCtxKey = "roles"
-	TokenCtxKey = "token"
+	userCtxKey  ctxKey = "user_uuid"
+	rolesCtxKey ctxKey = "roles"
+	tokenCtxKey ctxKey = "token"
 )
+
+func UserUUIDFromContext(ctx context.Context) (string, bool) {
+	v, ok := ctx.Value(userCtxKey).(string)
+	return v, ok
+}
+
+func RolesFromContext(ctx context.Context) ([]string, bool) {
+	v, ok := ctx.Value(rolesCtxKey).([]string)
+	return v, ok
+}
+
+func TokenFromContext(ctx context.Context) (string, bool) {
+	v, ok := ctx.Value(tokenCtxKey).(string)
+	return v, ok
+}
 
 type JwtAuthorizer interface {
 	ParseToken(t string) (*jwt.Token, error)
@@ -86,14 +103,14 @@ func parseJwtAndInjectInCtx(ctx context.Context, logger *zap.Logger, auth JwtAut
 	if err != nil {
 		logger.Warn("failed parse jwt", zap.Error(err))
 
-		return nil, status.Error(codes.Unauthenticated, err.Error())
+		return nil, status.Error(codes.Unauthenticated, "failed parse jwt")
 	}
 
 	claims, err := auth.ExtractClaims(jwtTkn)
 	if err != nil {
 		logger.Warn("failed extract jwt claims", zap.Error(err))
 
-		return nil, status.Error(codes.Unauthenticated, err.Error())
+		return nil, status.Error(codes.Unauthenticated, "failed extract claims")
 	}
 
 	if err := validateExpired(claims); err != nil {
@@ -114,9 +131,9 @@ func parseJwtAndInjectInCtx(ctx context.Context, logger *zap.Logger, auth JwtAut
 		return nil, err
 	}
 
-	newCtx := context.WithValue(ctx, UserCtxKey, userUUID)
-	newCtx = context.WithValue(newCtx, RolesCtxKey, roles)
-	newCtx = context.WithValue(newCtx, TokenCtxKey, token[0])
+	newCtx := context.WithValue(ctx, userCtxKey, userUUID)
+	newCtx = context.WithValue(newCtx, rolesCtxKey, roles)
+	newCtx = context.WithValue(newCtx, tokenCtxKey, token[0])
 
 	return newCtx, nil
 }
@@ -167,7 +184,7 @@ func validateExpired(claims map[string]interface{}) error {
 // setup outgoing context with auth token
 func UnaryClientJwtForwardInterceptor() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		token, ok := ctx.Value(TokenCtxKey).(string)
+		token, ok := ctx.Value(tokenCtxKey).(string)
 		if ok && token != "" {
 			md, ex := metadata.FromOutgoingContext(ctx)
 			if !ex {

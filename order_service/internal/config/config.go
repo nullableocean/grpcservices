@@ -115,16 +115,22 @@ type RetryConfig struct {
 }
 
 type KafkaConfig struct {
-	Brokers             []string      `env:"KAFKA_BROKERS" env-required:"false"` // broker1addr,broker2addr
-	TopicUpdates        string        `env:"KAFKA_TOPIC_UPDATES" env-default:"order-updates"`
-	TopicMarketsUpdates string        `env:"KAFKA_TOPIC_MARKETS_UPDATES" env-default:"markets-updates"`
-	TopicCreated        string        `env:"KAFKA_TOPIC_CREATED" env-default:"order-created"`
-	DLQTopic            string        `env:"KAFKA_DLQ_TOPIC" env-default:"order-dlq"`
-	GroupID             string        `env:"KAFKA_GROUP_ID" env-default:"order-service"`
-	MinBytes            int           `env:"KAFKA_MIN_BYTES" env-default:"10e3"`
-	MaxBytes            int           `env:"KAFKA_MAX_BYTES" env-default:"10e6"`
-	MaxWait             time.Duration `env:"KAFKA_MAX_WAIT" env-default:"1s"`
-	DialTimeout         time.Duration `env:"KAFKA_DIAL_TIMEOUT" env-default:"10s"`
+	Brokers           []string      `env:"KAFKA_BROKERS" env-required:"true"` // broker1addr,broker2addr
+	TopicUpdates      string        `env:"KAFKA_TOPIC_UPDATES" env-default:"order-updates"`
+	TopicCreated      string        `env:"KAFKA_TOPIC_CREATED" env-default:"order-created"`
+	DLQTopic          string        `env:"KAFKA_DLQ_TOPIC" env-default:"order-dlq"`
+	GroupID           string        `env:"KAFKA_GROUP_ID" env-default:"order-service"`
+	MinBytes          int           `env:"KAFKA_MIN_BYTES" env-default:"10e3"` // default: 10KB
+	MaxBytes          int           `env:"KAFKA_MAX_BYTES" env-default:"10e6"` // default: 10MB
+	MaxWait           time.Duration `env:"KAFKA_MAX_WAIT" env-default:"1s"`
+	DialTimeout       time.Duration `env:"KAFKA_DIAL_TIMEOUT" env-default:"10s"`
+	AutoTopicCreation bool          `env:"KAFKA_AUTO_TOPIC_CREATION" env-default:"true"`
+
+	ProducerAcks            string `env:"KAFKA_PRODUCER_ACKS"             env-default:"all"`
+	ProducerCompression     string `env:"KAFKA_PRODUCER_COMPRESSION"      env-default:"snappy"`
+	ProducerIdempotent      bool   `env:"KAFKA_PRODUCER_IDEMPOTENT"       env-default:"true"`
+	ProducerMaxMessageBytes int    `env:"KAFKA_PRODUCER_MAX_MESSAGE_BYTES" env-default:"1000000"` // 1 MB
+	ProducerRetries         int    `env:"KAFKA_PRODUCER_RETRIES"          env-default:"5"`
 }
 
 type OutboxConfig struct {

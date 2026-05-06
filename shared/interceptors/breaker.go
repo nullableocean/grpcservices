@@ -15,11 +15,11 @@ func UnaryCircuitBreakerInterceptor(cb *gobreaker.CircuitBreaker) grpc.UnaryClie
 
 		_, cbErr := cb.Execute(func() (interface{}, error) {
 			grpcErr = invoker(ctx, method, req, reply, cc, opts...)
-			if grpcErr != nil && !isClientError(grpcErr) {
-				return nil, grpcErr
+			if isClientError(grpcErr) {
+				return nil, nil
 			}
 
-			return nil, nil
+			return nil, grpcErr
 		})
 
 		if cbErr != nil {

@@ -324,18 +324,6 @@ func (m *CreateOrderRequest) validate(all bool) error {
 
 	var errors []error
 
-	if utf8.RuneCountInString(m.GetUserUuid()) != 36 {
-		err := CreateOrderRequestValidationError{
-			field:  "UserUuid",
-			reason: "value length must be 36 runes",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-
-	}
-
 	if err := m._validateUuid(m.GetUserUuid()); err != nil {
 		err = CreateOrderRequestValidationError{
 			field:  "UserUuid",
@@ -346,18 +334,6 @@ func (m *CreateOrderRequest) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
-	}
-
-	if utf8.RuneCountInString(m.GetMarketUuid()) != 36 {
-		err := CreateOrderRequestValidationError{
-			field:  "MarketUuid",
-			reason: "value length must be 36 runes",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-
 	}
 
 	if err := m._validateUuid(m.GetMarketUuid()); err != nil {
@@ -494,18 +470,6 @@ func (m *CreateOrderRequest) validate(all bool) error {
 				cause:  err,
 			}
 		}
-	}
-
-	if utf8.RuneCountInString(m.GetIdempotencyKey()) != 36 {
-		err := CreateOrderRequestValidationError{
-			field:  "IdempotencyKey",
-			reason: "value length must be 36 runes",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-
 	}
 
 	if err := m._validateUuid(m.GetIdempotencyKey()); err != nil {

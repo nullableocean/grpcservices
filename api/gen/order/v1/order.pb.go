@@ -273,10 +273,10 @@ const file_service_order_proto_rawDesc = "" +
 	"order_uuid\x18\x01 \x01(\tB\v\xfaB\br\x06\x98\x01$\xb0\x01\x01R\torderUuid\x12(\n" +
 	"\tuser_uuid\x18\x02 \x01(\tB\v\xfaB\br\x06\x98\x01$\xb0\x01\x01R\buserUuid\"C\n" +
 	"\x11GetStatusResponse\x12.\n" +
-	"\x06status\x18\x01 \x01(\x0e2\x16.models.v1.OrderStatusR\x06status\"\x90\x03\n" +
-	"\x12CreateOrderRequest\x12(\n" +
-	"\tuser_uuid\x18\x01 \x01(\tB\v\xfaB\br\x06\x98\x01$\xb0\x01\x01R\buserUuid\x12,\n" +
-	"\vmarket_uuid\x18\x02 \x01(\tB\v\xfaB\br\x06\x98\x01$\xb0\x01\x01R\n" +
+	"\x06status\x18\x01 \x01(\x0e2\x16.models.v1.OrderStatusR\x06status\"\x87\x03\n" +
+	"\x12CreateOrderRequest\x12%\n" +
+	"\tuser_uuid\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\buserUuid\x12)\n" +
+	"\vmarket_uuid\x18\x02 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\n" +
 	"marketUuid\x12?\n" +
 	"\n" +
 	"order_type\x18\x03 \x01(\x0e2\x14.models.v1.OrderTypeB\n" +
@@ -285,8 +285,8 @@ const file_service_order_proto_rawDesc = "" +
 	"order_side\x18\x04 \x01(\x0e2\x14.models.v1.OrderSideB\n" +
 	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\torderSide\x120\n" +
 	"\x05price\x18\x05 \x01(\v2\x10.models.v1.MoneyB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x05price\x128\n" +
-	"\bquantity\x18\x06 \x01(\v2\x12.models.v1.DecimalB\b\xfaB\x05\x8a\x01\x02\x10\x01R\bquantity\x124\n" +
-	"\x0fidempotency_key\x18\a \x01(\tB\v\xfaB\br\x06\x98\x01$\xb0\x01\x01R\x0eidempotencyKey\"d\n" +
+	"\bquantity\x18\x06 \x01(\v2\x12.models.v1.DecimalB\b\xfaB\x05\x8a\x01\x02\x10\x01R\bquantity\x121\n" +
+	"\x0fidempotency_key\x18\a \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\x0eidempotencyKey\"d\n" +
 	"\x13CreateOrderResponse\x12\x1d\n" +
 	"\n" +
 	"order_uuid\x18\x01 \x01(\tR\torderUuid\x12.\n" +

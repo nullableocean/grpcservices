@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/retry"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
@@ -18,6 +19,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/access"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/cache/rdb"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/publishers"
+	kafka_publisher "github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/publishers/kafka"
 	updatenotifier "github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/publishers/update_notifier"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/client"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/server"
@@ -33,6 +35,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
+	"github.com/segmentio/kafka-go"
 	"github.com/sony/gobreaker"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
@@ -353,8 +356,54 @@ func (a *App) initServices() error {
 	)
 
 	pubBus := publishers.NewEventPublisherBus()
+
 	a.updatesNotifier = updatenotifier.NewUpdateNotifier(a.logger, updatenotifier.Options{})
+
+	kafkaUpdatedPublisher := kafka_publisher.NewKafkaPublisher(a.logger, a.createKafkaWriter(a.cnf.Kafka.TopicUpdates))
+	kafkaCreatedPublisher := kafka_publisher.NewKafkaPublisher(a.logger, a.createKafkaWriter(a.cnf.Kafka.TopicCreated))
+
+	dlqWriter := a.createKafkaWriter(a.cnf.Kafka.DLQTopic)
+	dlqPublisher := kafka_publisher.NewKafkaPublisher(a.logger, dlqWriter)
+
+	a.closers = append(a.closers,
+		func() error {
+			err := kafkaUpdatedPublisher.Close()
+			if err != nil {
+				return fmt.Errorf("failed close update events kafka publisher: %w", err)
+			}
+
+			return nil
+		},
+		func() error {
+			err := kafkaCreatedPublisher.Close()
+			if err != nil {
+				return fmt.Errorf("failed close created events kafka publisher: %w", err)
+			}
+
+			return nil
+		},
+		func() error {
+			err := dlqPublisher.Close()
+			if err != nil {
+				return fmt.Errorf("failed close dlq kafka publisher: %w", err)
+			}
+
+			return nil
+		},
+	)
+
+	publisherUpdatesDlqDecorator := kafka_publisher.NewDlqPublishRetrayer(a.logger, dlqPublisher, kafkaUpdatedPublisher, kafka_publisher.Options{
+		MaxAttempts: a.cnf.Kafka.ProducerRetries,
+	})
+
+	publisherCreatedDlqDecorator := kafka_publisher.NewDlqPublishRetrayer(a.logger, dlqPublisher, kafkaCreatedPublisher, kafka_publisher.Options{
+		MaxAttempts: a.cnf.Kafka.ProducerRetries,
+	})
+
 	pubBus.Register(model.EVENT_ORDER_UPDATED, a.updatesNotifier)
+
+	pubBus.Register(model.EVENT_ORDER_UPDATED, publisherUpdatesDlqDecorator)
+	pubBus.Register(model.EVENT_ORDER_CREATED, publisherCreatedDlqDecorator)
 
 	a.outboxRelay = outbox.NewRelay(a.logger, a.pgPool, pubBus, outbox.Options{
 		Interval:  a.cnf.Outbox.PollInterval,
@@ -362,6 +411,51 @@ func (a *App) initServices() error {
 	})
 
 	return nil
+}
+
+func (a *App) createKafkaWriter(topic string) *kafka.Writer {
+	var acks kafka.RequiredAcks
+	switch a.cnf.Kafka.ProducerAcks {
+	case "all", "-1":
+		acks = kafka.RequireAll
+	case "one":
+		acks = kafka.RequireOne
+	default:
+		acks = kafka.RequireNone
+	}
+
+	var compression kafka.Compression
+	switch a.cnf.Kafka.ProducerCompression {
+	case "snappy":
+		compression = kafka.Snappy
+	case "gzip":
+		compression = kafka.Gzip
+	case "lz4":
+		compression = kafka.Lz4
+	default:
+		compression = 0
+	}
+
+	w := &kafka.Writer{
+		Addr:         kafka.TCP(a.cnf.Kafka.Brokers...),
+		Topic:        topic,
+		Balancer:     &kafka.LeastBytes{},
+		MaxAttempts:  a.cnf.Kafka.ProducerRetries + 1,
+		BatchSize:    100,
+		BatchBytes:   int64(a.cnf.Kafka.ProducerMaxMessageBytes),
+		BatchTimeout: 10 * time.Millisecond,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		RequiredAcks: acks,
+		Compression:  compression,
+		Transport: &kafka.Transport{
+			DialTimeout: a.cnf.Kafka.DialTimeout,
+		},
+	}
+
+	w.AllowAutoTopicCreation = a.cnf.Kafka.AutoTopicCreation
+
+	return w
 }
 
 func (a *App) registerGRPCServer() {
