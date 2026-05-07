@@ -174,6 +174,140 @@ var _ interface {
 	ErrorName() string
 } = GetStatusRequestValidationError{}
 
+// Validate checks the field values on GetUpdatesRequest with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *GetUpdatesRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on GetUpdatesRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// GetUpdatesRequestMultiError, or nil if none found.
+func (m *GetUpdatesRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *GetUpdatesRequest) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetOrderUuid()); err != nil {
+		err = GetUpdatesRequestValidationError{
+			field:  "OrderUuid",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if err := m._validateUuid(m.GetUserUuid()); err != nil {
+		err = GetUpdatesRequestValidationError{
+			field:  "UserUuid",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return GetUpdatesRequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *GetUpdatesRequest) _validateUuid(uuid string) error {
+	if matched := _order_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// GetUpdatesRequestMultiError is an error wrapping multiple validation errors
+// returned by GetUpdatesRequest.ValidateAll() if the designated constraints
+// aren't met.
+type GetUpdatesRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GetUpdatesRequestMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GetUpdatesRequestMultiError) AllErrors() []error { return m }
+
+// GetUpdatesRequestValidationError is the validation error returned by
+// GetUpdatesRequest.Validate if the designated constraints aren't met.
+type GetUpdatesRequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e GetUpdatesRequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e GetUpdatesRequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e GetUpdatesRequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e GetUpdatesRequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e GetUpdatesRequestValidationError) ErrorName() string {
+	return "GetUpdatesRequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e GetUpdatesRequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sGetUpdatesRequest.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = GetUpdatesRequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = GetUpdatesRequestValidationError{}
+
 // Validate checks the field values on GetStatusResponse with the rules defined
 // in the proto definition for this message. If any rules are violated, the
 // first error encountered is returned, or nil if there are no violations.
@@ -277,6 +411,139 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = GetStatusResponseValidationError{}
+
+// Validate checks the field values on UpdatesResponse with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *UpdatesResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UpdatesResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// UpdatesResponseMultiError, or nil if none found.
+func (m *UpdatesResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UpdatesResponse) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Status
+
+	// no validation rules for OldStatus
+
+	if all {
+		switch v := interface{}(m.GetUpdatedAt()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, UpdatesResponseValidationError{
+					field:  "UpdatedAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, UpdatesResponseValidationError{
+					field:  "UpdatedAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetUpdatedAt()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return UpdatesResponseValidationError{
+				field:  "UpdatedAt",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return UpdatesResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// UpdatesResponseMultiError is an error wrapping multiple validation errors
+// returned by UpdatesResponse.ValidateAll() if the designated constraints
+// aren't met.
+type UpdatesResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UpdatesResponseMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UpdatesResponseMultiError) AllErrors() []error { return m }
+
+// UpdatesResponseValidationError is the validation error returned by
+// UpdatesResponse.Validate if the designated constraints aren't met.
+type UpdatesResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UpdatesResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UpdatesResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UpdatesResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UpdatesResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UpdatesResponseValidationError) ErrorName() string { return "UpdatesResponseValidationError" }
+
+// Error satisfies the builtin error interface
+func (e UpdatesResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUpdatesResponse.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UpdatesResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UpdatesResponseValidationError{}
 
 // Validate checks the field values on CreateOrderRequest with the rules
 // defined in the proto definition for this message. If any rules are

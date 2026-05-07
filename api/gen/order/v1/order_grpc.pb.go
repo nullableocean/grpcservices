@@ -30,7 +30,7 @@ const (
 type OrderClient interface {
 	CreateOrder(ctx context.Context, in *CreateOrderRequest, opts ...grpc.CallOption) (*CreateOrderResponse, error)
 	GetOrderStatus(ctx context.Context, in *GetStatusRequest, opts ...grpc.CallOption) (*GetStatusResponse, error)
-	StreamOrderUpdates(ctx context.Context, in *GetStatusRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetStatusResponse], error)
+	StreamOrderUpdates(ctx context.Context, in *GetUpdatesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[UpdatesResponse], error)
 }
 
 type orderClient struct {
@@ -61,13 +61,13 @@ func (c *orderClient) GetOrderStatus(ctx context.Context, in *GetStatusRequest, 
 	return out, nil
 }
 
-func (c *orderClient) StreamOrderUpdates(ctx context.Context, in *GetStatusRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetStatusResponse], error) {
+func (c *orderClient) StreamOrderUpdates(ctx context.Context, in *GetUpdatesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[UpdatesResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &Order_ServiceDesc.Streams[0], Order_StreamOrderUpdates_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[GetStatusRequest, GetStatusResponse]{ClientStream: stream}
+	x := &grpc.GenericClientStream[GetUpdatesRequest, UpdatesResponse]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (c *orderClient) StreamOrderUpdates(ctx context.Context, in *GetStatusReque
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type Order_StreamOrderUpdatesClient = grpc.ServerStreamingClient[GetStatusResponse]
+type Order_StreamOrderUpdatesClient = grpc.ServerStreamingClient[UpdatesResponse]
 
 // OrderServer is the server API for Order service.
 // All implementations must embed UnimplementedOrderServer
@@ -86,7 +86,7 @@ type Order_StreamOrderUpdatesClient = grpc.ServerStreamingClient[GetStatusRespon
 type OrderServer interface {
 	CreateOrder(context.Context, *CreateOrderRequest) (*CreateOrderResponse, error)
 	GetOrderStatus(context.Context, *GetStatusRequest) (*GetStatusResponse, error)
-	StreamOrderUpdates(*GetStatusRequest, grpc.ServerStreamingServer[GetStatusResponse]) error
+	StreamOrderUpdates(*GetUpdatesRequest, grpc.ServerStreamingServer[UpdatesResponse]) error
 	mustEmbedUnimplementedOrderServer()
 }
 
@@ -103,7 +103,7 @@ func (UnimplementedOrderServer) CreateOrder(context.Context, *CreateOrderRequest
 func (UnimplementedOrderServer) GetOrderStatus(context.Context, *GetStatusRequest) (*GetStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetOrderStatus not implemented")
 }
-func (UnimplementedOrderServer) StreamOrderUpdates(*GetStatusRequest, grpc.ServerStreamingServer[GetStatusResponse]) error {
+func (UnimplementedOrderServer) StreamOrderUpdates(*GetUpdatesRequest, grpc.ServerStreamingServer[UpdatesResponse]) error {
 	return status.Error(codes.Unimplemented, "method StreamOrderUpdates not implemented")
 }
 func (UnimplementedOrderServer) mustEmbedUnimplementedOrderServer() {}
@@ -164,15 +164,15 @@ func _Order_GetOrderStatus_Handler(srv interface{}, ctx context.Context, dec fun
 }
 
 func _Order_StreamOrderUpdates_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GetStatusRequest)
+	m := new(GetUpdatesRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(OrderServer).StreamOrderUpdates(m, &grpc.GenericServerStream[GetStatusRequest, GetStatusResponse]{ServerStream: stream})
+	return srv.(OrderServer).StreamOrderUpdates(m, &grpc.GenericServerStream[GetUpdatesRequest, UpdatesResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type Order_StreamOrderUpdatesServer = grpc.ServerStreamingServer[GetStatusResponse]
+type Order_StreamOrderUpdatesServer = grpc.ServerStreamingServer[UpdatesResponse]
 
 // Order_ServiceDesc is the grpc.ServiceDesc for Order service.
 // It's only intended for direct use with grpc.RegisterService,

@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/dto"
@@ -31,6 +32,8 @@ func (s *OrderService) UpdateOrder(ctx context.Context, orderUUID string, data *
 		return err
 	}
 
+	oldStatus := o.Status
+
 	err = s.updateOrderByParams(o, data)
 	if err != nil {
 		s.metrics.OrderFailedUpdate(ctx)
@@ -44,6 +47,8 @@ func (s *OrderService) UpdateOrder(ctx context.Context, orderUUID string, data *
 		OrderUUID: orderUUID,
 		Data: &model.EventUpdatedData{
 			NewStatus: &data.Status,
+			OldStatus: &oldStatus,
+			UpdatedAt: time.Now(),
 		},
 	}
 

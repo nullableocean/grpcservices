@@ -9,11 +9,12 @@ import "models/decimal.proto";
 import "models/order.proto";
 
 import "validate/validate.proto";
+import "google/protobuf/timestamp.proto";
 
 service Order {
     rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
     rpc GetOrderStatus(GetStatusRequest) returns (GetStatusResponse);
-    rpc StreamOrderUpdates(GetStatusRequest) returns (stream GetStatusResponse);
+    rpc StreamOrderUpdates(GetUpdatesRequest) returns (stream UpdatesResponse);
 }
 
 message GetStatusRequest {
@@ -21,8 +22,19 @@ message GetStatusRequest {
     string user_uuid  = 2 [(validate.rules).string = {uuid: true}];
 }
 
+message GetUpdatesRequest {
+    string order_uuid = 1 [(validate.rules).string = {uuid: true}];
+    string user_uuid  = 2 [(validate.rules).string = {uuid: true}];
+}
+
 message GetStatusResponse {
     models.v1.OrderStatus status = 1;
+}
+
+message UpdatesResponse {
+    models.v1.OrderStatus status = 1;
+    models.v1.OrderStatus old_status = 2;
+    google.protobuf.Timestamp updated_at = 3;
 }
 
 message CreateOrderRequest {

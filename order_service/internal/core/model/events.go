@@ -1,6 +1,9 @@
 package model
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 type EventType string
 
@@ -48,6 +51,8 @@ func (e *EventOrderCreated) Payload() ([]byte, error) {
 
 type EventUpdatedData struct {
 	NewStatus *OrderStatus `json:"new_status"`
+	OldStatus *OrderStatus `json:"old_status"`
+	UpdatedAt time.Time    `json:"updated_at"`
 }
 
 type EventOrderUpdated struct {

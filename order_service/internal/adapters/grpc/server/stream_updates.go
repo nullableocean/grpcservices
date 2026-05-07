@@ -2,14 +2,16 @@ package server
 
 import (
 	orderv1 "github.com/nullableocean/grpcservices/api/gen/order/v1"
+	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/mapping"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (srv *OrderServer) StreamOrderUpdates(req *orderv1.GetStatusRequest, stream grpc.ServerStreamingServer[orderv1.GetStatusResponse]) error {
+func (srv *OrderServer) StreamOrderUpdates(req *orderv1.GetUpdatesRequest, stream grpc.ServerStreamingServer[orderv1.UpdatesResponse]) error {
 	ctx, span := otel.Tracer("order_grpc_server").Start(stream.Context(), "get_order_status")
 	defer span.End()
 
@@ -50,10 +52,14 @@ READ_UPDATES:
 	return nil
 }
 
-func (srv *OrderServer) mapUpdateDataToStreamMsg(data *model.EventUpdatedData) *orderv1.GetStatusResponse {
+func (srv *OrderServer) mapUpdateDataToStreamMsg(data *model.EventUpdatedData) *orderv1.UpdatesResponse {
 	if data.NewStatus != nil {
-		return srv.mapOrderStatusToResponse(*data.NewStatus)
+		return &orderv1.UpdatesResponse{
+			Status:    mapping.MapOrderStatusToProtoStatus(*data.NewStatus),
+			OldStatus: mapping.MapOrderStatusToProtoStatus(*data.OldStatus),
+			UpdatedAt: timestamppb.New(data.UpdatedAt),
+		}
 	}
 
-	return &orderv1.GetStatusResponse{}
+	return &orderv1.UpdatesResponse{}
 }
