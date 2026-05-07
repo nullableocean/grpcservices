@@ -5,6 +5,7 @@ package spot.v1;
 option go_package = "github.com/nullableocean/grpcservices/api/gen/spot/v1;spotv1";
 
 import "models/user.proto";
+import "validate/validate.proto";
 
 service SpotInstrument {
     rpc ViewMarkets(ViewMarketsRequest) returns (ViewMarketsResponse);
@@ -13,14 +14,18 @@ service SpotInstrument {
 
 message ViewMarketsResponse {
     repeated Market markets = 1;
+    string next_page_token = 2;    
 }
 
+// ViewMarketsResponse.next_page_token
 message ViewMarketsRequest {
     repeated models.v1.UserRole user_roles = 1;
+    string page_token = 2;
+    int32 page_size = 3;
 }
 
 message FindMarketRequest {
-    string market_uuid = 1;
+    string market_uuid = 1 [(validate.rules).string = {uuid: true}]; 
     repeated models.v1.UserRole user_roles = 2;
 }
 

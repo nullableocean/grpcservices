@@ -17,8 +17,8 @@ service Order {
 }
 
 message GetStatusRequest {
-    string order_uuid = 1 [(validate.rules).string = {uuid: true, len: 36}];
-    string user_uuid  = 2 [(validate.rules).string = {uuid: true, len: 36}];
+    string order_uuid = 1 [(validate.rules).string = {uuid: true}];
+    string user_uuid  = 2 [(validate.rules).string = {uuid: true}];
 }
 
 message GetStatusResponse {

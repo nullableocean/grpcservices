@@ -7,6 +7,7 @@ import (
 )
 
 type MarketRepository interface {
+	FindEnabledByRolesPaginated(ctx context.Context, roles []model.UserRole, pageToken model.PageToken, limit int32) (*model.PaginationData, error)
 	FindEnabledByRoles(ctx context.Context, roles []model.UserRole) ([]*model.Market, error)
 	FindByUUID(ctx context.Context, uuid string) (*model.Market, error)
 	Create(ctx context.Context, market *model.Market) error

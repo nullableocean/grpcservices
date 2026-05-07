@@ -267,11 +267,11 @@ var File_service_order_proto protoreflect.FileDescriptor
 
 const file_service_order_proto_rawDesc = "" +
 	"\n" +
-	"\x13service/order.proto\x12\border.v1\x1a\x12models/money.proto\x1a\x14models/decimal.proto\x1a\x12models/order.proto\x1a\x17validate/validate.proto\"h\n" +
-	"\x10GetStatusRequest\x12*\n" +
+	"\x13service/order.proto\x12\border.v1\x1a\x12models/money.proto\x1a\x14models/decimal.proto\x1a\x12models/order.proto\x1a\x17validate/validate.proto\"b\n" +
+	"\x10GetStatusRequest\x12'\n" +
 	"\n" +
-	"order_uuid\x18\x01 \x01(\tB\v\xfaB\br\x06\x98\x01$\xb0\x01\x01R\torderUuid\x12(\n" +
-	"\tuser_uuid\x18\x02 \x01(\tB\v\xfaB\br\x06\x98\x01$\xb0\x01\x01R\buserUuid\"C\n" +
+	"order_uuid\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\torderUuid\x12%\n" +
+	"\tuser_uuid\x18\x02 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\buserUuid\"C\n" +
 	"\x11GetStatusResponse\x12.\n" +
 	"\x06status\x18\x01 \x01(\x0e2\x16.models.v1.OrderStatusR\x06status\"\x87\x03\n" +
 	"\x12CreateOrderRequest\x12%\n" +

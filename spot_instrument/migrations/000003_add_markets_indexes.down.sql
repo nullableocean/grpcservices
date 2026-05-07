@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS idx_markets_name_uuid;

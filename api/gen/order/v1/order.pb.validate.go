@@ -64,18 +64,6 @@ func (m *GetStatusRequest) validate(all bool) error {
 
 	var errors []error
 
-	if utf8.RuneCountInString(m.GetOrderUuid()) != 36 {
-		err := GetStatusRequestValidationError{
-			field:  "OrderUuid",
-			reason: "value length must be 36 runes",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-
-	}
-
 	if err := m._validateUuid(m.GetOrderUuid()); err != nil {
 		err = GetStatusRequestValidationError{
 			field:  "OrderUuid",
@@ -86,18 +74,6 @@ func (m *GetStatusRequest) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
-	}
-
-	if utf8.RuneCountInString(m.GetUserUuid()) != 36 {
-		err := GetStatusRequestValidationError{
-			field:  "UserUuid",
-			reason: "value length must be 36 runes",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-
 	}
 
 	if err := m._validateUuid(m.GetUserUuid()); err != nil {

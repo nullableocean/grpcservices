@@ -70,6 +70,98 @@ func (r *MarketRepository) roleCodeToID(code model.UserRole) (int, bool) {
 	return id, ok
 }
 
+func (r *MarketRepository) FindEnabledByRolesPaginated(ctx context.Context, roles []model.UserRole, pageToken model.PageToken, limit int32) (*model.PaginationData, error) {
+	roleIDs := make([]int, 0, len(roles))
+	for _, rl := range roles {
+		if id, ok := r.roleCodeToID(rl); ok {
+			roleIDs = append(roleIDs, id)
+		}
+	}
+
+	query := `
+        SELECT m.uuid, m.name, m.is_enabled, m.deleted_at, m.created_at, m.updated_at,
+               COALESCE(array_agg(r.code) FILTER (WHERE r.code IS NOT NULL), '{}') AS role_codes
+        FROM markets m
+        LEFT JOIN market_allowed_roles mar ON m.uuid = mar.market_uuid
+        LEFT JOIN roles r ON mar.role_id = r.id
+        WHERE m.is_enabled = true AND m.deleted_at IS NULL
+    `
+
+	cursor, err := pageToken.Decode()
+	if err != nil {
+		r.logger.Warn("failed decode pagination token", zap.Error(err))
+	}
+
+	if cursor.MarketName != "" && cursor.MarketUuid != "" {
+		query += ` AND (m.name, m.uuid) > ($2, $3)`
+	}
+
+	query += `
+        GROUP BY m.uuid
+        HAVING COUNT(mar.role_id) = 0 OR array_agg(mar.role_id) && $1
+        ORDER BY m.name, m.uuid
+        LIMIT $4
+    `
+
+	rows, err := r.db.Query(ctx, query, roleIDs, cursor.MarketName, cursor.MarketUuid, limit+1)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query markets: %w", err)
+	}
+
+	defer rows.Close()
+
+	var markets []*model.Market
+	for rows.Next() {
+		var market model.Market
+		var deletedAt sql.NullTime
+		var roleCodes []string
+
+		err := rows.Scan(
+			&market.UUID,
+			&market.Name,
+			&market.IsEnabled,
+			&deletedAt,
+			&market.CreatedAt,
+			&market.UpdatedAt,
+			&roleCodes,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan market: %w", err)
+		}
+
+		if deletedAt.Valid {
+			market.DeletedAt = &deletedAt.Time
+		}
+
+		market.AllowedRoles = make([]model.UserRole, len(roleCodes))
+		for i, code := range roleCodes {
+			market.AllowedRoles[i] = model.UserRole(code)
+		}
+
+		markets = append(markets, &market)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed handle rows: %w", err)
+	}
+
+	var nextPageToken model.PageToken
+	hasNext := len(markets) > int(limit)
+	if hasNext {
+		markets = markets[:limit]
+
+		lastMarket := markets[len(markets)-1]
+		cursor := model.PaginationCursor{MarketName: lastMarket.Name, MarketUuid: lastMarket.UUID}
+		nextPageToken = cursor.Encode()
+	}
+
+	return &model.PaginationData{
+		Markets:       markets,
+		HasNext:       hasNext,
+		NextPageToken: nextPageToken,
+	}, nil
+}
+
 func (r *MarketRepository) FindEnabledByRoles(ctx context.Context, roles []model.UserRole) ([]*model.Market, error) {
 	roleIDs := make([]int, 0, len(roles))
 	for _, rl := range roles {

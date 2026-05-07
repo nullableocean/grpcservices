@@ -76,7 +76,11 @@ func (srv *SpotInstrumentServer) ViewMarkets(ctx context.Context, req *spotv1.Vi
 
 	roles := mapping.MapProtoUserRolesToRoles(req.UserRoles)
 
-	markets, err := srv.spotInstrument.ViewMarkets(ctx, roles)
+	pageToken := model.PageToken{
+		Token: req.PageToken,
+	}
+
+	data, err := srv.spotInstrument.ViewMarketsPaginated(ctx, roles, pageToken, req.PageSize)
 	if err != nil {
 		span.AddEvent("failed view markets")
 		logger.Error("failed get markets", zap.Error(err))
@@ -85,14 +89,15 @@ func (srv *SpotInstrumentServer) ViewMarkets(ctx context.Context, req *spotv1.Vi
 	}
 
 	span.AddEvent("success find markets")
-	logger.Info("response markets", zap.Int("markets_count", len(markets)))
+	logger.Info("response markets", zap.Int("markets_count", len(data.Markets)))
 
-	return srv.mapMarketsToResponse(markets), nil
+	return srv.mapMarketsToResponse(data.Markets, data.NextPageToken.Token), nil
 }
 
-func (srv *SpotInstrumentServer) mapMarketsToResponse(markets []*model.Market) *spotv1.ViewMarketsResponse {
+func (srv *SpotInstrumentServer) mapMarketsToResponse(markets []*model.Market, nextPageToken string) *spotv1.ViewMarketsResponse {
 	return &spotv1.ViewMarketsResponse{
-		Markets: mapping.MapMarketsToProtoMarkets(markets),
+		Markets:       mapping.MapMarketsToProtoMarkets(markets),
+		NextPageToken: nextPageToken,
 	}
 }
 

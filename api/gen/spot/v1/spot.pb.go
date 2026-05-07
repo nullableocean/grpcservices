@@ -7,6 +7,7 @@
 package spotv1
 
 import (
+	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	v1 "github.com/nullableocean/grpcservices/api/gen/models/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -25,6 +26,7 @@ const (
 type ViewMarketsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Markets       []*Market              `protobuf:"bytes,1,rep,name=markets,proto3" json:"markets,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -66,9 +68,19 @@ func (x *ViewMarketsResponse) GetMarkets() []*Market {
 	return nil
 }
 
+func (x *ViewMarketsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+// ViewMarketsResponse.next_page_token
 type ViewMarketsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserRoles     []v1.UserRole          `protobuf:"varint,1,rep,packed,name=user_roles,json=userRoles,proto3,enum=models.v1.UserRole" json:"user_roles,omitempty"`
+	PageToken     string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -108,6 +120,20 @@ func (x *ViewMarketsRequest) GetUserRoles() []v1.UserRole {
 		return x.UserRoles
 	}
 	return nil
+}
+
+func (x *ViewMarketsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ViewMarketsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
 }
 
 type FindMarketRequest struct {
@@ -254,14 +280,18 @@ var File_service_spot_proto protoreflect.FileDescriptor
 
 const file_service_spot_proto_rawDesc = "" +
 	"\n" +
-	"\x12service/spot.proto\x12\aspot.v1\x1a\x11models/user.proto\"@\n" +
+	"\x12service/spot.proto\x12\aspot.v1\x1a\x11models/user.proto\x1a\x17validate/validate.proto\"h\n" +
 	"\x13ViewMarketsResponse\x12)\n" +
-	"\amarkets\x18\x01 \x03(\v2\x0f.spot.v1.MarketR\amarkets\"H\n" +
+	"\amarkets\x18\x01 \x03(\v2\x0f.spot.v1.MarketR\amarkets\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x84\x01\n" +
 	"\x12ViewMarketsRequest\x122\n" +
 	"\n" +
-	"user_roles\x18\x01 \x03(\x0e2\x13.models.v1.UserRoleR\tuserRoles\"h\n" +
-	"\x11FindMarketRequest\x12\x1f\n" +
-	"\vmarket_uuid\x18\x01 \x01(\tR\n" +
+	"user_roles\x18\x01 \x03(\x0e2\x13.models.v1.UserRoleR\tuserRoles\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"r\n" +
+	"\x11FindMarketRequest\x12)\n" +
+	"\vmarket_uuid\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\n" +
 	"marketUuid\x122\n" +
 	"\n" +
 	"user_roles\x18\x02 \x03(\x0e2\x13.models.v1.UserRoleR\tuserRoles\"=\n" +
