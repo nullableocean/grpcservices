@@ -1,0 +1,30 @@
+filebeat.inputs:
+  - type: container
+    paths:
+      - '/var/lib/docker/containers/*/*.log'
+
+    processors:
+      - add_docker_metadata:
+          host: "unix:///var/run/docker.sock"
+      - drop_event:
+          when:
+            not:
+              equals:
+                docker.container.labels.filebeat_enable: "true"
+      - decode_json_fields:
+          fields: ["message"]
+          target: ""
+          overwrite_keys: false
+          max_depth: 1
+          process_array: false
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  index: "app"
+
+setup.template.enabled: true
+setup.template.name: "app"
+setup.template.pattern: "app-*"
+setup.template.settings:
+  index.number_of_shards: 1
+  index.number_of_replicas: 0

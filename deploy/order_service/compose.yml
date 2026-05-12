@@ -20,6 +20,7 @@ services:
       - order
     labels:
       - promtail_logs=true
+      - elk_log=true
 
   postgres:
     image: postgres:15-alpine
