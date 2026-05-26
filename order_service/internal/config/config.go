@@ -24,6 +24,7 @@ type Config struct {
 	Kafka          KafkaConfig
 	Outbox         OutboxConfig
 	Idempotency    IdempotencyConfig
+	Events         EventsConfig
 	Env            EnvConfig
 }
 
@@ -80,13 +81,18 @@ type MetricsConfig struct {
 type TelemetryConfig struct {
 	ExporterGrpcAddress string  `env:"OPEN_TELEMETRY_EXPORTER_GRPC_ADDRESS" env-required:"true"`
 	SampleRatio         float64 `env:"TELEMETRY_SAMPLE_RATIO" env-default:"0.1"`
+
+	BatchTimeout       time.Duration `env:"TELEMETRY_BATCH_TIMEOUT" env-default:"5s"`
+	MaxExportBatchSize int           `env:"TELEMETRY_MAX_EXPORT_BATCH_SIZE" env-default:"512"`
+	MaxQueueSize       int           `env:"TELEMETRY_MAX_QUEUE_SIZE" env-default:"2048"`
 }
 
 type LogConfig struct {
-	Level     string `env:"LOG_LEVEL" env-default:"info"`
-	LogToFile bool   `env:"ENABLE_LOGFILE" env-default:"false"`
-	Dir       string `env:"LOG_FILE_DIR" env-default:"./logs"`
-	Path      string `env:"-"`
+	Level      string `env:"LOG_LEVEL" env-default:"info"`
+	LogToFile  bool   `env:"ENABLE_LOGFILE" env-default:"false"`
+	Dir        string `env:"LOG_FILE_DIR" env-default:"./logs"`
+	StackLines int    `env:"STACK_DEBUG_LINES" env-default:"30"`
+	Path       string `env:"-"`
 }
 
 type GRPCConfig struct {
@@ -114,6 +120,11 @@ type RetryConfig struct {
 	Backoff    time.Duration `env:"RETRY_BACKOFF" env-default:"100ms"`
 }
 
+type EventsConfig struct {
+	STREAM_SEND_RETRIES int           `env:"EVENTS_STREAM_SEND_RETRIES" env-default:"3"`
+	STREAM_SEND_TIMEOUT time.Duration `env:"EVENTS_STREAM_SEND_TIMEOUT" env-default:"5s"`
+}
+
 type KafkaConfig struct {
 	Brokers           []string      `env:"KAFKA_BROKERS" env-required:"true"` // broker1addr,broker2addr
 	TopicUpdates      string        `env:"KAFKA_TOPIC_UPDATES" env-default:"order-updates"`
@@ -126,11 +137,13 @@ type KafkaConfig struct {
 	DialTimeout       time.Duration `env:"KAFKA_DIAL_TIMEOUT" env-default:"10s"`
 	AutoTopicCreation bool          `env:"KAFKA_AUTO_TOPIC_CREATION" env-default:"true"`
 
-	ProducerAcks            string `env:"KAFKA_PRODUCER_ACKS"             env-default:"all"`
-	ProducerCompression     string `env:"KAFKA_PRODUCER_COMPRESSION"      env-default:"snappy"`
-	ProducerIdempotent      bool   `env:"KAFKA_PRODUCER_IDEMPOTENT"       env-default:"true"`
-	ProducerMaxMessageBytes int    `env:"KAFKA_PRODUCER_MAX_MESSAGE_BYTES" env-default:"1000000"` // 1 MB
-	ProducerRetries         int    `env:"KAFKA_PRODUCER_RETRIES"          env-default:"5"`
+	ProducerAcks            string        `env:"KAFKA_PRODUCER_ACKS"             env-default:"all"`
+	ProducerCompression     string        `env:"KAFKA_PRODUCER_COMPRESSION"      env-default:"snappy"`
+	ProducerIdempotent      bool          `env:"KAFKA_PRODUCER_IDEMPOTENT"       env-default:"true"`
+	ProducerMaxMessageBytes int           `env:"KAFKA_PRODUCER_MAX_MESSAGE_BYTES" env-default:"1000000"` // 1 MB
+	ProducerRetries         int           `env:"KAFKA_PRODUCER_RETRIES"          env-default:"5"`
+	ProducerMaxRetryDelay   time.Duration `env:"KAFKA_PRODUCER_MAX_RETRY_DELAY" env-default:"10s"`
+	ProducerStartRetryDelay time.Duration `env:"KAFKA_PRODUCER_START_RETRY_DELAY" env-default:"100ms"`
 }
 
 type OutboxConfig struct {

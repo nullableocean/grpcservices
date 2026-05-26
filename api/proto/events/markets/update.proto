@@ -5,8 +5,9 @@ package events.markets.v1;
 option go_package = "github.com/nullableocean/grpcservices/api/gen/events/markets/v1;marketseventsv1";
 
 import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
 
 message MarketUpdated {
-    string market_uuid = 1;
+    string market_uuid = 1 [(validate.rules).string = {uuid: true}];
     google.protobuf.Timestamp updated_at = 2;
 }

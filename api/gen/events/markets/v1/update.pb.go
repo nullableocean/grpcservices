@@ -7,6 +7,7 @@
 package marketseventsv1
 
 import (
+	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -78,9 +79,9 @@ var File_events_markets_update_proto protoreflect.FileDescriptor
 
 const file_events_markets_update_proto_rawDesc = "" +
 	"\n" +
-	"\x1bevents/markets/update.proto\x12\x11events.markets.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"k\n" +
-	"\rMarketUpdated\x12\x1f\n" +
-	"\vmarket_uuid\x18\x01 \x01(\tR\n" +
+	"\x1bevents/markets/update.proto\x12\x11events.markets.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17validate/validate.proto\"u\n" +
+	"\rMarketUpdated\x12)\n" +
+	"\vmarket_uuid\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\n" +
 	"marketUuid\x129\n" +
 	"\n" +
 	"updated_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAtBQZOgithub.com/nullableocean/grpcservices/api/gen/events/markets/v1;marketseventsv1b\x06proto3"

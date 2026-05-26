@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,8 +19,10 @@ type MarketRepository struct {
 	db        *pgxpool.Pool
 	roleMap   map[string]int
 	roleMapMu sync.RWMutex
+	logger    *zap.Logger
 
-	logger *zap.Logger
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 }
 
 func NewMarketRepository(logger *zap.Logger, db *pgxpool.Pool) (*MarketRepository, error) {
@@ -32,6 +35,33 @@ func NewMarketRepository(logger *zap.Logger, db *pgxpool.Pool) (*MarketRepositor
 		return nil, fmt.Errorf("failed to load roles: %w", err)
 	}
 	return r, nil
+}
+
+func (r *MarketRepository) StartRefreshingRoles(ctx context.Context, interval time.Duration) {
+	ctx, cancel := context.WithCancel(ctx)
+	r.cancel = cancel
+
+	r.wg.Add(1)
+	go r.refreshLoop(ctx, interval)
+}
+
+func (r *MarketRepository) refreshLoop(ctx context.Context, interval time.Duration) {
+	defer r.wg.Done()
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			r.logger.Info("stopping role map refresher")
+			return
+		case <-ticker.C:
+			if err := r.loadRoleMap(ctx); err != nil {
+				r.logger.Error("failed to refresh role map", zap.Error(err))
+			}
+		}
+	}
 }
 
 func (r *MarketRepository) loadRoleMap(ctx context.Context) error {
@@ -399,4 +429,11 @@ func (r *MarketRepository) syncMarketRoles(ctx context.Context, tx pgx.Tx, marke
 	}
 
 	return nil
+}
+
+func (r *MarketRepository) Stop() {
+	if r.cancel != nil {
+		r.cancel()
+		r.wg.Wait()
+	}
 }

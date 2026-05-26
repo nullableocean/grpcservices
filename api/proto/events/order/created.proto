@@ -5,8 +5,9 @@ package events.order.v1;
 option go_package = "github.com/nullableocean/grpcservices/api/gen/events/order/v1;ordereventsv1";
 
 import "models/order.proto";
+import "validate/validate.proto";
 
 message CreatedOrderEvent {
-    string event_uuid = 1;
+    string event_uuid = 1 [(validate.rules).string = {uuid: true}];
     models.v1.Order created_order = 2;
 }

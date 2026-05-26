@@ -3,6 +3,7 @@ package interceptors
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/nullableocean/grpcservices/shared/xrequestid"
 
@@ -15,24 +16,37 @@ import (
 // логируем входящие запросы
 func UnaryServerLogger(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
-		logger.Info("got grpc request",
-			zap.String("method", info.FullMethod),
+		l := logger.With(
+			zap.String("call_method", info.FullMethod),
 			zap.String(xrequestid.XREQUEST_ID_KEY, xrequestid.GetFromIncomingCtx(ctx)),
 		)
 
-		return handler(ctx, req)
+		l.Info("received grpc request")
+
+		start := time.Now()
+		resp, err = handler(ctx, req)
+
+		l.Info("request handled", zap.Duration("duration", time.Since(start)), zap.Error(err))
+
+		return resp, err
 	}
 }
 
 // логируем исходящий запрос к grpc серверу
 func UnaryClientLogger(logger *zap.Logger) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		logger.Info("send grpc request",
-			zap.String("method", method),
+		start := time.Now()
+
+		err := invoker(ctx, method, req, reply, cc, opts...)
+
+		logger.Info("grpc client called",
+			zap.String("called_method", method),
+			zap.Duration("duration", time.Since(start)),
 			zap.String(xrequestid.XREQUEST_ID_KEY, xrequestid.GetFromIncomingCtx(ctx)),
+			zap.Error(err),
 		)
 
-		return invoker(ctx, method, req, reply, cc, opts...)
+		return err
 	}
 }
 

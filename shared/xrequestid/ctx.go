@@ -6,6 +6,10 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+const (
+	XREQUEST_ID_KEY = "x-request-id"
+)
+
 // GetFromIncomingCtx извлекает из контекста x-request-id
 //
 // "" если не найден
@@ -30,13 +34,6 @@ func CreateToOutCtx(ctx context.Context) context.Context {
 }
 
 func SetInOutCtx(xreqid string, ctx context.Context) context.Context {
-	md, ok := metadata.FromOutgoingContext(ctx)
-	if !ok {
-		md = metadata.New(map[string]string{"x-request-id": xreqid})
-	} else {
-		md = md.Copy()
-		md.Set("x-request-id", xreqid)
-	}
-
-	return metadata.NewOutgoingContext(ctx, md)
+	ctx = metadata.AppendToOutgoingContext(ctx, XREQUEST_ID_KEY, xreqid)
+	return ctx
 }

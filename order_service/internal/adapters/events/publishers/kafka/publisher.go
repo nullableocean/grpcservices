@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/metrics"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
@@ -13,12 +14,15 @@ import (
 type Publisher struct {
 	writer *kafka.Writer
 	logger *zap.Logger
+
+	metrics *metrics.KafkaMetricsRecorder
 }
 
-func NewKafkaPublisher(logger *zap.Logger, writer *kafka.Writer) *Publisher {
+func NewKafkaPublisher(logger *zap.Logger, writer *kafka.Writer, metrics *metrics.KafkaMetricsRecorder) *Publisher {
 	return &Publisher{
-		writer: writer,
-		logger: logger,
+		writer:  writer,
+		logger:  logger,
+		metrics: metrics,
 	}
 }
 
@@ -33,7 +37,7 @@ func (p *Publisher) Publish(ctx context.Context, event model.Event) error {
 		return fmt.Errorf("failed event data: %w", err)
 	}
 
-	key := []byte(event.OrderID())
+	key := []byte(event.GetOrderUUID())
 	msg := kafka.Message{
 		Key:   key,
 		Value: payload,
@@ -50,14 +54,16 @@ func (p *Publisher) Publish(ctx context.Context, event model.Event) error {
 			zap.String("event_id", event.ID()),
 			zap.Error(err),
 		)
+		p.metrics.MessagePublishFailed(ctx)
 
 		return fmt.Errorf("failed write to kafka: %w", err)
 	}
 
+	p.metrics.MessagePublished(ctx)
 	p.logger.Info("event published in kafka",
 		zap.String("topic", p.writer.Topic),
 		zap.String("event_id", event.ID()),
-		zap.String("order_id", event.OrderID()),
+		zap.String("order_id", event.GetOrderUUID()),
 		zap.String("event_type", event.EventType().String()),
 	)
 

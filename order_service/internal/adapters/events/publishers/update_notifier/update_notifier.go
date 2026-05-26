@@ -2,6 +2,7 @@ package updatenotifier
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -11,13 +12,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// var _ ports.UpdateNotifier = &UpdateNotifier{}
-// var _ ports.EventPublisher = &UpdateNotifier{}
-
-var (
-	defaultTimeout = 5 * time.Second
-	defaultTries   = 3
-)
+var _ ports.UpdateNotifier = &UpdateNotifier{}
+var _ ports.EventPublisher = &UpdateNotifier{}
 
 type UpdateNotifier struct {
 	subs   map[string]*Subs
@@ -32,26 +28,26 @@ type UpdateNotifier struct {
 }
 
 type Options struct {
-	sendTimeoutOnSub time.Duration
-	sendTries        int
+	SendTimeoutOnSub time.Duration
+	SendTries        int
 }
 
-func NewUpdateNotifier(l *zap.Logger, opt Options) *UpdateNotifier {
-	if opt.sendTimeoutOnSub <= 0 {
-		opt.sendTimeoutOnSub = defaultTimeout
+func NewUpdateNotifier(l *zap.Logger, opt Options) (*UpdateNotifier, error) {
+	if opt.SendTimeoutOnSub <= 0 {
+		return nil, errors.New("invalid timeout option")
 	}
 
-	if opt.sendTries <= 0 {
-		opt.sendTries = defaultTries
+	if opt.SendTries <= 0 {
+		return nil, errors.New("invalid tries option")
 	}
 
 	return &UpdateNotifier{
 		subs:        map[string]*Subs{},
-		sendTimeout: opt.sendTimeoutOnSub,
-		sendTries:   int32(opt.sendTries),
+		sendTimeout: opt.SendTimeoutOnSub,
+		sendTries:   int32(opt.SendTries),
 		mu:          sync.RWMutex{},
 		logger:      l,
-	}
+	}, nil
 }
 
 func (notifier *UpdateNotifier) Subscribe(ctx context.Context, orderUUID string) ports.Sub {
@@ -81,7 +77,7 @@ func (notifier *UpdateNotifier) Publish(ctx context.Context, event model.Event) 
 		return nil
 	}
 
-	err := notifier.publish(ctx, event.OrderID(), updatedEvent)
+	err := notifier.publish(ctx, event.GetOrderUUID(), updatedEvent)
 	if err != nil {
 		return err
 	}

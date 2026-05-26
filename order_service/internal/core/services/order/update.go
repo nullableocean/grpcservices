@@ -3,9 +3,7 @@ package order
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/dto"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/errs"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
@@ -20,55 +18,45 @@ func (s *OrderService) UpdateOrder(ctx context.Context, orderUUID string, data *
 	logger := s.logger.With(zap.String("order_uuid", orderUUID))
 
 	if err := data.Validate(); err != nil {
-		logger.Warn("failed update order. validation error", zap.Error(err))
-
+		logger.Warn("validation failed", zap.Error(err))
 		return err
 	}
 
-	o, err := s.findOrder(ctx, orderUUID)
+	order, err := s.findOrder(ctx, orderUUID)
 	if err != nil {
-		logger.Error("failed update order. find order error", zap.Error(err))
-
+		logger.Error("failed to find order", zap.Error(err))
 		return err
 	}
 
-	oldStatus := o.Status
-
-	err = s.updateOrderByParams(o, data)
-	if err != nil {
+	oldStatus := order.Status
+	if err := s.applyStatusTransition(order, data.Status); err != nil {
+		logger.Error("invalid status update", zap.Error(err))
 		s.metrics.OrderFailedUpdate(ctx)
-		logger.Error("failed update order", zap.Error(err))
 
 		return err
 	}
 
-	event := &model.EventOrderUpdated{
-		UUID:      uuid.NewString(),
-		OrderUUID: orderUUID,
-		Data: &model.EventUpdatedData{
-			NewStatus: &data.Status,
-			OldStatus: &oldStatus,
-			UpdatedAt: time.Now(),
-		},
-	}
+	event := s.orderFactory.CreateUpdatedEvent(orderUUID, oldStatus, data.Status)
 
-	err = s.orderRepo.Update(ctx, o, event)
-	if err != nil {
+	if err := s.orderRepo.Update(ctx, order, event); err != nil {
+		logger.Error("failed to save update", zap.Error(err))
 		s.metrics.OrderFailedUpdate(ctx)
-		return fmt.Errorf("failed save updates: %w", errs.ErrCantUpdate)
+
+		return fmt.Errorf("failed to save updates: %w", errs.ErrCantUpdate)
 	}
 
 	s.recordUpdatedMetric(ctx, data.Status)
+	logger.Info("order updated successfully", zap.String("new_status", string(data.Status)))
 
 	return nil
 }
 
-func (s *OrderService) updateOrderByParams(updatingOrder *model.Order, data *dto.UpdateOrderParameters) error {
-	if !updatingOrder.Status.CanTransitTo(data.Status) {
-		return fmt.Errorf("failed update status from %s to %s: %w", updatingOrder.Status, data.Status, errs.ErrCantUpdate)
+func (s *OrderService) applyStatusTransition(order *model.Order, newStatus model.OrderStatus) error {
+	if !order.Status.CanTransitTo(newStatus) {
+		return fmt.Errorf("cannot transition from %s to %s: %w", order.Status, newStatus, errs.ErrCantUpdate)
 	}
 
-	updatingOrder.Status = data.Status
+	order.Status = newStatus
 
 	return nil
 }

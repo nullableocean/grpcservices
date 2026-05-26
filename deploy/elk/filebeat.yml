@@ -10,7 +10,7 @@ filebeat.inputs:
           when:
             not:
               equals:
-                docker.container.labels.filebeat_enable: "true"
+                docker.container.labels.elk_log: "true"
       - decode_json_fields:
           fields: ["message"]
           target: ""

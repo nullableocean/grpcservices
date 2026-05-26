@@ -33,7 +33,7 @@ func (srv *OrderServer) StreamOrderUpdates(req *orderv1.GetUpdatesRequest, strea
 	sub := srv.updateNotifier.Subscribe(ctx, orderUUID)
 	defer sub.Close()
 
-READ_UPDATES:
+SEND_UPDATES:
 	for update := range sub.Updates() {
 		if update.Data.NewStatus != nil {
 			err := stream.Send(srv.mapUpdateDataToStreamMsg(update.Data))
@@ -41,7 +41,7 @@ READ_UPDATES:
 				span.AddEvent("failed send to stream")
 				logger.Warn("failed send message to grpc stream", zap.Error(err))
 
-				break READ_UPDATES
+				break SEND_UPDATES
 			}
 		}
 	}

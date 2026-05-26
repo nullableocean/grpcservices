@@ -9,6 +9,7 @@ import (
 
 type SpotInstrumentRecorder struct {
 	viewMarkets       prometheus.Counter
+	findMarket        prometheus.Counter
 	failedViewMarkets prometheus.Counter
 	failedFindMarket  prometheus.Counter
 }
@@ -16,8 +17,12 @@ type SpotInstrumentRecorder struct {
 func NewSpotInstrumentRecorder(registry *prometheus.Registry) *SpotInstrumentRecorder {
 	return &SpotInstrumentRecorder{
 		viewMarkets: promauto.With(registry).NewCounter(prometheus.CounterOpts{
-			Name: "view_markets_total",
+			Name: "view_markets_total_call",
 			Help: "Total number of view markets calls",
+		}),
+		findMarket: promauto.With(registry).NewCounter(prometheus.CounterOpts{
+			Name: "find_market_total_call",
+			Help: "Total number of find market calls",
 		}),
 		failedViewMarkets: promauto.With(registry).NewCounter(prometheus.CounterOpts{
 			Name: "failed_view_markets_total",
@@ -32,6 +37,10 @@ func NewSpotInstrumentRecorder(registry *prometheus.Registry) *SpotInstrumentRec
 
 func (r *SpotInstrumentRecorder) ViewMarkets(ctx context.Context) {
 	r.viewMarkets.Inc()
+}
+
+func (r *SpotInstrumentRecorder) FindMarket(ctx context.Context) {
+	r.findMarket.Inc()
 }
 
 func (r *SpotInstrumentRecorder) FailedViewMarkets(ctx context.Context) {

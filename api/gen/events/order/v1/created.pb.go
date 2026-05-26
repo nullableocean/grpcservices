@@ -7,6 +7,7 @@
 package ordereventsv1
 
 import (
+	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	v1 "github.com/nullableocean/grpcservices/api/gen/models/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -78,10 +79,10 @@ var File_events_order_created_proto protoreflect.FileDescriptor
 
 const file_events_order_created_proto_rawDesc = "" +
 	"\n" +
-	"\x1aevents/order/created.proto\x12\x0fevents.order.v1\x1a\x12models/order.proto\"i\n" +
-	"\x11CreatedOrderEvent\x12\x1d\n" +
+	"\x1aevents/order/created.proto\x12\x0fevents.order.v1\x1a\x12models/order.proto\x1a\x17validate/validate.proto\"s\n" +
+	"\x11CreatedOrderEvent\x12'\n" +
 	"\n" +
-	"event_uuid\x18\x01 \x01(\tR\teventUuid\x125\n" +
+	"event_uuid\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\teventUuid\x125\n" +
 	"\rcreated_order\x18\x02 \x01(\v2\x10.models.v1.OrderR\fcreatedOrderBMZKgithub.com/nullableocean/grpcservices/api/gen/events/order/v1;ordereventsv1b\x06proto3"
 
 var (

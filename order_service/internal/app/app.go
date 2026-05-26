@@ -22,6 +22,7 @@ import (
 	kafka_publisher "github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/publishers/kafka"
 	updatenotifier "github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/publishers/update_notifier"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/client"
+	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/mapping"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/server"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/metrics"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/repository/postgres"
@@ -31,7 +32,8 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/services/order"
 	shared_auth "github.com/nullableocean/grpcservices/shared/auth"
 	shared_inters "github.com/nullableocean/grpcservices/shared/interceptors"
-	shared_telemetry "github.com/nullableocean/grpcservices/shared/telemetry"
+	shared_retry "github.com/nullableocean/grpcservices/shared/retry"
+	"github.com/nullableocean/grpcservices/shared/telemetry"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
@@ -160,12 +162,16 @@ func (a *App) Run() error {
 }
 
 func (a *App) initTelemetry() error {
-	shutdown, err := shared_telemetry.InitOpenTelemtryGrpcProvider(
-		a.cnf.App.Name,
-		a.cnf.Telemetry.ExporterGrpcAddress,
-		a.cnf.Telemetry.SampleRatio,
-	)
+	cfg := &telemetry.Config{
+		ServiceName:        a.cnf.App.Name,
+		ExporterGRPCAddr:   a.cnf.Telemetry.ExporterGrpcAddress,
+		RatioSampler:       a.cnf.Telemetry.SampleRatio,
+		BatchTimeout:       a.cnf.Telemetry.BatchTimeout,
+		MaxExportBatchSize: a.cnf.Telemetry.MaxExportBatchSize,
+		MaxQueueSize:       a.cnf.Telemetry.MaxQueueSize,
+	}
 
+	shutdown, err := telemetry.SetupGlobal(context.Background(), cfg)
 	if err != nil {
 		return fmt.Errorf("init telemetry: %w", err)
 	}
@@ -251,21 +257,21 @@ func (a *App) initMetrics() error {
 }
 
 func (a *App) initGRPCServer() error {
-	jwtAuthorizer := shared_auth.NewHmacJwtAuth(a.cnf.Auth.JWTSecret)
+	jwtParser := shared_auth.NewHmacJwtParser(a.cnf.Auth.JWTSecret)
 
 	unaryInteseptors := grpc.ChainUnaryInterceptor(
-		shared_inters.UnaryServerPanicRecovery(a.logger), // panic recovery
-		shared_inters.UnaryServerLogger(a.logger),        // logging request
-		shared_inters.UnaryServerTelemtry(),              // telemetry tracing
-		a.grpcMetricsSrv.UnaryServerInterceptor(),        // request metrics
+		shared_inters.UnaryServerPanicRecovery(a.logger, a.cnf.Log.StackLines), // panic recovery
+		shared_inters.UnaryServerLogger(a.logger),                              // logging request
+		shared_inters.UnaryServerTelemtry(),                                    // telemetry tracing
+		a.grpcMetricsSrv.UnaryServerInterceptor(),                              // request metrics
 		shared_inters.ValidationUnaryInterceptor(),
-		shared_inters.UnaryJwtAuthInterceptor(a.logger, jwtAuthorizer), // authorize jwt
+		shared_inters.UnaryJwtAuthInterceptor(a.logger, jwtParser), // authorize jwt
 	)
 
 	streamInterceptrors := grpc.ChainStreamInterceptor(
-		shared_inters.StreamServerPanicRecovery(a.logger),               // panic recovery
-		a.grpcMetricsSrv.StreamServerInterceptor(),                      // stream request metrics
-		shared_inters.StreamJwtAuthInterceptor(a.logger, jwtAuthorizer), // authorize jwt
+		shared_inters.StreamServerPanicRecovery(a.logger, a.cnf.Log.StackLines), // panic recovery
+		a.grpcMetricsSrv.StreamServerInterceptor(),                              // stream request metrics
+		shared_inters.StreamJwtAuthInterceptor(a.logger, jwtParser),             // authorize jwt
 	)
 
 	serverOpts := []grpc.ServerOption{
@@ -305,14 +311,14 @@ func (a *App) initGRPCClients() error {
 	}
 
 	interceptors := grpc.WithChainUnaryInterceptor(
-		shared_inters.UnaryClientPanicRecovery(),         // panic
-		shared_inters.UnaryClientXReqId(),                // set xrequestid
-		shared_inters.UnaryClientXReqIdTelemtry(),        // save xreqid to telemetry
-		a.grpcMetricsCl.UnaryClientInterceptor(),         // grpc client metrics
-		shared_inters.UnaryClientLogger(a.logger),        // logging request
-		shared_inters.UnaryClientJwtForwardInterceptor(), // forward jwt
-		retry.UnaryClientInterceptor(retryOpts...),       // retry request
-		shared_inters.UnaryCircuitBreakerInterceptor(cb), // breaker
+		shared_inters.UnaryClientPanicRecovery(),                                     // panic
+		shared_inters.UnaryClientXReqId(),                                            // set xrequestid
+		shared_inters.UnaryClientXReqIdTelemtry(),                                    // save xreqid to telemetry
+		a.grpcMetricsCl.UnaryClientInterceptor(),                                     // grpc client metrics
+		shared_inters.UnaryClientLogger(a.logger),                                    // logging request
+		shared_inters.UnaryClientJwtForwardInterceptor(),                             // forward jwt
+		retry.UnaryClientInterceptor(retryOpts...),                                   // retry request
+		shared_inters.UnaryCircuitBreakerInterceptor(cb, mapping.IsGrpcClientErrors), // breaker
 	)
 
 	conn, err := grpc.NewClient(a.cnf.Spot.Endpoint,
@@ -337,33 +343,45 @@ func (a *App) closeGRPCClients() {
 
 func (a *App) initServices() error {
 	spotProtoClient := spotv1.NewSpotInstrumentClient(a.spotConn)
-	spotInstrument := client.NewSpotInstrumentClient(a.logger, spotProtoClient, client.Option{
+	spotInstrument, err := client.NewSpotInstrumentClient(a.logger, spotProtoClient, client.Option{
 		RequestTimeout: a.cnf.GRPC.ClientTimeout,
 	})
+	if err != nil {
+		return fmt.Errorf("failed create spot instrument client: %w", err)
+	}
 
 	outboxWriter := outbox.NewOutboxWriter()
 	orderRepo := postgres.NewOrderRepository(a.logger, a.pgPool, outboxWriter)
 
 	accessService := access.NewRoleAccessService()
-	metricsRecorder := metrics.NewPrometheusMetricsRecorder(a.metricsReg)
+	metricsRecorder := metrics.NewOrderMetricsRecorder(a.metricsReg)
+	redisRecorder := metrics.NewRedisMetricsRecorder(a.metricsReg)
 	a.orderService = order.NewOrderService(
 		a.logger,
 		orderRepo,
 		spotInstrument,
 		accessService,
 		metricsRecorder,
-		rdb.NewRedisIdempotencyCache(a.idemRedis, a.cnf.Idempotency.TTL),
+		rdb.NewRedisIdempotencyCache(a.idemRedis, a.cnf.Idempotency.TTL, redisRecorder),
 	)
 
 	pubBus := publishers.NewEventPublisherBus()
 
-	a.updatesNotifier = updatenotifier.NewUpdateNotifier(a.logger, updatenotifier.Options{})
+	a.updatesNotifier, err = updatenotifier.NewUpdateNotifier(a.logger, updatenotifier.Options{
+		SendTimeoutOnSub: a.cnf.Events.STREAM_SEND_TIMEOUT,
+		SendTries:        a.cnf.Events.STREAM_SEND_RETRIES,
+	})
+	if err != nil {
+		return fmt.Errorf("failed create update notifier: %w", err)
+	}
 
-	kafkaUpdatedPublisher := kafka_publisher.NewKafkaPublisher(a.logger, a.createKafkaWriter(a.cnf.Kafka.TopicUpdates))
-	kafkaCreatedPublisher := kafka_publisher.NewKafkaPublisher(a.logger, a.createKafkaWriter(a.cnf.Kafka.TopicCreated))
+	kafkaMetrics := metrics.NewKafkaMetricsRecorder(a.metricsReg)
+
+	kafkaUpdatedPublisher := kafka_publisher.NewKafkaPublisher(a.logger, a.createKafkaWriter(a.cnf.Kafka.TopicUpdates), kafkaMetrics)
+	kafkaCreatedPublisher := kafka_publisher.NewKafkaPublisher(a.logger, a.createKafkaWriter(a.cnf.Kafka.TopicCreated), kafkaMetrics)
 
 	dlqWriter := a.createKafkaWriter(a.cnf.Kafka.DLQTopic)
-	dlqPublisher := kafka_publisher.NewKafkaPublisher(a.logger, dlqWriter)
+	dlqPublisher := kafka_publisher.NewKafkaPublisher(a.logger, dlqWriter, kafkaMetrics)
 
 	a.closers = append(a.closers,
 		func() error {
@@ -392,23 +410,35 @@ func (a *App) initServices() error {
 		},
 	)
 
-	publisherUpdatesDlqDecorator := kafka_publisher.NewDlqPublishRetrayer(a.logger, dlqPublisher, kafkaUpdatedPublisher, kafka_publisher.Options{
+	dlqPublishCfg := kafka_publisher.Config{
 		MaxAttempts: a.cnf.Kafka.ProducerRetries,
-	})
+		BackoffFunc: shared_retry.NewExponentialBackoffFunc(a.cnf.Kafka.ProducerStartRetryDelay, a.cnf.Kafka.ProducerMaxRetryDelay),
+	}
 
-	publisherCreatedDlqDecorator := kafka_publisher.NewDlqPublishRetrayer(a.logger, dlqPublisher, kafkaCreatedPublisher, kafka_publisher.Options{
-		MaxAttempts: a.cnf.Kafka.ProducerRetries,
-	})
+	publisherUpdatesDlqDecorator, err := kafka_publisher.NewDlqPublishRetrayer(a.logger, dlqPublisher, kafkaUpdatedPublisher, kafkaMetrics, dlqPublishCfg)
+	if err != nil {
+		return fmt.Errorf("failed create DlqPublishRetrayer for updates events: %w", err)
+	}
+	publisherCreatedDlqDecorator, err := kafka_publisher.NewDlqPublishRetrayer(a.logger, dlqPublisher, kafkaCreatedPublisher, kafkaMetrics, dlqPublishCfg)
+	if err != nil {
+		return fmt.Errorf("failed create DlqPublishRetrayer for created events: %w", err)
+	}
 
 	pubBus.Register(model.EVENT_ORDER_UPDATED, a.updatesNotifier)
 
 	pubBus.Register(model.EVENT_ORDER_UPDATED, publisherUpdatesDlqDecorator)
 	pubBus.Register(model.EVENT_ORDER_CREATED, publisherCreatedDlqDecorator)
 
-	a.outboxRelay = outbox.NewRelay(a.logger, a.pgPool, pubBus, outbox.Options{
+	outboxMetrics := metrics.NewOutboxMetricsRecorder(a.metricsReg)
+	outboxRelay, err := outbox.NewRelay(a.logger, a.pgPool, pubBus, outboxMetrics, outbox.Config{
 		Interval:  a.cnf.Outbox.PollInterval,
 		BatchSize: a.cnf.Outbox.BatchSize,
 	})
+	if err != nil {
+		return fmt.Errorf("failed create outbox relay: %w", err)
+	}
+
+	a.outboxRelay = outboxRelay
 
 	return nil
 }

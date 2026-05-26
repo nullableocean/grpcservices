@@ -234,7 +234,7 @@ func (x *FindMarketResponse) GetMarket() *Market {
 
 type Market struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Uuid          string                 `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"` //uuid
+	Uuid          string                 `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -283,22 +283,25 @@ const file_service_spot_proto_rawDesc = "" +
 	"\x12service/spot.proto\x12\aspot.v1\x1a\x11models/user.proto\x1a\x17validate/validate.proto\"h\n" +
 	"\x13ViewMarketsResponse\x12)\n" +
 	"\amarkets\x18\x01 \x03(\v2\x0f.spot.v1.MarketR\amarkets\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x84\x01\n" +
-	"\x12ViewMarketsRequest\x122\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb4\x01\n" +
+	"\x12ViewMarketsRequest\x12I\n" +
 	"\n" +
-	"user_roles\x18\x01 \x03(\x0e2\x13.models.v1.UserRoleR\tuserRoles\x12\x1d\n" +
+	"user_roles\x18\x01 \x03(\x0e2\x13.models.v1.UserRoleB\x15\xfaB\x12\x92\x01\x0f\b\x00\x10\n" +
+	"\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\tuserRoles\x12*\n" +
 	"\n" +
-	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"r\n" +
+	"page_token\x18\x02 \x01(\tB\v\xfaB\br\x06\x18\x80\x04\xd0\x01\x01R\tpageToken\x12'\n" +
+	"\tpage_size\x18\x03 \x01(\x05B\n" +
+	"\xfaB\a\x1a\x05\x18\xc8\x01(\x01R\bpageSize\"\x89\x01\n" +
 	"\x11FindMarketRequest\x12)\n" +
 	"\vmarket_uuid\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\n" +
-	"marketUuid\x122\n" +
+	"marketUuid\x12I\n" +
 	"\n" +
-	"user_roles\x18\x02 \x03(\x0e2\x13.models.v1.UserRoleR\tuserRoles\"=\n" +
+	"user_roles\x18\x02 \x03(\x0e2\x13.models.v1.UserRoleB\x15\xfaB\x12\x92\x01\x0f\b\x00\x10\n" +
+	"\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\tuserRoles\"=\n" +
 	"\x12FindMarketResponse\x12'\n" +
-	"\x06market\x18\x01 \x01(\v2\x0f.spot.v1.MarketR\x06market\"\x1c\n" +
-	"\x06Market\x12\x12\n" +
-	"\x04uuid\x18\x01 \x01(\tR\x04uuid2\xa1\x01\n" +
+	"\x06market\x18\x01 \x01(\v2\x0f.spot.v1.MarketR\x06market\"&\n" +
+	"\x06Market\x12\x1c\n" +
+	"\x04uuid\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\x04uuid2\xa1\x01\n" +
 	"\x0eSpotInstrument\x12H\n" +
 	"\vViewMarkets\x12\x1b.spot.v1.ViewMarketsRequest\x1a\x1c.spot.v1.ViewMarketsResponse\x12E\n" +
 	"\n" +

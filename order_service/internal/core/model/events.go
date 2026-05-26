@@ -18,7 +18,7 @@ const (
 
 type Event interface {
 	ID() string
-	OrderID() string
+	GetOrderUUID() string
 	EventType() EventType
 	Payload() ([]byte, error)
 }
@@ -37,7 +37,7 @@ func (e *EventOrderCreated) ID() string {
 	return e.UUID
 }
 
-func (e *EventOrderCreated) OrderID() string {
+func (e *EventOrderCreated) GetOrderUUID() string {
 	return e.OrderUUID
 }
 
@@ -65,7 +65,7 @@ func (e *EventOrderUpdated) ID() string {
 	return e.UUID
 }
 
-func (e *EventOrderUpdated) OrderID() string {
+func (e *EventOrderUpdated) GetOrderUUID() string {
 	return e.OrderUUID
 }
 

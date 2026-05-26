@@ -6,10 +6,11 @@ option go_package = "github.com/nullableocean/grpcservices/api/gen/events/order/
 
 import "models/order.proto";
 import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
 
 message UpdateStatus {
-    string uuid = 1; //uuid
-    string order_uuid = 2; //uuid
+    string uuid = 1 [(validate.rules).string = {uuid: true}];
+    string order_uuid = 2 [(validate.rules).string = {uuid: true}];
     models.v1.OrderStatus new_status = 3;
     google.protobuf.Timestamp created_at = 4;
 }

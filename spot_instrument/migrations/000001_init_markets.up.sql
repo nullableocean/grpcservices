@@ -9,7 +9,8 @@ INSERT INTO roles (id, code, name) VALUES
     (2, 'TRADER', 'Trader'),
     (3, 'MARKET_MAKER', 'Market Maker'),
     (4, 'MODER', 'Moderator'),
-    (5, 'ADMIN', 'Administrator');
+    (5, 'ADMIN', 'Administrator')
+ON CONFLICT (id) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS markets (
     uuid        UUID PRIMARY KEY,

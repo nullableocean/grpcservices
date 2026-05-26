@@ -3,6 +3,8 @@ package interceptors
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
+	"strings"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -10,13 +12,19 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// ловим панику при обработке запроса
-func UnaryServerPanicRecovery(logger *zap.Logger) grpc.UnaryServerInterceptor {
+// UnaryServerPanicRecovery ловит панику при обработке запроса
+//
+// stackDebugLines - количество строк из стека для дебага
+func UnaryServerPanicRecovery(logger *zap.Logger, stackDebugLines int) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		defer func() {
 			if r := recover(); r != nil {
 				msg := fmt.Sprintf("grpc request panic: %v", r)
-				logger.Error("failed grpc request, got panic", zap.String("error", msg), zap.Stack("stack"))
+
+				stack := debug.Stack()
+				trimmedStack := strings.Join(strings.SplitN(string(stack), "\n", stackDebugLines), "\n")
+
+				logger.Error("failed grpc request, got panic", zap.String("error", msg), zap.String("stack", trimmedStack))
 				err = status.Error(codes.Internal, msg)
 			}
 		}()
@@ -25,15 +33,22 @@ func UnaryServerPanicRecovery(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	}
 }
 
-func StreamServerPanicRecovery(logger *zap.Logger) grpc.StreamServerInterceptor {
+// StreamServerPanicRecovery ловит панику при обработке стрим-запроса
+//
+// stackDebugLines - количество строк из стека для дебага
+func StreamServerPanicRecovery(logger *zap.Logger, stackDebugLines int) grpc.StreamServerInterceptor {
 	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
 		defer func() {
 			if r := recover(); r != nil {
 				msg := fmt.Sprintf("grpc stream panic: %v", r)
+
+				stack := debug.Stack()
+				trimmedStack := strings.Join(strings.SplitN(string(stack), "\n", stackDebugLines), "\n")
+
 				logger.Error("failed grpc stream, got panic",
 					zap.String("method", info.FullMethod),
 					zap.String("error", msg),
-					zap.Stack("stack"),
+					zap.String("stack", trimmedStack),
 				)
 				err = status.Error(codes.Internal, msg)
 			}

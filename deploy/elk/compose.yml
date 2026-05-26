@@ -27,6 +27,8 @@ services:
     container_name: kibana
     environment:
       - "ELASTICSEARCH_HOSTS=http://elasticsearch:9200"
+      - "XPACK_SECURITY_ENCRYPTIONKEY=${ENCRYPTION_KEY}"
+      - "XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${OBJECT_ENCRYPTION_KEY}"
     ports:
       - "5601:5601"
     depends_on:

@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	spotv1 "github.com/nullableocean/grpcservices/api/gen/spot/v1"
@@ -14,10 +15,6 @@ import (
 
 var _ ports.SpotInstrument = &SpotInstrumentClient{}
 
-var (
-	defaultTimeout = time.Second * 10
-)
-
 type SpotInstrumentClient struct {
 	client spotv1.SpotInstrumentClient
 	logger *zap.Logger
@@ -29,16 +26,16 @@ type Option struct {
 	RequestTimeout time.Duration
 }
 
-func NewSpotInstrumentClient(l *zap.Logger, grpcClient spotv1.SpotInstrumentClient, opts Option) *SpotInstrumentClient {
+func NewSpotInstrumentClient(l *zap.Logger, grpcClient spotv1.SpotInstrumentClient, opts Option) (*SpotInstrumentClient, error) {
 	if opts.RequestTimeout <= 0 {
-		opts.RequestTimeout = defaultTimeout
+		return nil, errors.New("invalid request timeout option")
 	}
 
 	return &SpotInstrumentClient{
 		client:     grpcClient,
 		logger:     l,
 		reqTimeout: opts.RequestTimeout,
-	}
+	}, nil
 }
 
 func (cl *SpotInstrumentClient) ViewMarkets(ctx context.Context, userRoles []model.UserRole) ([]*model.Market, error) {

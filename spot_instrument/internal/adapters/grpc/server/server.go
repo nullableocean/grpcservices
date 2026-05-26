@@ -65,9 +65,9 @@ func (srv *SpotInstrumentServer) ViewMarkets(ctx context.Context, req *spotv1.Vi
 	ctx, span := otel.Tracer("spot_instrument_server").Start(ctx, "view_markets")
 	defer span.End()
 
-	userUUID, ok := ctx.Value("user_uuid").(string)
-	if !ok {
-		return nil, status.Error(codes.Unauthenticated, "user uuid missing")
+	userUUID, ok := shared_inters.UserUUIDFromContext(ctx)
+	if !ok || userUUID == "" {
+		return nil, status.Error(codes.Unauthenticated, "user uuid not provided")
 	}
 
 	logger := srv.logger.With(zap.String("user_uuid", userUUID))

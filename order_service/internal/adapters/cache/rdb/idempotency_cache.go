@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/metrics"
+	"github.com/nullableocean/grpcservices/orderservice/internal/core/errs"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
 	"github.com/redis/go-redis/v9"
@@ -17,23 +19,28 @@ const (
 )
 
 type IdempotencyCache struct {
-	client *redis.Client
-	ttl    time.Duration
+	client  *redis.Client
+	ttl     time.Duration
+	metrics *metrics.RedisMetricsRecorder
 }
 
-func NewRedisIdempotencyCache(client *redis.Client, ttl time.Duration) *IdempotencyCache {
+func NewRedisIdempotencyCache(client *redis.Client, ttl time.Duration, metrics *metrics.RedisMetricsRecorder) *IdempotencyCache {
 	return &IdempotencyCache{
-		client: client,
-		ttl:    ttl,
+		client:  client,
+		ttl:     ttl,
+		metrics: metrics,
 	}
 }
 
 func (r *IdempotencyCache) Get(ctx context.Context, key string) (*model.IdempotencyData, error) {
 	val, err := r.client.Get(ctx, idempotencyPrefix+key).Result()
 	if err == redis.Nil {
-		return nil, nil
+		r.metrics.CacheMiss(ctx)
+		return nil, errs.ErrNotFound
 	}
+
 	if err != nil {
+		r.metrics.CacheGetError(ctx)
 		return nil, err
 	}
 
@@ -62,6 +69,8 @@ func (r *IdempotencyCache) SetIfNotExist(ctx context.Context, key string, data *
 		TTL:  r.ttl,
 	}).Result()
 	if err != nil && err != redis.Nil {
+		r.metrics.CacheSetError(ctx)
+
 		return false, err
 	}
 

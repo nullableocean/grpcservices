@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/repository/postgres/outbox"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/errs"
@@ -35,7 +36,7 @@ func (r *OrderRepository) getSideID(ctx context.Context, tx pgx.Tx, side model.O
 
 	err := tx.QueryRow(ctx, `SELECT id FROM order_sides WHERE code = $1`, string(side)).Scan(&id)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get order side id: %w", err)
+		return 0, r.mapDBError(err, "failed to get order side id")
 	}
 
 	return id, nil
@@ -46,7 +47,7 @@ func (r *OrderRepository) getTypeID(ctx context.Context, tx pgx.Tx, orderType mo
 
 	err := tx.QueryRow(ctx, `SELECT id FROM order_types WHERE code = $1`, string(orderType)).Scan(&id)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get order type id: %w", err)
+		return 0, r.mapDBError(err, "failed to get order type id")
 	}
 
 	return id, nil
@@ -57,7 +58,7 @@ func (r *OrderRepository) getStatusID(ctx context.Context, tx pgx.Tx, status mod
 
 	err := tx.QueryRow(ctx, `SELECT id FROM order_statuses WHERE code = $1`, string(status)).Scan(&id)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get order status id: %w", err)
+		return 0, r.mapDBError(err, "failed to get order status id")
 	}
 
 	return id, nil
@@ -75,7 +76,7 @@ func (r *OrderRepository) Save(ctx context.Context, order *model.Order, events .
 
 	tx, err := r.pgpool.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return r.mapDBError(err, "failed to begin transaction")
 	}
 	defer tx.Rollback(ctx)
 
@@ -96,9 +97,10 @@ func (r *OrderRepository) Save(ctx context.Context, order *model.Order, events .
 
 	query := `
         INSERT INTO orders (uuid, user_uuid, market_uuid, side_id, order_type_id, order_status_id, price, quantity, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id
     `
-	_, err = tx.Exec(ctx, query,
+	var orderID int64
+	err = tx.QueryRow(ctx, query,
 		order.UUID,
 		order.UserUUID,
 		order.MarketUUID,
@@ -109,18 +111,18 @@ func (r *OrderRepository) Save(ctx context.Context, order *model.Order, events .
 		order.Quantity,
 		order.CreatedAt,
 		order.UpdatedAt,
-	)
+	).Scan(&orderID)
 	if err != nil {
-		return fmt.Errorf("failed to save order in db: %w", err)
+		return r.mapDBError(err, "failed to save order in db")
 	}
 
-	err = r.writeEvents(ctx, tx, events)
+	err = r.writeEvents(ctx, tx, orderID, events)
 	if err != nil {
 		return err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return r.mapDBError(err, "failed to commit transaction")
 	}
 
 	r.logger.Info("success save order", zap.String("order_uuid", order.UUID))
@@ -131,17 +133,14 @@ func (r *OrderRepository) Save(ctx context.Context, order *model.Order, events .
 func (r *OrderRepository) Update(ctx context.Context, updatedOrder *model.Order, events ...model.Event) error {
 	tx, err := r.pgpool.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return r.mapDBError(err, "failed to begin transaction")
 	}
 	defer tx.Rollback(ctx)
 
-	var exists bool
-	err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM orders WHERE uuid = $1)`, updatedOrder.UUID).Scan(&exists)
+	var orderID int64
+	err = tx.QueryRow(ctx, `SELECT id FROM orders WHERE uuid = $1`, updatedOrder.UUID).Scan(&orderID)
 	if err != nil {
-		return fmt.Errorf("failed query exist order: %w", err)
-	}
-	if !exists {
-		return fmt.Errorf("order not found in db: %w", errs.ErrNotFound)
+		return r.mapDBError(err, "failed to find order")
 	}
 
 	statusID, err := r.getStatusID(ctx, tx, updatedOrder.Status)
@@ -156,25 +155,25 @@ func (r *OrderRepository) Update(ctx context.Context, updatedOrder *model.Order,
     `
 	_, err = tx.Exec(ctx, query, statusID, updatedOrder.UUID)
 	if err != nil {
-		return fmt.Errorf("failed update order in db: %w", err)
+		return r.mapDBError(err, "failed to update order in db")
 	}
 
-	err = r.writeEvents(ctx, tx, events)
+	err = r.writeEvents(ctx, tx, orderID, events)
 	if err != nil {
-		return err
+		return r.mapDBError(err, "failed to write events")
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return r.mapDBError(err, "failed to commit transaction")
 	}
 
 	return nil
 }
 
-func (r *OrderRepository) writeEvents(ctx context.Context, tx pgx.Tx, events []model.Event) error {
+func (r *OrderRepository) writeEvents(ctx context.Context, tx pgx.Tx, orderRowId int64, events []model.Event) error {
 	for _, event := range events {
-		if err := r.outbox.Write(ctx, tx, event); err != nil {
-			return fmt.Errorf("failed to write event in outbox: %w", err)
+		if err := r.outbox.Write(ctx, tx, orderRowId, event); err != nil {
+			return r.mapDBError(err, "failed to write event in outbox")
 		}
 	}
 
@@ -211,10 +210,10 @@ func (r *OrderRepository) FindByUUID(ctx context.Context, orderUUID string) (*mo
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("order not found: %w", err)
+			return nil, r.mapDBError(err, "order not found")
 		}
 
-		return nil, fmt.Errorf("failed to find order: %w", err)
+		return nil, r.mapDBError(err, "failed to find order")
 	}
 
 	order.Side = model.OrderSide(orderSide)
@@ -222,4 +221,28 @@ func (r *OrderRepository) FindByUUID(ctx context.Context, orderUUID string) (*mo
 	order.Status = model.OrderStatus(orderStatus)
 
 	return &order, nil
+}
+
+func (r *OrderRepository) mapDBError(err error, description string) error {
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		return fmt.Errorf("%s: %w", description, errs.ErrNotFound)
+	}
+
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		switch pgErr.Code {
+		case "23505":
+			return fmt.Errorf("%s: %w", description, errs.ErrDuplicateKey)
+		case "23503":
+			return fmt.Errorf("%s: %w", description, errs.ErrForeignKeyViolation)
+		case "23514":
+			return fmt.Errorf("%s: %w", description, errs.ErrInvalidInput)
+		default:
+			return fmt.Errorf("%s: %w: %w", description, errs.ErrInternal, err)
+		}
+	}
+	return fmt.Errorf("%s: %w: %w", description, errs.ErrInternal, err)
 }

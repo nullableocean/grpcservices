@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/dto"
@@ -151,6 +152,8 @@ func newTestOrder(uuid, userUUID, marketUUID string, side model.OrderSide, typ m
 		Status:     status,
 		Price:      price,
 		Quantity:   quantity,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
 	}
 }
 
@@ -280,7 +283,6 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		cache := new(mockIdempotencyCache)
 
 		key := "test-key-789"
-
 		cachedData := &model.IdempotencyData{
 			Status:    model.IdempotencyProcessing,
 			OrderUUID: "",
@@ -351,6 +353,55 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		metrics.AssertExpectations(t)
 	})
 
+	t.Run("previous request failed – retry with same key succeeds", func(t *testing.T) {
+		orderRepo := new(mockOrderRepository)
+		spotInst := new(mockSpotInstrument)
+		accessSvc := new(mockAccessService)
+		metrics := new(mockMetricsRecorder)
+		cache := new(mockIdempotencyCache)
+
+		key := "test-key-retry"
+		params := &dto.CreateOrderParameters{
+			User:           newTestUser(model.UserRoleTrader),
+			MarketUUID:     "BTC-USDT",
+			Side:           model.OrderSideBuy,
+			Type:           model.OrderTypeLimit,
+			Price:          decimal.NewFromInt(50000),
+			Quantity:       decimal.NewFromInt(1),
+			IdempotencyKey: key,
+		}
+
+		cachedFailedData := &model.IdempotencyData{
+			Status:    model.IdempotencyFailed,
+			OrderUUID: "",
+			LastError: "market service error",
+		}
+		cache.On("SetIfNotExist", mock.Anything, key, mock.Anything).Return(false, nil).Once()
+		cache.On("Get", mock.Anything, key).Return(cachedFailedData, nil).Once()
+		cache.On("Update", mock.Anything, key, mock.MatchedBy(func(data *model.IdempotencyData) bool {
+			return data.Status == model.IdempotencyProcessing
+		})).Return(nil).Once()
+		cache.On("Update", mock.Anything, key, mock.MatchedBy(func(data *model.IdempotencyData) bool {
+			return data.Status == model.IdempotencyCompleted && data.OrderUUID != ""
+		})).Return(nil).Once()
+
+		accessSvc.On("CanCreateOrder", mock.Anything, params.User, params).Return(nil).Once()
+		spotInst.On("FindMarket", mock.Anything, params.MarketUUID, params.User.Roles).Return(newTestMarket("BTC-USDT"), nil).Once()
+		orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*model.Order"), mock.Anything).Return(nil).Once()
+		metrics.On("OrderCreated", mock.Anything).Return().Once()
+
+		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, cache)
+
+		order, err := svc.CreateOrder(ctx, params)
+		require.NoError(t, err)
+		assert.NotEmpty(t, order.UUID)
+
+		cache.AssertExpectations(t)
+		accessSvc.AssertExpectations(t)
+		spotInst.AssertExpectations(t)
+		orderRepo.AssertExpectations(t)
+	})
+
 	t.Run("cache Get error – internal error", func(t *testing.T) {
 		orderRepo := new(mockOrderRepository)
 		spotInst := new(mockSpotInstrument)
@@ -361,6 +412,37 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		key := "test-key-error"
 		cache.On("SetIfNotExist", mock.Anything, key, mock.Anything).Return(false, nil).Once()
 		cache.On("Get", mock.Anything, key).Return(nil, errors.New("redis connection failed")).Once()
+
+		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, cache)
+
+		params := &dto.CreateOrderParameters{
+			User:           newTestUser(model.UserRoleTrader),
+			MarketUUID:     "BTC-USDT",
+			Side:           model.OrderSideBuy,
+			Type:           model.OrderTypeLimit,
+			Price:          decimal.NewFromInt(50000),
+			Quantity:       decimal.NewFromInt(1),
+			IdempotencyKey: key,
+		}
+		order, err := svc.CreateOrder(ctx, params)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, errs.ErrIdempotencyInternal)
+		assert.Nil(t, order)
+
+		cache.AssertExpectations(t)
+		orderRepo.AssertNotCalled(t, "Save")
+	})
+
+	t.Run("key not found after reservation failed – internal error", func(t *testing.T) {
+		orderRepo := new(mockOrderRepository)
+		spotInst := new(mockSpotInstrument)
+		accessSvc := new(mockAccessService)
+		metrics := new(mockMetricsRecorder)
+		cache := new(mockIdempotencyCache)
+
+		key := "test-key-notfound"
+		cache.On("SetIfNotExist", mock.Anything, key, mock.Anything).Return(false, nil).Once()
+		cache.On("Get", mock.Anything, key).Return(nil, errs.ErrNotFound).Once()
 
 		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, cache)
 

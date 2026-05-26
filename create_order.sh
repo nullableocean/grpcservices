@@ -23,7 +23,7 @@ HEADER='{"alg":"HS256","typ":"JWT"}'
 
 # Текущий timestamp + 30 минут (1800 секунд)
 EXP=$(($(date +%s) + 1800))
-PAYLOAD="{\"sub\":\"${USER_UUID}\",\"exp\":${EXP},\"rls\":[\"TRADER\",\"MODER\"]}"
+PAYLOAD="{\"sub\":\"${USER_UUID}\",\"uuid\":\"${USER_UUID}\",\"exp\":${EXP},\"roles\":[\"TRADER\",\"MODER\"]}"
 
 HEADER_B64=$(b64url "$HEADER")
 PAYLOAD_B64=$(b64url "$PAYLOAD")

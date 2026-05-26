@@ -7,6 +7,7 @@
 package ordereventsv1
 
 import (
+	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	v1 "github.com/nullableocean/grpcservices/api/gen/models/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -25,8 +26,8 @@ const (
 
 type UpdateStatus struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Uuid          string                 `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`                            //uuid
-	OrderUuid     string                 `protobuf:"bytes,2,opt,name=order_uuid,json=orderUuid,proto3" json:"order_uuid,omitempty"` //uuid
+	Uuid          string                 `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
+	OrderUuid     string                 `protobuf:"bytes,2,opt,name=order_uuid,json=orderUuid,proto3" json:"order_uuid,omitempty"`
 	NewStatus     v1.OrderStatus         `protobuf:"varint,3,opt,name=new_status,json=newStatus,proto3,enum=models.v1.OrderStatus" json:"new_status,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -95,11 +96,11 @@ var File_events_order_update_proto protoreflect.FileDescriptor
 
 const file_events_order_update_proto_rawDesc = "" +
 	"\n" +
-	"\x19events/order/update.proto\x12\x0fevents.order.v1\x1a\x12models/order.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb3\x01\n" +
-	"\fUpdateStatus\x12\x12\n" +
-	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x12\x1d\n" +
+	"\x19events/order/update.proto\x12\x0fevents.order.v1\x1a\x12models/order.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17validate/validate.proto\"\xc7\x01\n" +
+	"\fUpdateStatus\x12\x1c\n" +
+	"\x04uuid\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\x04uuid\x12'\n" +
 	"\n" +
-	"order_uuid\x18\x02 \x01(\tR\torderUuid\x125\n" +
+	"order_uuid\x18\x02 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\torderUuid\x125\n" +
 	"\n" +
 	"new_status\x18\x03 \x01(\x0e2\x16.models.v1.OrderStatusR\tnewStatus\x129\n" +
 	"\n" +

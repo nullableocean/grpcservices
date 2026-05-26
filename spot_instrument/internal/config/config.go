@@ -14,6 +14,7 @@ type Config struct {
 	App       AppConfig
 	Auth      AuthConfig
 	Postgres  PostgresConfig
+	SpotRepo  SpotRepoConfig
 	Metrics   MetricsConfig
 	Telemetry TelemetryConfig
 	Log       LogConfig
@@ -34,6 +35,10 @@ type EnvConfig struct {
 
 type AuthConfig struct {
 	JWTSecret string `env:"JWT_SECRET" env-required:"true"`
+}
+
+type SpotRepoConfig struct {
+	RolesRefreshInterval time.Duration `env:"REPO_ROLES_REFRESH_INTERVAL" env-default:"1m"`
 }
 
 type PostgresConfig struct {
@@ -58,13 +63,18 @@ type MetricsConfig struct {
 type TelemetryConfig struct {
 	ExporterGrpcAddress string  `env:"OPEN_TELEMETRY_EXPORTER_GRPC_ADDRESS" env-required:"true"`
 	SampleRatio         float64 `env:"TELEMETRY_SAMPLE_RATIO" env-default:"0.1"`
+
+	BatchTimeout       time.Duration `env:"TELEMETRY_BATCH_TIMEOUT" env-default:"5s"`
+	MaxExportBatchSize int           `env:"TELEMETRY_MAX_EXPORT_BATCH_SIZE" env-default:"512"`
+	MaxQueueSize       int           `env:"TELEMETRY_MAX_QUEUE_SIZE" env-default:"2048"`
 }
 
 type LogConfig struct {
-	Level     string `env:"LOG_LEVEL" env-default:"info"`
-	LogToFile bool   `env:"ENABLE_LOGFILE" env-default:"false"`
-	Dir       string `env:"LOG_FILE_DIR" env-default:"./logs"`
-	Path      string `env:"-"`
+	Level      string `env:"LOG_LEVEL" env-default:"info"`
+	LogToFile  bool   `env:"ENABLE_LOGFILE" env-default:"false"`
+	Dir        string `env:"LOG_FILE_DIR" env-default:"./logs"`
+	StackLines int    `env:"STACK_DEBUG_LINES" env-default:"30"`
+	Path       string `env:"-"`
 }
 
 type GRPCConfig struct {

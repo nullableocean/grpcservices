@@ -19,14 +19,14 @@ message ViewMarketsResponse {
 
 // ViewMarketsResponse.next_page_token
 message ViewMarketsRequest {
-    repeated models.v1.UserRole user_roles = 1;
-    string page_token = 2;
-    int32 page_size = 3;
+    repeated models.v1.UserRole user_roles = 1 [(validate.rules).repeated = {min_items: 0,max_items: 10,unique: true, items: {enum: {defined_only: true, not_in: [0]}}}];
+    string page_token = 2 [(validate.rules).string = {ignore_empty: true, max_len: 512}];
+    int32 page_size = 3 [(validate.rules).int32 = {gte: 1,lte: 200}];
 }
 
 message FindMarketRequest {
     string market_uuid = 1 [(validate.rules).string = {uuid: true}]; 
-    repeated models.v1.UserRole user_roles = 2;
+    repeated models.v1.UserRole user_roles = 2 [(validate.rules).repeated = {min_items: 0,max_items: 10,unique: true, items: {enum: {defined_only: true, not_in: [0]}}}];
 }
 
 message FindMarketResponse {
@@ -34,5 +34,5 @@ message FindMarketResponse {
 }
 
 message Market {
-    string uuid = 1; //uuid
+    string uuid = 1 [(validate.rules).string = {uuid: true}];
 }

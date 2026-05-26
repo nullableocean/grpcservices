@@ -15,34 +15,32 @@ type Service interface {
 	UpdateOrder(ctx context.Context, orderUUID string, data *dto.UpdateOrderParameters) error
 }
 
-var _ Service = &OrderService{}
-
 type OrderService struct {
-	orderRepo      ports.OrderRepository
-	idemCache      ports.IdempotencyCache
-	spotInstrument ports.SpotInstrument
-	accessService  ports.AccessService
-	metrics        ports.ServiceMetricsRecorder
+	orderRepo     ports.OrderRepository
+	accessService ports.AccessService
+	metrics       ports.ServiceMetricsRecorder
+	logger        *zap.Logger
 
-	logger *zap.Logger
+	idempotencyGuard *IdempotencyGuard
+	marketValidator  *MarketValidator
+	orderFactory     *OrderFactory
 }
 
 func NewOrderService(
-	l *zap.Logger,
-	oRepo ports.OrderRepository,
-	spotInst ports.SpotInstrument,
+	logger *zap.Logger,
+	orderRepo ports.OrderRepository,
+	spotInstrument ports.SpotInstrument,
 	accessService ports.AccessService,
 	metrics ports.ServiceMetricsRecorder,
-	idemCache ports.IdempotencyCache,
+	idempotencyCache ports.IdempotencyCache,
 ) *OrderService {
-
 	return &OrderService{
-		idemCache:      idemCache,
-		orderRepo:      oRepo,
-		spotInstrument: spotInst,
-		accessService:  accessService,
-		metrics:        metrics,
-
-		logger: l,
+		orderRepo:        orderRepo,
+		accessService:    accessService,
+		metrics:          metrics,
+		logger:           logger,
+		idempotencyGuard: NewIdempotencyGuard(idempotencyCache, logger),
+		marketValidator:  NewMarketValidator(spotInstrument, logger),
+		orderFactory:     NewOrderFactory(),
 	}
 }

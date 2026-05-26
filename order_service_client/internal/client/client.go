@@ -67,7 +67,7 @@ func (c *Client) StreamOrderUpdates(ctx context.Context, token string, dto *dto.
 		return nil, err
 	}
 
-	req := orderv1.GetStatusRequest{
+	req := orderv1.GetUpdatesRequest{
 		OrderUuid: dto.OrderUUID,
 		UserUuid:  dto.UserUUID,
 	}

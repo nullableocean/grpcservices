@@ -15,7 +15,7 @@ import (
 	spotv1 "github.com/nullableocean/grpcservices/api/gen/spot/v1"
 	shared_auth "github.com/nullableocean/grpcservices/shared/auth"
 	shared_inters "github.com/nullableocean/grpcservices/shared/interceptors"
-	shared_telemetry "github.com/nullableocean/grpcservices/shared/telemetry"
+	"github.com/nullableocean/grpcservices/shared/telemetry"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/adapters/grpc/server"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/adapters/metrics"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/adapters/repository/postgres"
@@ -115,16 +115,24 @@ func (a *App) Run() error {
 }
 
 func (a *App) initTelemetry() error {
-	shutdown, err := shared_telemetry.InitOpenTelemtryGrpcProvider(
-		a.cfg.App.Name,
-		a.cfg.Telemetry.ExporterGrpcAddress,
-		a.cfg.Telemetry.SampleRatio,
-	)
-	if err != nil {
-		return fmt.Errorf("failed init telemetry: %w", err)
+	cfg := &telemetry.Config{
+		ServiceName:      a.cfg.App.Name,
+		ExporterGRPCAddr: a.cfg.Telemetry.ExporterGrpcAddress,
+		RatioSampler:     a.cfg.Telemetry.SampleRatio,
+		// Пробрасываем настройки батчера, если они не нулевые, иначе SDK использует дефолты
+		BatchTimeout:       a.cfg.Telemetry.BatchTimeout,
+		MaxExportBatchSize: a.cfg.Telemetry.MaxExportBatchSize,
+		MaxQueueSize:       a.cfg.Telemetry.MaxQueueSize,
 	}
 
-	a.closers = append(a.closers, func() error { return shutdown(context.Background()) })
+	shutdown, err := telemetry.SetupGlobal(context.Background(), cfg)
+	if err != nil {
+		return fmt.Errorf("init telemetry: %w", err)
+	}
+
+	a.closers = append(a.closers, func() error {
+		return shutdown(context.Background())
+	})
 
 	return nil
 }
@@ -179,15 +187,15 @@ func (a *App) initMetrics() error {
 }
 
 func (a *App) initGRPCServer() error {
-	jwtAuthorizer := shared_auth.NewHmacJwtAuth(a.cfg.Auth.JWTSecret)
+	jwtParser := shared_auth.NewHmacJwtParser(a.cfg.Auth.JWTSecret)
 
 	unaryInterceptors := grpc.ChainUnaryInterceptor(
-		shared_inters.UnaryServerPanicRecovery(a.logger),
+		shared_inters.UnaryServerPanicRecovery(a.logger, a.cfg.Log.StackLines),
 		shared_inters.UnaryServerLogger(a.logger),
 		shared_inters.UnaryServerTelemtry(),
 		a.grpcMetricsSrv.UnaryServerInterceptor(),
 		shared_inters.ValidationUnaryInterceptor(),
-		shared_inters.UnaryJwtAuthInterceptor(a.logger, jwtAuthorizer),
+		shared_inters.UnaryJwtAuthInterceptor(a.logger, jwtParser),
 	)
 
 	serverOpts := []grpc.ServerOption{
@@ -215,6 +223,12 @@ func (a *App) initServices() error {
 	if err != nil {
 		return fmt.Errorf("failed create market repository: %w", err)
 	}
+	marketRepo.StartRefreshingRoles(context.Background(), a.cfg.SpotRepo.RolesRefreshInterval)
+
+	a.closers = append(a.closers, func() error {
+		marketRepo.Stop()
+		return nil
+	})
 
 	metricsRecorder := metrics.NewSpotInstrumentRecorder(a.metricsReg)
 	spotInstrumentSvc := spotinstrument.NewSpotInstrument(a.logger, marketRepo, metricsRecorder)

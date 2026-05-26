@@ -7,14 +7,10 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/metrics"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
 	"go.uber.org/zap"
-)
-
-var (
-	defaultInterval  = 5 * time.Second
-	defaultBatchSize = 20
 )
 
 type OutboxRelay struct {
@@ -26,20 +22,21 @@ type OutboxRelay struct {
 	interval  time.Duration
 	batchSize int
 
-	logger *zap.Logger
+	metrics *metrics.OutboxMetricsRecorder
+	logger  *zap.Logger
 }
 
-type Options struct {
+type Config struct {
 	Interval  time.Duration
 	BatchSize int
 }
 
-func NewRelay(l *zap.Logger, pool *pgxpool.Pool, publisher ports.EventPublisher, opt Options) *OutboxRelay {
+func NewRelay(l *zap.Logger, pool *pgxpool.Pool, publisher ports.EventPublisher, outboxMetrics *metrics.OutboxMetricsRecorder, opt Config) (*OutboxRelay, error) {
 	if opt.Interval <= 0 {
-		opt.Interval = defaultInterval
+		return nil, fmt.Errorf("invalid outbox relay interval: %s", opt.Interval)
 	}
 	if opt.BatchSize <= 0 {
-		opt.BatchSize = defaultBatchSize
+		return nil, fmt.Errorf("invalid outbox relay batch size: %d", opt.BatchSize)
 	}
 
 	return &OutboxRelay{
@@ -49,7 +46,8 @@ func NewRelay(l *zap.Logger, pool *pgxpool.Pool, publisher ports.EventPublisher,
 		interval:  opt.Interval,
 		batchSize: opt.BatchSize,
 		logger:    l,
-	}
+		metrics:   outboxMetrics,
+	}, nil
 }
 
 func (r *OutboxRelay) Start(ctx context.Context) {
@@ -94,19 +92,27 @@ func (r *OutboxRelay) processBatch(ctx context.Context) {
 	}
 
 	for _, rec := range records {
+		r.metrics.EventFetched(ctx)
+
 		event, err := r.unmarshalEvent(rec)
 		if err != nil {
 			r.logger.Error("failed unmarshaling outbox record to event", zap.Error(err), zap.String("event_uuid", rec.EventUUID))
+			r.metrics.EventFailed(ctx)
+
 			continue
 		}
 
 		if err := r.publisher.Publish(ctx, event); err != nil {
 			r.logger.Error("failed publish event", zap.Error(err), zap.String("event_uuid", rec.EventUUID))
+			r.metrics.EventFailed(ctx)
+
 			continue
 		}
 
 		if err := r.reader.MarkProcessedTx(ctx, tx, rec.EventUUID); err != nil {
 			r.logger.Error("failed mark event as processed in outbox", zap.Error(err), zap.String("event_uuid", rec.EventUUID))
+			r.metrics.EventFailed(ctx)
+
 			return
 		}
 	}
@@ -114,6 +120,8 @@ func (r *OutboxRelay) processBatch(ctx context.Context) {
 	if err := tx.Commit(ctx); err != nil {
 		r.logger.Error("failed commit relay transaction")
 	}
+
+	r.metrics.EventRelayed(ctx)
 }
 
 func (r *OutboxRelay) unmarshalEvent(rec *OutboxRecord) (model.Event, error) {

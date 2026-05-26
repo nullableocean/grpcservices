@@ -4,9 +4,10 @@ import (
 	"sync"
 
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
+	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
 )
 
-// var _ ports.Sub = &Sub{}
+var _ ports.Sub = &Sub{}
 
 type Sub struct {
 	id        int

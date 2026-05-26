@@ -7,7 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-type PrometheusMetricsRecorder struct {
+type OrderMetricsRecorder struct {
 	orderCreated      prometheus.Counter
 	orderCompleted    prometheus.Counter
 	orderRejected     prometheus.Counter
@@ -16,8 +16,8 @@ type PrometheusMetricsRecorder struct {
 	orderUpdateFailed prometheus.Counter
 }
 
-func NewPrometheusMetricsRecorder(registry *prometheus.Registry) *PrometheusMetricsRecorder {
-	m := &PrometheusMetricsRecorder{
+func NewOrderMetricsRecorder(registry *prometheus.Registry) *OrderMetricsRecorder {
+	m := &OrderMetricsRecorder{
 		orderCreated: promauto.With(registry).NewCounter(prometheus.CounterOpts{
 			Name: "orders_created_total",
 			Help: "Total number of orders created",
@@ -47,26 +47,26 @@ func NewPrometheusMetricsRecorder(registry *prometheus.Registry) *PrometheusMetr
 	return m
 }
 
-func (m *PrometheusMetricsRecorder) OrderCreated(ctx context.Context) {
+func (m *OrderMetricsRecorder) OrderCreated(ctx context.Context) {
 	m.orderCreated.Inc()
 }
 
-func (m *PrometheusMetricsRecorder) OrderCompleted(ctx context.Context) {
+func (m *OrderMetricsRecorder) OrderCompleted(ctx context.Context) {
 	m.orderCompleted.Inc()
 }
 
-func (m *PrometheusMetricsRecorder) OrderRejected(ctx context.Context) {
+func (m *OrderMetricsRecorder) OrderRejected(ctx context.Context) {
 	m.orderRejected.Inc()
 }
 
-func (m *PrometheusMetricsRecorder) OrderCancelled(ctx context.Context) {
+func (m *OrderMetricsRecorder) OrderCancelled(ctx context.Context) {
 	m.orderCancelled.Inc()
 }
 
-func (m *PrometheusMetricsRecorder) OrderFailedCreate(ctx context.Context) {
+func (m *OrderMetricsRecorder) OrderFailedCreate(ctx context.Context) {
 	m.orderCreateFailed.Inc()
 }
 
-func (m *PrometheusMetricsRecorder) OrderFailedUpdate(ctx context.Context) {
+func (m *OrderMetricsRecorder) OrderFailedUpdate(ctx context.Context) {
 	m.orderUpdateFailed.Inc()
 }

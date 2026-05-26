@@ -202,9 +202,84 @@ func (m *ViewMarketsRequest) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for PageToken
+	if len(m.GetUserRoles()) > 10 {
+		err := ViewMarketsRequestValidationError{
+			field:  "UserRoles",
+			reason: "value must contain no more than 10 item(s)",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for PageSize
+	_ViewMarketsRequest_UserRoles_Unique := make(map[modelsv1.UserRole]struct{}, len(m.GetUserRoles()))
+
+	for idx, item := range m.GetUserRoles() {
+		_, _ = idx, item
+
+		if _, exists := _ViewMarketsRequest_UserRoles_Unique[item]; exists {
+			err := ViewMarketsRequestValidationError{
+				field:  fmt.Sprintf("UserRoles[%v]", idx),
+				reason: "repeated value must contain unique items",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		} else {
+			_ViewMarketsRequest_UserRoles_Unique[item] = struct{}{}
+		}
+
+		if _, ok := _ViewMarketsRequest_UserRoles_NotInLookup[item]; ok {
+			err := ViewMarketsRequestValidationError{
+				field:  fmt.Sprintf("UserRoles[%v]", idx),
+				reason: "value must not be in list [0]",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if _, ok := modelsv1.UserRole_name[int32(item)]; !ok {
+			err := ViewMarketsRequestValidationError{
+				field:  fmt.Sprintf("UserRoles[%v]", idx),
+				reason: "value must be one of the defined enum values",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if m.GetPageToken() != "" {
+
+		if utf8.RuneCountInString(m.GetPageToken()) > 512 {
+			err := ViewMarketsRequestValidationError{
+				field:  "PageToken",
+				reason: "value length must be at most 512 runes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if val := m.GetPageSize(); val < 1 || val > 200 {
+		err := ViewMarketsRequestValidationError{
+			field:  "PageSize",
+			reason: "value must be inside range [1, 200]",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
 		return ViewMarketsRequestMultiError(errors)
@@ -286,6 +361,10 @@ var _ interface {
 	ErrorName() string
 } = ViewMarketsRequestValidationError{}
 
+var _ViewMarketsRequest_UserRoles_NotInLookup = map[modelsv1.UserRole]struct{}{
+	0: {},
+}
+
 // Validate checks the field values on FindMarketRequest with the rules defined
 // in the proto definition for this message. If any rules are violated, the
 // first error encountered is returned, or nil if there are no violations.
@@ -318,6 +397,59 @@ func (m *FindMarketRequest) validate(all bool) error {
 			return err
 		}
 		errors = append(errors, err)
+	}
+
+	if len(m.GetUserRoles()) > 10 {
+		err := FindMarketRequestValidationError{
+			field:  "UserRoles",
+			reason: "value must contain no more than 10 item(s)",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	_FindMarketRequest_UserRoles_Unique := make(map[modelsv1.UserRole]struct{}, len(m.GetUserRoles()))
+
+	for idx, item := range m.GetUserRoles() {
+		_, _ = idx, item
+
+		if _, exists := _FindMarketRequest_UserRoles_Unique[item]; exists {
+			err := FindMarketRequestValidationError{
+				field:  fmt.Sprintf("UserRoles[%v]", idx),
+				reason: "repeated value must contain unique items",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		} else {
+			_FindMarketRequest_UserRoles_Unique[item] = struct{}{}
+		}
+
+		if _, ok := _FindMarketRequest_UserRoles_NotInLookup[item]; ok {
+			err := FindMarketRequestValidationError{
+				field:  fmt.Sprintf("UserRoles[%v]", idx),
+				reason: "value must not be in list [0]",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if _, ok := modelsv1.UserRole_name[int32(item)]; !ok {
+			err := FindMarketRequestValidationError{
+				field:  fmt.Sprintf("UserRoles[%v]", idx),
+				reason: "value must be one of the defined enum values",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
 	}
 
 	if len(errors) > 0 {
@@ -407,6 +539,10 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = FindMarketRequestValidationError{}
+
+var _FindMarketRequest_UserRoles_NotInLookup = map[modelsv1.UserRole]struct{}{
+	0: {},
+}
 
 // Validate checks the field values on FindMarketResponse with the rules
 // defined in the proto definition for this message. If any rules are
@@ -560,10 +696,28 @@ func (m *Market) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for Uuid
+	if err := m._validateUuid(m.GetUuid()); err != nil {
+		err = MarketValidationError{
+			field:  "Uuid",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
 		return MarketMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *Market) _validateUuid(uuid string) error {
+	if matched := _spot_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
 	}
 
 	return nil

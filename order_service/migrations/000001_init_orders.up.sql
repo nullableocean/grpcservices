@@ -49,6 +49,7 @@ CREATE INDEX idx_orders_user_uuid ON orders (user_uuid);
 
 CREATE TABLE IF NOT EXISTS outbox_orders_events (
     id            BIGSERIAL PRIMARY KEY,
+    order_id      BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
     uuid          UUID NOT NULL UNIQUE,
     order_uuid    UUID NOT NULL,
     event_type    VARCHAR(100) NOT NULL,

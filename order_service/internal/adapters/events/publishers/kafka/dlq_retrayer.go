@@ -5,41 +5,42 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/metrics"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"go.uber.org/zap"
 )
 
-var (
-	defaultMaxAttempts             = 3
-	defaultBackoffMillisecondsCoef = 50
-)
+type RetryBackoffFunc func(attempt int) time.Duration
 
 type DlqPublishRetrayer struct {
 	dlqPublisher *Publisher
 
 	publisher *Publisher
 	logger    *zap.Logger
+	metrics   *metrics.KafkaMetricsRecorder
 
-	maxAttemps int
+	maxAttemps  int
+	backoffFunc RetryBackoffFunc
 }
 
-type Options struct {
+type Config struct {
 	MaxAttempts int
+	BackoffFunc RetryBackoffFunc
 }
 
-func NewDlqPublishRetrayer(logger *zap.Logger, dlqWriter *Publisher, publisher *Publisher, opts Options) *DlqPublishRetrayer {
-	maxAttempts := defaultMaxAttempts
-
-	if opts.MaxAttempts > 0 {
-		maxAttempts = opts.MaxAttempts
+func NewDlqPublishRetrayer(logger *zap.Logger, dlqWriter *Publisher, publisher *Publisher, metrics *metrics.KafkaMetricsRecorder, opts Config) (*DlqPublishRetrayer, error) {
+	if opts.MaxAttempts <= 0 {
+		return nil, fmt.Errorf("invalid attempts for DlqPublishRetrayer: %d", opts.MaxAttempts)
 	}
 
 	return &DlqPublishRetrayer{
 		dlqPublisher: dlqWriter,
 		publisher:    publisher,
 		logger:       logger,
-		maxAttemps:   maxAttempts,
-	}
+		metrics:      metrics,
+		maxAttemps:   opts.MaxAttempts,
+		backoffFunc:  opts.BackoffFunc,
+	}, nil
 }
 
 func (p *DlqPublishRetrayer) Publish(ctx context.Context, event model.Event) error {
@@ -57,7 +58,7 @@ func (p *DlqPublishRetrayer) Publish(ctx context.Context, event model.Event) err
 		)
 
 		lastErr = err
-		backoff := time.Duration(attempt*defaultBackoffMillisecondsCoef) * time.Millisecond
+		backoff := p.backoffFunc(attempt)
 		select {
 		case <-time.After(backoff):
 		case <-ctx.Done():
@@ -80,8 +81,10 @@ func (p *DlqPublishRetrayer) Publish(ctx context.Context, event model.Event) err
 			zap.Error(err),
 		)
 
+		p.metrics.MessagePublishFailed(ctx)
 		return fmt.Errorf("main publish failed. DLQ publish also failed: %w", err)
 	}
 
+	p.metrics.MessageSendToDlq(ctx)
 	return fmt.Errorf("event sent to DLQ after %d attempts: %w", p.maxAttemps, lastErr)
 }
