@@ -116,10 +116,9 @@ func (a *App) Run() error {
 
 func (a *App) initTelemetry() error {
 	cfg := &telemetry.Config{
-		ServiceName:      a.cfg.App.Name,
-		ExporterGRPCAddr: a.cfg.Telemetry.ExporterGrpcAddress,
-		RatioSampler:     a.cfg.Telemetry.SampleRatio,
-		// Пробрасываем настройки батчера, если они не нулевые, иначе SDK использует дефолты
+		ServiceName:        a.cfg.App.Name,
+		ExporterGRPCAddr:   a.cfg.Telemetry.ExporterGrpcAddress,
+		RatioSampler:       a.cfg.Telemetry.SampleRatio,
 		BatchTimeout:       a.cfg.Telemetry.BatchTimeout,
 		MaxExportBatchSize: a.cfg.Telemetry.MaxExportBatchSize,
 		MaxQueueSize:       a.cfg.Telemetry.MaxQueueSize,
