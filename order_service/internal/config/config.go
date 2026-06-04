@@ -126,6 +126,7 @@ type EventsConfig struct {
 }
 
 type KafkaConfig struct {
+	Version           string        `env:"KAFKA_VERSION" env-default:"3.6.0"`
 	Brokers           []string      `env:"KAFKA_BROKERS" env-required:"true"` // broker1addr,broker2addr
 	TopicUpdates      string        `env:"KAFKA_TOPIC_UPDATES" env-default:"order-updates"`
 	TopicCreated      string        `env:"KAFKA_TOPIC_CREATED" env-default:"order-created"`
@@ -135,15 +136,18 @@ type KafkaConfig struct {
 	MaxBytes          int           `env:"KAFKA_MAX_BYTES" env-default:"10e6"` // default: 10MB
 	MaxWait           time.Duration `env:"KAFKA_MAX_WAIT" env-default:"1s"`
 	DialTimeout       time.Duration `env:"KAFKA_DIAL_TIMEOUT" env-default:"10s"`
+	WriteTimeout      time.Duration `env:"KAFKA_WRITE_TIMEOUT" env-default:"3s"`
+	ReadTimeout       time.Duration `env:"KAFKA_WRITE_TIMEOUT" env-default:"3s"`
 	AutoTopicCreation bool          `env:"KAFKA_AUTO_TOPIC_CREATION" env-default:"true"`
 
-	ProducerAcks            string        `env:"KAFKA_PRODUCER_ACKS"             env-default:"all"`
-	ProducerCompression     string        `env:"KAFKA_PRODUCER_COMPRESSION"      env-default:"snappy"`
-	ProducerIdempotent      bool          `env:"KAFKA_PRODUCER_IDEMPOTENT"       env-default:"true"`
-	ProducerMaxMessageBytes int           `env:"KAFKA_PRODUCER_MAX_MESSAGE_BYTES" env-default:"1000000"` // 1 MB
-	ProducerRetries         int           `env:"KAFKA_PRODUCER_RETRIES"          env-default:"5"`
-	ProducerMaxRetryDelay   time.Duration `env:"KAFKA_PRODUCER_MAX_RETRY_DELAY" env-default:"10s"`
-	ProducerStartRetryDelay time.Duration `env:"KAFKA_PRODUCER_START_RETRY_DELAY" env-default:"100ms"`
+	ProducerAcks                string        `env:"KAFKA_PRODUCER_ACKS"             env-default:"all"`      // all one
+	ProducerCompression         string        `env:"KAFKA_PRODUCER_COMPRESSION"      env-default:"snappy"`   // snappy gzip lz4
+	ProducerMaxMessageBytes     int           `env:"KAFKA_PRODUCER_MAX_MESSAGE_BYTES" env-default:"1000000"` // 1 MB
+	ProducerBatchMessages       int           `env:"KAFKA_PRODUCER_BATCH_MESSAGES" env-default:"100"`
+	ProducerBatchFlushFrequency time.Duration `env:"KAFKA_PRODUCER_BATCH_FREQUENCY_MILLISECOND" env-default:"10ms"`
+	ProducerRetries             int           `env:"KAFKA_PRODUCER_RETRIES"          env-default:"5"`
+	ProducerMaxRetryDelay       time.Duration `env:"KAFKA_PRODUCER_MAX_RETRY_DELAY" env-default:"10s"`
+	ProducerStartRetryDelay     time.Duration `env:"KAFKA_PRODUCER_START_RETRY_DELAY" env-default:"100ms"`
 }
 
 type OutboxConfig struct {

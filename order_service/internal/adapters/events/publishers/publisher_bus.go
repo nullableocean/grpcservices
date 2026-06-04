@@ -8,7 +8,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
 )
 
-// var _ ports.EventPublisher = &EventPublisherBus{}
+var _ ports.EventPublisher = &EventPublisherBus{}
 
 type EventPublisherBus struct {
 	publishers map[model.EventType][]ports.EventPublisher

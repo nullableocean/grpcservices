@@ -69,7 +69,7 @@ func (s *SpotInstrument) FindWithRoles(ctx context.Context, marketUuid string, u
 	defer span.End()
 	span.SetAttributes(attribute.String("market_uuid", marketUuid))
 
-	s.metrics.ViewMarkets(ctx)
+	s.metrics.FindMarket(ctx)
 	s.logger.Info("find market", zap.String("market_uuid", marketUuid))
 
 	market, err := s.marketRepo.FindByUUID(ctx, marketUuid)

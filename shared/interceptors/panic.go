@@ -24,7 +24,7 @@ func UnaryServerPanicRecovery(logger *zap.Logger, stackDebugLines int) grpc.Unar
 				stack := debug.Stack()
 				trimmedStack := strings.Join(strings.SplitN(string(stack), "\n", stackDebugLines), "\n")
 
-				logger.Error("failed grpc request, got panic", zap.String("error", msg), zap.String("stack", trimmedStack))
+				logger.Error("failed grpc request, got panic", zap.String("error", msg), zap.String(STACK_KEY, trimmedStack))
 				err = status.Error(codes.Internal, msg)
 			}
 		}()
@@ -46,9 +46,9 @@ func StreamServerPanicRecovery(logger *zap.Logger, stackDebugLines int) grpc.Str
 				trimmedStack := strings.Join(strings.SplitN(string(stack), "\n", stackDebugLines), "\n")
 
 				logger.Error("failed grpc stream, got panic",
-					zap.String("method", info.FullMethod),
+					zap.String(CALLED_METHOD_KEY, info.FullMethod),
+					zap.String(STACK_KEY, trimmedStack),
 					zap.String("error", msg),
-					zap.String("stack", trimmedStack),
 				)
 				err = status.Error(codes.Internal, msg)
 			}

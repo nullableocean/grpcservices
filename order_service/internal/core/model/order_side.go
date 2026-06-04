@@ -8,8 +8,9 @@ import (
 type OrderSide string
 
 const (
-	OrderSideBuy  OrderSide = "BUY"
-	OrderSideSell OrderSide = "SELL"
+	UndefinedOrderSide OrderSide = "UNDEFINED"
+	OrderSideBuy       OrderSide = "BUY"
+	OrderSideSell      OrderSide = "SELL"
 )
 
 func (s OrderSide) IsValid() bool {

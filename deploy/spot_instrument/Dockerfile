@@ -15,6 +15,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app ./cmd
 
 FROM alpine:latest
 
+RUN apk add --no-cache curl
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app

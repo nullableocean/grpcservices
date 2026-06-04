@@ -16,7 +16,7 @@ func MapDecimalToProtoMoney(dec decimal.Decimal) *modelsv1.Money {
 	}
 }
 
-func MapDecimalToProtoDeciaml(dec decimal.Decimal) *modelsv1.Decimal {
+func MapDecimalToProtoDecimal(dec decimal.Decimal) *modelsv1.Decimal {
 	units := dec.IntPart()
 	nanos := dec.Sub(decimal.NewFromInt(units)).Mul(decimal.NewFromInt(1e9)).IntPart()
 

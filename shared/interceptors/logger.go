@@ -13,11 +13,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const (
+	CALLED_METHOD_KEY = "called_method"
+	CALL_DURATION_KEY = "duration"
+	STACK_KEY         = "stack"
+)
+
 // логируем входящие запросы
 func UnaryServerLogger(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		l := logger.With(
-			zap.String("call_method", info.FullMethod),
+			zap.String(CALLED_METHOD_KEY, info.FullMethod),
 			zap.String(xrequestid.XREQUEST_ID_KEY, xrequestid.GetFromIncomingCtx(ctx)),
 		)
 
@@ -26,7 +32,7 @@ func UnaryServerLogger(logger *zap.Logger) grpc.UnaryServerInterceptor {
 		start := time.Now()
 		resp, err = handler(ctx, req)
 
-		l.Info("request handled", zap.Duration("duration", time.Since(start)), zap.Error(err))
+		l.Info("request handled", zap.Duration(CALL_DURATION_KEY, time.Since(start)), zap.Error(err))
 
 		return resp, err
 	}
@@ -40,8 +46,8 @@ func UnaryClientLogger(logger *zap.Logger) grpc.UnaryClientInterceptor {
 		err := invoker(ctx, method, req, reply, cc, opts...)
 
 		logger.Info("grpc client called",
-			zap.String("called_method", method),
-			zap.Duration("duration", time.Since(start)),
+			zap.String(CALLED_METHOD_KEY, method),
+			zap.Duration(CALL_DURATION_KEY, time.Since(start)),
 			zap.String(xrequestid.XREQUEST_ID_KEY, xrequestid.GetFromIncomingCtx(ctx)),
 			zap.Error(err),
 		)

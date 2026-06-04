@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/IBM/sarama"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/retry"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -21,8 +22,8 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/publishers"
 	kafka_publisher "github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/publishers/kafka"
 	updatenotifier "github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/publishers/update_notifier"
+	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/breaker"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/client"
-	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/mapping"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/server"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/metrics"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/repository/postgres"
@@ -37,7 +38,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
-	"github.com/segmentio/kafka-go"
 	"github.com/sony/gobreaker"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
@@ -261,11 +261,11 @@ func (a *App) initGRPCServer() error {
 
 	unaryInteseptors := grpc.ChainUnaryInterceptor(
 		shared_inters.UnaryServerPanicRecovery(a.logger, a.cnf.Log.StackLines), // panic recovery
+		shared_inters.UnaryJwtAuthInterceptor(a.logger, jwtParser),             // authorize jwt
 		shared_inters.UnaryServerLogger(a.logger),                              // logging request
-		shared_inters.UnaryServerTelemtry(),                                    // telemetry tracing
+		shared_inters.UnaryServerTelemetry(),                                   // telemetry tracing
 		a.grpcMetricsSrv.UnaryServerInterceptor(),                              // request metrics
-		shared_inters.ValidationUnaryInterceptor(),
-		shared_inters.UnaryJwtAuthInterceptor(a.logger, jwtParser), // authorize jwt
+		shared_inters.ValidationUnaryInterceptor(a.logger),
 	)
 
 	streamInterceptrors := grpc.ChainStreamInterceptor(
@@ -304,6 +304,8 @@ func (a *App) initGRPCClients() error {
 		Timeout:     a.cnf.CircuitBreaker.Timeout,
 	})
 
+	cbWithMetrics := breaker.NewCircuitBreaker(a.logger, metrics.NewCircuitBreakerMetricsRecorder(a.metricsReg), cb)
+
 	retryOpts := []retry.CallOption{
 		retry.WithMax(uint(a.cnf.Retry.MaxRetries)),
 		retry.WithBackoff(retry.BackoffExponential(a.cnf.Retry.Backoff)),
@@ -311,14 +313,14 @@ func (a *App) initGRPCClients() error {
 	}
 
 	interceptors := grpc.WithChainUnaryInterceptor(
-		shared_inters.UnaryClientPanicRecovery(),                                     // panic
-		shared_inters.UnaryClientXReqId(),                                            // set xrequestid
-		shared_inters.UnaryClientXReqIdTelemtry(),                                    // save xreqid to telemetry
-		a.grpcMetricsCl.UnaryClientInterceptor(),                                     // grpc client metrics
-		shared_inters.UnaryClientLogger(a.logger),                                    // logging request
-		shared_inters.UnaryClientJwtForwardInterceptor(),                             // forward jwt
-		retry.UnaryClientInterceptor(retryOpts...),                                   // retry request
-		shared_inters.UnaryCircuitBreakerInterceptor(cb, mapping.IsGrpcClientErrors), // breaker
+		shared_inters.UnaryClientPanicRecovery(),                    // panic
+		shared_inters.UnaryClientXReqId(),                           // set xrequestid
+		shared_inters.UnaryClientXReqIdTelemetry(),                  // save xreqid to telemetry
+		a.grpcMetricsCl.UnaryClientInterceptor(),                    // grpc client metrics
+		shared_inters.UnaryClientLogger(a.logger),                   // logging request
+		shared_inters.UnaryClientJwtForwardInterceptor(),            // forward jwt
+		retry.UnaryClientInterceptor(retryOpts...),                  // retry request
+		shared_inters.UnaryCircuitBreakerInterceptor(cbWithMetrics), // breaker
 	)
 
 	conn, err := grpc.NewClient(a.cnf.Spot.Endpoint,
@@ -377,55 +379,36 @@ func (a *App) initServices() error {
 
 	kafkaMetrics := metrics.NewKafkaMetricsRecorder(a.metricsReg)
 
-	kafkaUpdatedPublisher := kafka_publisher.NewKafkaPublisher(a.logger, a.createKafkaWriter(a.cnf.Kafka.TopicUpdates), kafkaMetrics)
-	kafkaCreatedPublisher := kafka_publisher.NewKafkaPublisher(a.logger, a.createKafkaWriter(a.cnf.Kafka.TopicCreated), kafkaMetrics)
+	kafkaProducer, err := newSaramaSyncProducer(a.cnf.Kafka)
+	if err != nil {
+		return fmt.Errorf("failed to create Sarama producer: %w", err)
+	}
+	a.closers = append(a.closers, func() error {
+		if err := kafkaProducer.Close(); err != nil {
+			return fmt.Errorf("failed close kafka producer: %w", err)
+		}
+		return nil
+	})
 
-	dlqWriter := a.createKafkaWriter(a.cnf.Kafka.DLQTopic)
-	dlqPublisher := kafka_publisher.NewKafkaPublisher(a.logger, dlqWriter, kafkaMetrics)
-
-	a.closers = append(a.closers,
-		func() error {
-			err := kafkaUpdatedPublisher.Close()
-			if err != nil {
-				return fmt.Errorf("failed close update events kafka publisher: %w", err)
-			}
-
-			return nil
-		},
-		func() error {
-			err := kafkaCreatedPublisher.Close()
-			if err != nil {
-				return fmt.Errorf("failed close created events kafka publisher: %w", err)
-			}
-
-			return nil
-		},
-		func() error {
-			err := dlqPublisher.Close()
-			if err != nil {
-				return fmt.Errorf("failed close dlq kafka publisher: %w", err)
-			}
-
-			return nil
-		},
-	)
+	kafkaUpdatedPublisher := kafka_publisher.NewKafkaPublisher(a.logger, kafkaProducer, a.cnf.Kafka.TopicUpdates, kafkaMetrics)
+	kafkaCreatedPublisher := kafka_publisher.NewKafkaPublisher(a.logger, kafkaProducer, a.cnf.Kafka.TopicCreated, kafkaMetrics)
+	dlqPublisher := kafka_publisher.NewKafkaPublisher(a.logger, kafkaProducer, a.cnf.Kafka.DLQTopic, kafkaMetrics)
 
 	dlqPublishCfg := kafka_publisher.Config{
 		MaxAttempts: a.cnf.Kafka.ProducerRetries,
 		BackoffFunc: shared_retry.NewExponentialBackoffFunc(a.cnf.Kafka.ProducerStartRetryDelay, a.cnf.Kafka.ProducerMaxRetryDelay),
 	}
 
-	publisherUpdatesDlqDecorator, err := kafka_publisher.NewDlqPublishRetrayer(a.logger, dlqPublisher, kafkaUpdatedPublisher, kafkaMetrics, dlqPublishCfg)
+	publisherUpdatesDlqDecorator, err := kafka_publisher.NewDlqPublisherDecorator(a.logger, dlqPublisher, kafkaUpdatedPublisher, kafkaMetrics, dlqPublishCfg)
 	if err != nil {
 		return fmt.Errorf("failed create DlqPublishRetrayer for updates events: %w", err)
 	}
-	publisherCreatedDlqDecorator, err := kafka_publisher.NewDlqPublishRetrayer(a.logger, dlqPublisher, kafkaCreatedPublisher, kafkaMetrics, dlqPublishCfg)
+	publisherCreatedDlqDecorator, err := kafka_publisher.NewDlqPublisherDecorator(a.logger, dlqPublisher, kafkaCreatedPublisher, kafkaMetrics, dlqPublishCfg)
 	if err != nil {
 		return fmt.Errorf("failed create DlqPublishRetrayer for created events: %w", err)
 	}
 
 	pubBus.Register(model.EVENT_ORDER_UPDATED, a.updatesNotifier)
-
 	pubBus.Register(model.EVENT_ORDER_UPDATED, publisherUpdatesDlqDecorator)
 	pubBus.Register(model.EVENT_ORDER_CREATED, publisherCreatedDlqDecorator)
 
@@ -443,49 +426,65 @@ func (a *App) initServices() error {
 	return nil
 }
 
-func (a *App) createKafkaWriter(topic string) *kafka.Writer {
-	var acks kafka.RequiredAcks
-	switch a.cnf.Kafka.ProducerAcks {
+func newSaramaSyncProducer(cfg config.KafkaConfig) (sarama.SyncProducer, error) {
+	saramaCfg := sarama.NewConfig()
+	ver, err := sarama.ParseKafkaVersion(cfg.Version)
+	if err != nil {
+		return nil, err
+	}
+
+	saramaCfg.Version = ver
+
+	switch cfg.ProducerAcks {
 	case "all", "-1":
-		acks = kafka.RequireAll
+		saramaCfg.Producer.RequiredAcks = sarama.WaitForAll
 	case "one":
-		acks = kafka.RequireOne
+		saramaCfg.Producer.RequiredAcks = sarama.WaitForLocal
 	default:
-		acks = kafka.RequireNone
+		saramaCfg.Producer.RequiredAcks = sarama.NoResponse
 	}
 
-	var compression kafka.Compression
-	switch a.cnf.Kafka.ProducerCompression {
+	switch cfg.ProducerCompression {
 	case "snappy":
-		compression = kafka.Snappy
+		saramaCfg.Producer.Compression = sarama.CompressionSnappy
 	case "gzip":
-		compression = kafka.Gzip
+		saramaCfg.Producer.Compression = sarama.CompressionGZIP
 	case "lz4":
-		compression = kafka.Lz4
+		saramaCfg.Producer.Compression = sarama.CompressionLZ4
 	default:
-		compression = 0
+		saramaCfg.Producer.Compression = sarama.CompressionNone
 	}
 
-	w := &kafka.Writer{
-		Addr:         kafka.TCP(a.cnf.Kafka.Brokers...),
-		Topic:        topic,
-		Balancer:     &kafka.LeastBytes{},
-		MaxAttempts:  a.cnf.Kafka.ProducerRetries + 1,
-		BatchSize:    100,
-		BatchBytes:   int64(a.cnf.Kafka.ProducerMaxMessageBytes),
-		BatchTimeout: 10 * time.Millisecond,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		RequiredAcks: acks,
-		Compression:  compression,
-		Transport: &kafka.Transport{
-			DialTimeout: a.cnf.Kafka.DialTimeout,
-		},
+	if cfg.ProducerRetries > 0 {
+		kafkaBackoffCallback := shared_retry.NewExponentialBackoffFunc(cfg.ProducerStartRetryDelay, cfg.ProducerMaxRetryDelay)
+
+		saramaCfg.Producer.Retry.Max = cfg.ProducerRetries
+		saramaCfg.Producer.Retry.BackoffFunc = func(attempts, maxAttempts int) time.Duration {
+			return kafkaBackoffCallback(attempts)
+		}
 	}
 
-	w.AllowAutoTopicCreation = a.cnf.Kafka.AutoTopicCreation
+	// batching
+	saramaCfg.Producer.Flush.Messages = cfg.ProducerBatchMessages
+	saramaCfg.Producer.Flush.Bytes = cfg.ProducerMaxMessageBytes
+	saramaCfg.Producer.Flush.Frequency = cfg.ProducerBatchFlushFrequency
 
-	return w
+	saramaCfg.Net.DialTimeout = cfg.DialTimeout
+	saramaCfg.Net.WriteTimeout = cfg.WriteTimeout
+
+	if cfg.AutoTopicCreation {
+		saramaCfg.Metadata.AllowAutoTopicCreation = true
+	}
+
+	saramaCfg.Producer.Return.Successes = true
+	saramaCfg.Producer.Return.Errors = true
+
+	producer, err := sarama.NewSyncProducer(cfg.Brokers, saramaCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return producer, nil
 }
 
 func (a *App) registerGRPCServer() {

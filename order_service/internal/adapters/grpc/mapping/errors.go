@@ -22,7 +22,7 @@ func MapGrpcStatusToError(e error) error {
 	return fmt.Errorf("%w", ports.ErrFailedClientRequest)
 }
 
-func MapErrorToGrpcStatus(e error) error {
+func MapErrorToGrpcStatusError(e error) error {
 	if errors.Is(e, errs.ErrNotAllowed) {
 		return status.Error(codes.PermissionDenied, e.Error())
 	}

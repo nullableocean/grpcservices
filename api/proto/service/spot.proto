@@ -5,6 +5,7 @@ package spot.v1;
 option go_package = "github.com/nullableocean/grpcservices/api/gen/spot/v1;spotv1";
 
 import "models/user.proto";
+import "models/market.proto";
 import "validate/validate.proto";
 
 service SpotInstrument {
@@ -13,7 +14,7 @@ service SpotInstrument {
 }
 
 message ViewMarketsResponse {
-    repeated Market markets = 1;
+    repeated models.v1.Market markets = 1;
     string next_page_token = 2;    
 }
 
@@ -30,9 +31,6 @@ message FindMarketRequest {
 }
 
 message FindMarketResponse {
-    Market market = 1;
+    models.v1.Market market = 1;
 }
-
-message Market {
-    string uuid = 1 [(validate.rules).string = {uuid: true}];
-}
+    

@@ -8,6 +8,7 @@ import (
 type OrderType string
 
 const (
+	UndefinedOrderType  OrderType = "UNDEFINED"
 	OrderTypeLimit      OrderType = "LIMIT"
 	OrderTypeMarket     OrderType = "MARKET"
 	OrderTypeStopLoss   OrderType = "STOP_LOSS"
@@ -19,6 +20,7 @@ func (t OrderType) IsValid() bool {
 	case OrderTypeLimit, OrderTypeMarket, OrderTypeStopLoss, OrderTypeTakeProfit:
 		return true
 	}
+
 	return false
 }
 

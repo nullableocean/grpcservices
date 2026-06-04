@@ -42,7 +42,7 @@ func (c *Client) CreateOrder(ctx context.Context, token string, dto *dto.CreateO
 		OrderType:      MapOrderTypeToProtoType(dto.Type),
 		OrderSide:      MapOrderSideToProtoSide(dto.Side),
 		Price:          MapDecimalToProtoMoney(dto.Price),
-		Quantity:       MapDecimalToProtoDeciaml(dto.Price),
+		Quantity:       MapDecimalToProtoDecimal(dto.Quantity),
 		IdempotencyKey: uuid.NewString(),
 	}
 

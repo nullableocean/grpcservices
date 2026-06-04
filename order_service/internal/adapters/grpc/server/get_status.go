@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (srv *OrderServer) GetOrderStatus(ctx context.Context, req *orderv1.GetStatusRequest) (*orderv1.GetStatusResponse, error) {
@@ -39,11 +40,12 @@ func (srv *OrderServer) GetOrderStatus(ctx context.Context, req *orderv1.GetStat
 		return nil, srv.getGrpcError(err)
 	}
 
-	return srv.mapOrderStatusToResponse(o.Status), nil
+	return srv.createOrderStatusResponse(o), nil
 }
 
-func (srv *OrderServer) mapOrderStatusToResponse(s model.OrderStatus) *orderv1.GetStatusResponse {
+func (srv *OrderServer) createOrderStatusResponse(order *model.Order) *orderv1.GetStatusResponse {
 	return &orderv1.GetStatusResponse{
-		Status: mapping.MapOrderStatusToProtoStatus(s),
+		Status:    mapping.MapOrderStatusToProtoStatus(order.Status),
+		UpdatedAt: timestamppb.New(order.UpdatedAt),
 	}
 }

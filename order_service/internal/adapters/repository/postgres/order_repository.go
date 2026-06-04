@@ -240,9 +240,8 @@ func (r *OrderRepository) mapDBError(err error, description string) error {
 			return fmt.Errorf("%s: %w", description, errs.ErrForeignKeyViolation)
 		case "23514":
 			return fmt.Errorf("%s: %w", description, errs.ErrInvalidInput)
-		default:
-			return fmt.Errorf("%s: %w: %w", description, errs.ErrInternal, err)
 		}
 	}
+
 	return fmt.Errorf("%s: %w: %w", description, errs.ErrInternal, err)
 }

@@ -9,7 +9,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-func UnaryServerTelemtry() grpc.UnaryServerInterceptor {
+// UnaryServerTelemetry извлекает из входящего контекста x-request-id или генерирует новый и добавляет его в атрибуты трейса
+func UnaryServerTelemetry() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		span := trace.SpanFromContext(ctx)
 		if span.IsRecording() {
@@ -22,8 +23,8 @@ func UnaryServerTelemtry() grpc.UnaryServerInterceptor {
 	}
 }
 
-// добавляет x-request-id в атрибуты трейса
-func UnaryClientXReqIdTelemtry() grpc.UnaryClientInterceptor {
+// UnaryClientXReqIdTelemetry добавляет x-request-id в атрибуты трейса
+func UnaryClientXReqIdTelemetry() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		reqid := xrequestid.GetFromIncomingCtx(ctx)
 
@@ -36,6 +37,7 @@ func UnaryClientXReqIdTelemtry() grpc.UnaryClientInterceptor {
 	}
 }
 
+// UnaryClientXReqId добавляет x-request-id в исходящий контекст
 func UnaryClientXReqId() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		reqid := xrequestid.GetFromIncomingCtx(ctx)

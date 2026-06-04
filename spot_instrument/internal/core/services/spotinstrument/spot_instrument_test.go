@@ -69,6 +69,10 @@ func (m *mockSpotInstrumentMetrics) ViewMarkets(ctx context.Context) {
 	m.Called(ctx)
 }
 
+func (m *mockSpotInstrumentMetrics) FindMarket(ctx context.Context) {
+	m.Called(ctx)
+}
+
 func (m *mockSpotInstrumentMetrics) FailedViewMarkets(ctx context.Context) {
 	m.Called(ctx)
 }

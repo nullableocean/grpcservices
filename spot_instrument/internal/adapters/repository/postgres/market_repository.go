@@ -117,23 +117,30 @@ func (r *MarketRepository) FindEnabledByRolesPaginated(ctx context.Context, role
         WHERE m.is_enabled = true AND m.deleted_at IS NULL
     `
 
+	args := make([]interface{}, 0, 4)
+	args = append(args, roleIDs)
+	argIndex := 2
+
 	cursor, err := pageToken.Decode()
 	if err != nil {
 		r.logger.Warn("failed decode pagination token", zap.Error(err))
 	}
 
 	if cursor.MarketName != "" && cursor.MarketUuid != "" {
-		query += ` AND (m.name, m.uuid) > ($2, $3)`
+		query += fmt.Sprintf(` AND (m.name, m.uuid) > ($%d, $%d)`, argIndex, argIndex+1)
+		args = append(args, cursor.MarketName, cursor.MarketUuid)
+		argIndex += 2
 	}
 
-	query += `
+	query += fmt.Sprintf(`
         GROUP BY m.uuid
         HAVING COUNT(mar.role_id) = 0 OR array_agg(mar.role_id) && $1
         ORDER BY m.name, m.uuid
-        LIMIT $4
-    `
+        LIMIT $%d
+    `, argIndex)
+	args = append(args, limit+1)
 
-	rows, err := r.db.Query(ctx, query, roleIDs, cursor.MarketName, cursor.MarketUuid, limit+1)
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query markets: %w", err)
 	}

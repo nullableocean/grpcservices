@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package models.v1;
+
+option go_package = "github.com/nullableocean/grpcservices/api/gen/models/v1;modelsv1";
+
+import "google/protobuf/timestamp.proto";
+
+message Market {
+    string uuid = 1;
+    string name = 2;
+    bool is_active = 3;
+    google.protobuf.Timestamp created_at = 4;
+    google.protobuf.Timestamp updated_at = 5;
+}

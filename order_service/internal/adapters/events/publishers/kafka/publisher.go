@@ -5,24 +5,28 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/IBM/sarama"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/metrics"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
-	"github.com/segmentio/kafka-go"
+	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
 	"go.uber.org/zap"
 )
 
-type Publisher struct {
-	writer *kafka.Writer
-	logger *zap.Logger
+var _ ports.EventPublisher = &Publisher{}
 
-	metrics *metrics.KafkaMetricsRecorder
+type Publisher struct {
+	producer sarama.SyncProducer
+	topic    string
+	metrics  *metrics.KafkaMetricsRecorder
+	logger   *zap.Logger
 }
 
-func NewKafkaPublisher(logger *zap.Logger, writer *kafka.Writer, metrics *metrics.KafkaMetricsRecorder) *Publisher {
+func NewKafkaPublisher(logger *zap.Logger, producer sarama.SyncProducer, topic string, metrics *metrics.KafkaMetricsRecorder) *Publisher {
 	return &Publisher{
-		writer:  writer,
-		logger:  logger,
-		metrics: metrics,
+		producer: producer,
+		topic:    topic,
+		logger:   logger,
+		metrics:  metrics,
 	}
 }
 
@@ -33,43 +37,47 @@ func (p *Publisher) Publish(ctx context.Context, event model.Event) error {
 			zap.String("event_id", event.ID()),
 			zap.Error(err),
 		)
-
 		return fmt.Errorf("failed event data: %w", err)
 	}
 
-	key := []byte(event.GetOrderUUID())
-	msg := kafka.Message{
-		Key:   key,
-		Value: payload,
-		Time:  time.Now(),
-		Headers: []kafka.Header{
-			{Key: "event_type", Value: []byte(event.EventType().String())},
-			{Key: "event_id", Value: []byte(event.ID())},
-		},
+	msg := &sarama.ProducerMessage{
+		Topic:     p.topic,
+		Key:       sarama.StringEncoder(event.GetOrderUUID()),
+		Value:     sarama.ByteEncoder(payload),
+		Timestamp: time.Now(),
+		Headers:   p.getHeaders(event),
 	}
 
-	if err := p.writer.WriteMessages(ctx, msg); err != nil {
+	partition, offset, err := p.producer.SendMessage(msg)
+	if err != nil {
+		p.metrics.MessagePublishFailed(ctx)
 		p.logger.Error("failed to write message to kafka",
-			zap.String("topic", p.writer.Topic),
+			zap.String("topic", p.topic),
 			zap.String("event_id", event.ID()),
 			zap.Error(err),
 		)
-		p.metrics.MessagePublishFailed(ctx)
 
 		return fmt.Errorf("failed write to kafka: %w", err)
 	}
 
 	p.metrics.MessagePublished(ctx)
+
 	p.logger.Info("event published in kafka",
-		zap.String("topic", p.writer.Topic),
+		zap.String("topic", p.topic),
 		zap.String("event_id", event.ID()),
 		zap.String("order_id", event.GetOrderUUID()),
 		zap.String("event_type", event.EventType().String()),
+		zap.Int32("partition", partition),
+		zap.Int64("offset", offset),
 	)
 
 	return nil
+
 }
 
-func (p *Publisher) Close() error {
-	return p.writer.Close()
+func (p *Publisher) getHeaders(event model.Event) []sarama.RecordHeader {
+	return []sarama.RecordHeader{
+		{Key: []byte("event_type"), Value: []byte(event.EventType().String())},
+		{Key: []byte("event_id"), Value: []byte(event.ID())},
+	}
 }

@@ -26,5 +26,5 @@ func NewOrderServer(l *zap.Logger, orderService order.Service, updateNotifier po
 }
 
 func (srv *OrderServer) getGrpcError(e error) error {
-	return mapping.MapErrorToGrpcStatus(e)
+	return mapping.MapErrorToGrpcStatusError(e)
 }

@@ -1,11 +1,11 @@
 package mapping
 
 import (
-	spotv1 "github.com/nullableocean/grpcservices/api/gen/spot/v1"
+	modelsv1 "github.com/nullableocean/grpcservices/api/gen/models/v1"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 )
 
-func MapProtoMarketsToMarkets(markets []*spotv1.Market) []*model.Market {
+func MapProtoMarketsToMarkets(markets []*modelsv1.Market) []*model.Market {
 	out := make([]*model.Market, 0, len(markets))
 
 	for _, m := range markets {
@@ -15,8 +15,12 @@ func MapProtoMarketsToMarkets(markets []*spotv1.Market) []*model.Market {
 	return out
 }
 
-func MapProtoMarketToMarket(pbm *spotv1.Market) *model.Market {
+func MapProtoMarketToMarket(pbm *modelsv1.Market) *model.Market {
 	return &model.Market{
-		UUID: pbm.Uuid,
+		UUID:      pbm.Uuid,
+		Name:      pbm.Name,
+		IsActive:  pbm.IsActive,
+		CreatedAt: pbm.CreatedAt.AsTime(),
+		UpdatedAt: pbm.UpdatedAt.AsTime(),
 	}
 }

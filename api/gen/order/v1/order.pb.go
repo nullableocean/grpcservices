@@ -131,6 +131,7 @@ func (x *GetUpdatesRequest) GetUserUuid() string {
 type GetStatusResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        v1.OrderStatus         `protobuf:"varint,1,opt,name=status,proto3,enum=models.v1.OrderStatus" json:"status,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -170,6 +171,13 @@ func (x *GetStatusResponse) GetStatus() v1.OrderStatus {
 		return x.Status
 	}
 	return v1.OrderStatus(0)
+}
+
+func (x *GetStatusResponse) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
 }
 
 type UpdatesResponse struct {
@@ -388,9 +396,11 @@ const file_service_order_proto_rawDesc = "" +
 	"\x11GetUpdatesRequest\x12'\n" +
 	"\n" +
 	"order_uuid\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\torderUuid\x12%\n" +
-	"\tuser_uuid\x18\x02 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\buserUuid\"C\n" +
+	"\tuser_uuid\x18\x02 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\buserUuid\"~\n" +
 	"\x11GetStatusResponse\x12.\n" +
-	"\x06status\x18\x01 \x01(\x0e2\x16.models.v1.OrderStatusR\x06status\"\xb3\x01\n" +
+	"\x06status\x18\x01 \x01(\x0e2\x16.models.v1.OrderStatusR\x06status\x129\n" +
+	"\n" +
+	"updated_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xb3\x01\n" +
 	"\x0fUpdatesResponse\x12.\n" +
 	"\x06status\x18\x01 \x01(\x0e2\x16.models.v1.OrderStatusR\x06status\x125\n" +
 	"\n" +
@@ -448,25 +458,26 @@ var file_service_order_proto_goTypes = []any{
 }
 var file_service_order_proto_depIdxs = []int32{
 	6,  // 0: order.v1.GetStatusResponse.status:type_name -> models.v1.OrderStatus
-	6,  // 1: order.v1.UpdatesResponse.status:type_name -> models.v1.OrderStatus
-	6,  // 2: order.v1.UpdatesResponse.old_status:type_name -> models.v1.OrderStatus
-	7,  // 3: order.v1.UpdatesResponse.updated_at:type_name -> google.protobuf.Timestamp
-	8,  // 4: order.v1.CreateOrderRequest.order_type:type_name -> models.v1.OrderType
-	9,  // 5: order.v1.CreateOrderRequest.order_side:type_name -> models.v1.OrderSide
-	10, // 6: order.v1.CreateOrderRequest.price:type_name -> models.v1.Money
-	11, // 7: order.v1.CreateOrderRequest.quantity:type_name -> models.v1.Decimal
-	6,  // 8: order.v1.CreateOrderResponse.status:type_name -> models.v1.OrderStatus
-	4,  // 9: order.v1.Order.CreateOrder:input_type -> order.v1.CreateOrderRequest
-	0,  // 10: order.v1.Order.GetOrderStatus:input_type -> order.v1.GetStatusRequest
-	1,  // 11: order.v1.Order.StreamOrderUpdates:input_type -> order.v1.GetUpdatesRequest
-	5,  // 12: order.v1.Order.CreateOrder:output_type -> order.v1.CreateOrderResponse
-	2,  // 13: order.v1.Order.GetOrderStatus:output_type -> order.v1.GetStatusResponse
-	3,  // 14: order.v1.Order.StreamOrderUpdates:output_type -> order.v1.UpdatesResponse
-	12, // [12:15] is the sub-list for method output_type
-	9,  // [9:12] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	7,  // 1: order.v1.GetStatusResponse.updated_at:type_name -> google.protobuf.Timestamp
+	6,  // 2: order.v1.UpdatesResponse.status:type_name -> models.v1.OrderStatus
+	6,  // 3: order.v1.UpdatesResponse.old_status:type_name -> models.v1.OrderStatus
+	7,  // 4: order.v1.UpdatesResponse.updated_at:type_name -> google.protobuf.Timestamp
+	8,  // 5: order.v1.CreateOrderRequest.order_type:type_name -> models.v1.OrderType
+	9,  // 6: order.v1.CreateOrderRequest.order_side:type_name -> models.v1.OrderSide
+	10, // 7: order.v1.CreateOrderRequest.price:type_name -> models.v1.Money
+	11, // 8: order.v1.CreateOrderRequest.quantity:type_name -> models.v1.Decimal
+	6,  // 9: order.v1.CreateOrderResponse.status:type_name -> models.v1.OrderStatus
+	4,  // 10: order.v1.Order.CreateOrder:input_type -> order.v1.CreateOrderRequest
+	0,  // 11: order.v1.Order.GetOrderStatus:input_type -> order.v1.GetStatusRequest
+	1,  // 12: order.v1.Order.StreamOrderUpdates:input_type -> order.v1.GetUpdatesRequest
+	5,  // 13: order.v1.Order.CreateOrder:output_type -> order.v1.CreateOrderResponse
+	2,  // 14: order.v1.Order.GetOrderStatus:output_type -> order.v1.GetStatusResponse
+	3,  // 15: order.v1.Order.StreamOrderUpdates:output_type -> order.v1.UpdatesResponse
+	13, // [13:16] is the sub-list for method output_type
+	10, // [10:13] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_service_order_proto_init() }

@@ -24,7 +24,7 @@ func NewMarketValidator(spotInstrument ports.SpotInstrument, logger *zap.Logger)
 }
 
 func (v *MarketValidator) Validate(ctx context.Context, marketUUID string, roles []model.UserRole) error {
-	_, err := v.spotInstrument.FindMarket(ctx, marketUUID, roles)
+	market, err := v.spotInstrument.FindMarket(ctx, marketUUID, roles)
 	if err != nil {
 		if errors.Is(err, ports.ErrNotFound) {
 			return fmt.Errorf("market not found: %w", errs.ErrNotFound)
@@ -34,6 +34,10 @@ func (v *MarketValidator) Validate(ctx context.Context, marketUUID string, roles
 		}
 
 		return fmt.Errorf("failed to validate market: %w", err)
+	}
+
+	if !market.IsActive {
+		return fmt.Errorf("market is not active: %w", errs.ErrNotAllowed)
 	}
 
 	return nil

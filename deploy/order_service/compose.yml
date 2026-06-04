@@ -10,11 +10,17 @@ services:
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
       - "${METRICS_PORT}:${METRICS_PORT}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${METRICS_PORT}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     networks:
       - appnet
       - order
@@ -55,6 +61,11 @@ services:
     mem_limit: 512m
     volumes:
       - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   migrator:
     image: migrate/migrate

@@ -2,8 +2,8 @@ package model
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
-	"strings"
 )
 
 type PaginationData struct {
@@ -25,10 +25,12 @@ func (c PaginationCursor) Encode() PageToken {
 	if c.MarketName == "" && c.MarketUuid == "" {
 		return PageToken{}
 	}
-
-	return PageToken{
-		Token: base64.URLEncoding.EncodeToString([]byte(c.MarketName + separator + c.MarketUuid)),
+	data, err := json.Marshal(c)
+	if err != nil {
+		return PageToken{}
 	}
+
+	return PageToken{Token: base64.URLEncoding.EncodeToString(data)}
 }
 
 type PageToken struct {
@@ -39,21 +41,17 @@ func (t PageToken) Decode() (PaginationCursor, error) {
 	if t.Empty() {
 		return PaginationCursor{}, nil
 	}
-
 	data, err := base64.URLEncoding.DecodeString(t.Token)
 	if err != nil {
-		return PaginationCursor{}, fmt.Errorf("invalid page token: %w", err)
+		return PaginationCursor{}, fmt.Errorf("invalid base64: %w", err)
 	}
 
-	parts := strings.SplitN(string(data), separator, 2)
-	if len(parts) != 2 {
-		return PaginationCursor{}, fmt.Errorf("invalid page token format")
+	var cursor PaginationCursor
+	if err := json.Unmarshal(data, &cursor); err != nil {
+		return PaginationCursor{}, fmt.Errorf("invalid token json: %w", err)
 	}
 
-	return PaginationCursor{
-		MarketName: parts[0],
-		MarketUuid: parts[1],
-	}, nil
+	return cursor, nil
 }
 
 func (t PageToken) Empty() bool {

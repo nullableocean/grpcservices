@@ -102,5 +102,5 @@ func (srv *SpotInstrumentServer) mapMarketsToResponse(markets []*model.Market, n
 }
 
 func (srv *SpotInstrumentServer) getGrpcError(e error) error {
-	return status.Error(codes.Internal, e.Error())
+	return mapping.MapErrorToGrpcStatusError(e)
 }

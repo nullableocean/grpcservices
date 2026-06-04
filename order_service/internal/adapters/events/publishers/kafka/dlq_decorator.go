@@ -7,12 +7,15 @@ import (
 
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/metrics"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
+	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
 	"go.uber.org/zap"
 )
 
+var _ ports.EventPublisher = &DlqPublisherDecorator{}
+
 type RetryBackoffFunc func(attempt int) time.Duration
 
-type DlqPublishRetrayer struct {
+type DlqPublisherDecorator struct {
 	dlqPublisher *Publisher
 
 	publisher *Publisher
@@ -28,12 +31,12 @@ type Config struct {
 	BackoffFunc RetryBackoffFunc
 }
 
-func NewDlqPublishRetrayer(logger *zap.Logger, dlqWriter *Publisher, publisher *Publisher, metrics *metrics.KafkaMetricsRecorder, opts Config) (*DlqPublishRetrayer, error) {
+func NewDlqPublisherDecorator(logger *zap.Logger, dlqWriter *Publisher, publisher *Publisher, metrics *metrics.KafkaMetricsRecorder, opts Config) (*DlqPublisherDecorator, error) {
 	if opts.MaxAttempts <= 0 {
 		return nil, fmt.Errorf("invalid attempts for DlqPublishRetrayer: %d", opts.MaxAttempts)
 	}
 
-	return &DlqPublishRetrayer{
+	return &DlqPublisherDecorator{
 		dlqPublisher: dlqWriter,
 		publisher:    publisher,
 		logger:       logger,
@@ -43,7 +46,7 @@ func NewDlqPublishRetrayer(logger *zap.Logger, dlqWriter *Publisher, publisher *
 	}, nil
 }
 
-func (p *DlqPublishRetrayer) Publish(ctx context.Context, event model.Event) error {
+func (p *DlqPublisherDecorator) Publish(ctx context.Context, event model.Event) error {
 	var lastErr error
 	for attempt := 0; attempt < p.maxAttemps; attempt++ {
 		err := p.publisher.Publish(ctx, event)

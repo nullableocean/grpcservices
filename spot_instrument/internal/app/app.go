@@ -191,9 +191,9 @@ func (a *App) initGRPCServer() error {
 	unaryInterceptors := grpc.ChainUnaryInterceptor(
 		shared_inters.UnaryServerPanicRecovery(a.logger, a.cfg.Log.StackLines),
 		shared_inters.UnaryServerLogger(a.logger),
-		shared_inters.UnaryServerTelemtry(),
+		shared_inters.UnaryServerTelemetry(),
 		a.grpcMetricsSrv.UnaryServerInterceptor(),
-		shared_inters.ValidationUnaryInterceptor(),
+		shared_inters.ValidationUnaryInterceptor(a.logger),
 		shared_inters.UnaryJwtAuthInterceptor(a.logger, jwtParser),
 	)
 
@@ -222,7 +222,11 @@ func (a *App) initServices() error {
 	if err != nil {
 		return fmt.Errorf("failed create market repository: %w", err)
 	}
-	marketRepo.StartRefreshingRoles(context.Background(), a.cfg.SpotRepo.RolesRefreshInterval)
+
+	ctx, cl := context.WithCancel(context.Background())
+	defer cl()
+
+	marketRepo.StartRefreshingRoles(ctx, a.cfg.SpotRepo.RolesRefreshInterval)
 
 	a.closers = append(a.closers, func() error {
 		marketRepo.Stop()

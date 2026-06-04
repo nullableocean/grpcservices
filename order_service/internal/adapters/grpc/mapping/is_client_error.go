@@ -5,7 +5,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func IsGrpcClientErrors(err error) bool {
+// IsClientSideGrpcError проверяет, что ошибка является клиентской
+func IsClientSideGrpcError(err error) bool {
 	if err == nil {
 		return false
 	}
@@ -17,7 +18,9 @@ func IsGrpcClientErrors(err error) bool {
 
 	code := st.Code()
 	switch code {
-	case codes.Canceled,
+	case
+		codes.OK,
+		codes.Canceled,
 		codes.InvalidArgument,
 		codes.NotFound,
 		codes.AlreadyExists,

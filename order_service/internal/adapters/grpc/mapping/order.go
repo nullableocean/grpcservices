@@ -6,47 +6,49 @@ import (
 )
 
 func MapProtoTypeToOrderType(pbType modelsv1.OrderType) model.OrderType {
-	var orderType model.OrderType
 	switch pbType {
 	case modelsv1.OrderType_ORDER_TYPE_LIMIT:
-		orderType = model.OrderTypeLimit
+		return model.OrderTypeLimit
+
 	case modelsv1.OrderType_ORDER_TYPE_MARKET:
-		orderType = model.OrderTypeMarket
+		return model.OrderTypeMarket
+
 	case modelsv1.OrderType_ORDER_TYPE_STOP_LOSS:
-		orderType = model.OrderTypeStopLoss
+		return model.OrderTypeStopLoss
+
 	case modelsv1.OrderType_ORDER_TYPE_TAKE_PROFIT:
-		orderType = model.OrderTypeTakeProfit
+		return model.OrderTypeTakeProfit
+	default:
+		return model.UndefinedOrderType
 	}
 
-	return orderType
 }
 
 func MapProtoSideToOrderSide(pbSide modelsv1.OrderSide) model.OrderSide {
-	var side model.OrderSide
 	switch pbSide {
 	case modelsv1.OrderSide_ORDER_SIDE_BUY:
-		side = model.OrderSideBuy
-	case modelsv1.OrderSide_ORDER_SIDE_SELL:
-		side = model.OrderSideSell
-	}
+		return model.OrderSideBuy
 
-	return side
+	case modelsv1.OrderSide_ORDER_SIDE_SELL:
+		return model.OrderSideSell
+	default:
+		return model.UndefinedOrderSide
+	}
 }
 
 func MapOrderStatusToProtoStatus(s model.OrderStatus) modelsv1.OrderStatus {
-	var pbStatus modelsv1.OrderStatus
 	switch s {
 	case model.OrderStatusCreated:
-		pbStatus = modelsv1.OrderStatus_ORDER_STATUS_CREATED
+		return modelsv1.OrderStatus_ORDER_STATUS_CREATED
 	case model.OrderStatusPending:
-		pbStatus = modelsv1.OrderStatus_ORDER_STATUS_PENDING
+		return modelsv1.OrderStatus_ORDER_STATUS_PENDING
 	case model.OrderStatusCompleted:
-		pbStatus = modelsv1.OrderStatus_ORDER_STATUS_COMPLETED
+		return modelsv1.OrderStatus_ORDER_STATUS_COMPLETED
 	case model.OrderStatusCancelled:
-		pbStatus = modelsv1.OrderStatus_ORDER_STATUS_CANCELLED
+		return modelsv1.OrderStatus_ORDER_STATUS_CANCELLED
 	case model.OrderStatusRejected:
-		pbStatus = modelsv1.OrderStatus_ORDER_STATUS_REJECTED
+		return modelsv1.OrderStatus_ORDER_STATUS_REJECTED
+	default:
+		return modelsv1.OrderStatus_ORDER_STATUS_UNSPECIFIED
 	}
-
-	return pbStatus
 }

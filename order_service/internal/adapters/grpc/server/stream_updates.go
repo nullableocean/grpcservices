@@ -36,7 +36,7 @@ func (srv *OrderServer) StreamOrderUpdates(req *orderv1.GetUpdatesRequest, strea
 SEND_UPDATES:
 	for update := range sub.Updates() {
 		if update.Data.NewStatus != nil {
-			err := stream.Send(srv.mapUpdateDataToStreamMsg(update.Data))
+			err := stream.Send(srv.createUpdatesResponse(update.Data))
 			if err != nil {
 				span.AddEvent("failed send to stream")
 				logger.Warn("failed send message to grpc stream", zap.Error(err))
@@ -52,7 +52,7 @@ SEND_UPDATES:
 	return nil
 }
 
-func (srv *OrderServer) mapUpdateDataToStreamMsg(data *model.EventUpdatedData) *orderv1.UpdatesResponse {
+func (srv *OrderServer) createUpdatesResponse(data *model.EventUpdatedData) *orderv1.UpdatesResponse {
 	if data.NewStatus != nil {
 		return &orderv1.UpdatesResponse{
 			Status:    mapping.MapOrderStatusToProtoStatus(*data.NewStatus),

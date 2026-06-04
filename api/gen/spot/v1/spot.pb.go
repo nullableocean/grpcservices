@@ -25,7 +25,7 @@ const (
 
 type ViewMarketsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Markets       []*Market              `protobuf:"bytes,1,rep,name=markets,proto3" json:"markets,omitempty"`
+	Markets       []*v1.Market           `protobuf:"bytes,1,rep,name=markets,proto3" json:"markets,omitempty"`
 	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -61,7 +61,7 @@ func (*ViewMarketsResponse) Descriptor() ([]byte, []int) {
 	return file_service_spot_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *ViewMarketsResponse) GetMarkets() []*Market {
+func (x *ViewMarketsResponse) GetMarkets() []*v1.Market {
 	if x != nil {
 		return x.Markets
 	}
@@ -190,7 +190,7 @@ func (x *FindMarketRequest) GetUserRoles() []v1.UserRole {
 
 type FindMarketResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Market        *Market                `protobuf:"bytes,1,opt,name=market,proto3" json:"market,omitempty"`
+	Market        *v1.Market             `protobuf:"bytes,1,opt,name=market,proto3" json:"market,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -225,64 +225,20 @@ func (*FindMarketResponse) Descriptor() ([]byte, []int) {
 	return file_service_spot_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *FindMarketResponse) GetMarket() *Market {
+func (x *FindMarketResponse) GetMarket() *v1.Market {
 	if x != nil {
 		return x.Market
 	}
 	return nil
 }
 
-type Market struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Uuid          string                 `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Market) Reset() {
-	*x = Market{}
-	mi := &file_service_spot_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Market) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Market) ProtoMessage() {}
-
-func (x *Market) ProtoReflect() protoreflect.Message {
-	mi := &file_service_spot_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Market.ProtoReflect.Descriptor instead.
-func (*Market) Descriptor() ([]byte, []int) {
-	return file_service_spot_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *Market) GetUuid() string {
-	if x != nil {
-		return x.Uuid
-	}
-	return ""
-}
-
 var File_service_spot_proto protoreflect.FileDescriptor
 
 const file_service_spot_proto_rawDesc = "" +
 	"\n" +
-	"\x12service/spot.proto\x12\aspot.v1\x1a\x11models/user.proto\x1a\x17validate/validate.proto\"h\n" +
-	"\x13ViewMarketsResponse\x12)\n" +
-	"\amarkets\x18\x01 \x03(\v2\x0f.spot.v1.MarketR\amarkets\x12&\n" +
+	"\x12service/spot.proto\x12\aspot.v1\x1a\x11models/user.proto\x1a\x13models/market.proto\x1a\x17validate/validate.proto\"j\n" +
+	"\x13ViewMarketsResponse\x12+\n" +
+	"\amarkets\x18\x01 \x03(\v2\x11.models.v1.MarketR\amarkets\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb4\x01\n" +
 	"\x12ViewMarketsRequest\x12I\n" +
 	"\n" +
@@ -297,11 +253,9 @@ const file_service_spot_proto_rawDesc = "" +
 	"marketUuid\x12I\n" +
 	"\n" +
 	"user_roles\x18\x02 \x03(\x0e2\x13.models.v1.UserRoleB\x15\xfaB\x12\x92\x01\x0f\b\x00\x10\n" +
-	"\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\tuserRoles\"=\n" +
-	"\x12FindMarketResponse\x12'\n" +
-	"\x06market\x18\x01 \x01(\v2\x0f.spot.v1.MarketR\x06market\"&\n" +
-	"\x06Market\x12\x1c\n" +
-	"\x04uuid\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\x04uuid2\xa1\x01\n" +
+	"\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\tuserRoles\"?\n" +
+	"\x12FindMarketResponse\x12)\n" +
+	"\x06market\x18\x01 \x01(\v2\x11.models.v1.MarketR\x06market2\xa1\x01\n" +
 	"\x0eSpotInstrument\x12H\n" +
 	"\vViewMarkets\x12\x1b.spot.v1.ViewMarketsRequest\x1a\x1c.spot.v1.ViewMarketsResponse\x12E\n" +
 	"\n" +
@@ -319,20 +273,20 @@ func file_service_spot_proto_rawDescGZIP() []byte {
 	return file_service_spot_proto_rawDescData
 }
 
-var file_service_spot_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_service_spot_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_service_spot_proto_goTypes = []any{
 	(*ViewMarketsResponse)(nil), // 0: spot.v1.ViewMarketsResponse
 	(*ViewMarketsRequest)(nil),  // 1: spot.v1.ViewMarketsRequest
 	(*FindMarketRequest)(nil),   // 2: spot.v1.FindMarketRequest
 	(*FindMarketResponse)(nil),  // 3: spot.v1.FindMarketResponse
-	(*Market)(nil),              // 4: spot.v1.Market
+	(*v1.Market)(nil),           // 4: models.v1.Market
 	(v1.UserRole)(0),            // 5: models.v1.UserRole
 }
 var file_service_spot_proto_depIdxs = []int32{
-	4, // 0: spot.v1.ViewMarketsResponse.markets:type_name -> spot.v1.Market
+	4, // 0: spot.v1.ViewMarketsResponse.markets:type_name -> models.v1.Market
 	5, // 1: spot.v1.ViewMarketsRequest.user_roles:type_name -> models.v1.UserRole
 	5, // 2: spot.v1.FindMarketRequest.user_roles:type_name -> models.v1.UserRole
-	4, // 3: spot.v1.FindMarketResponse.market:type_name -> spot.v1.Market
+	4, // 3: spot.v1.FindMarketResponse.market:type_name -> models.v1.Market
 	1, // 4: spot.v1.SpotInstrument.ViewMarkets:input_type -> spot.v1.ViewMarketsRequest
 	2, // 5: spot.v1.SpotInstrument.FindMarket:input_type -> spot.v1.FindMarketRequest
 	0, // 6: spot.v1.SpotInstrument.ViewMarkets:output_type -> spot.v1.ViewMarketsResponse
@@ -355,7 +309,7 @@ func file_service_spot_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_service_spot_proto_rawDesc), len(file_service_spot_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

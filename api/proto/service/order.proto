@@ -29,6 +29,7 @@ message GetUpdatesRequest {
 
 message GetStatusResponse {
     models.v1.OrderStatus status = 1;
+    google.protobuf.Timestamp updated_at = 2;
 }
 
 message UpdatesResponse {
