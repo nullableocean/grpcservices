@@ -18,11 +18,8 @@ help:
 
 up: create-net
 	make up-metrics
-	@sleep 5
 	make up-kafka
-	@sleep 5
 	make up-spot
-	@sleep 3
 	make up-order
 
 	@echo "grafana: http://localhost:3000"
