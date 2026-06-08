@@ -11,44 +11,74 @@ import "models/order.proto";
 import "validate/validate.proto";
 import "google/protobuf/timestamp.proto";
 
+// Сервис Order управляет ордерами — создание, получение статуса, стриминг обновлений
 service Order {
+    // CreateOrder создаёт новый ордер
     rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+
+    // GetOrderStatus возвращает информацию о статусе ордера
     rpc GetOrderStatus(GetStatusRequest) returns (GetStatusResponse);
+
+    // StreamOrderUpdates получение обновлений статуса в потоковом режиме
     rpc StreamOrderUpdates(GetUpdatesRequest) returns (stream UpdatesResponse);
 }
 
+// Запрос статуса ордера
 message GetStatusRequest {
+    // UUID ордера
     string order_uuid = 1 [(validate.rules).string = {uuid: true}];
+    // UUID пользователя
     string user_uuid  = 2 [(validate.rules).string = {uuid: true}];
 }
 
-message GetUpdatesRequest {
-    string order_uuid = 1 [(validate.rules).string = {uuid: true}];
-    string user_uuid  = 2 [(validate.rules).string = {uuid: true}];
-}
-
+// Информация о статусе ордера
 message GetStatusResponse {
+    // Текущий статус
     models.v1.OrderStatus status = 1;
+    // Время последнего изменения
     google.protobuf.Timestamp updated_at = 2;
 }
 
+// Запрос на стриминг обновлений
+message GetUpdatesRequest {
+    // UUID ордера
+    string order_uuid = 1 [(validate.rules).string = {uuid: true}];
+    // UUID пользователя
+    string user_uuid  = 2 [(validate.rules).string = {uuid: true}];
+}
+
+// Сообщения обновления статуса в потоке
 message UpdatesResponse {
+    // Новый статус
     models.v1.OrderStatus status = 1;
+    // Предыдущий статус
     models.v1.OrderStatus old_status = 2;
+    // Время обновления
     google.protobuf.Timestamp updated_at = 3;
 }
 
+// Запрос на создание ордера
 message CreateOrderRequest {
+    // UUID пользователя
     string user_uuid = 1 [(validate.rules).string = {uuid: true}];
+    // UUID рынка
     string market_uuid = 2 [(validate.rules).string = {uuid: true}];
+    // Тип ордера (лимитный, рыночный и т.д.)
     models.v1.OrderType order_type = 3 [(validate.rules).enum = {defined_only: true, not_in: [0]}];
+    // Покупка или продажа
     models.v1.OrderSide order_side = 4 [(validate.rules).enum = {defined_only: true, not_in: [0]}];
+    // Цена за единицу
     models.v1.Money price = 5 [(validate.rules).message = {required: true}];
+    // Количество
     models.v1.Decimal quantity = 6 [(validate.rules).message = {required: true}];
+    // Ключ идемпотентности (UUID)
     string idempotency_key = 7 [(validate.rules).string = {uuid: true}];
 }
 
+// Ответ на создание ордера
 message CreateOrderResponse {
+    // UUID созданного ордера
     string order_uuid = 1;
+    // Статус созданного ордера
     models.v1.OrderStatus status = 2;
 }

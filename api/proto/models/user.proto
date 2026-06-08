@@ -4,11 +4,18 @@ package models.v1;
 
 option go_package = "github.com/nullableocean/grpcservices/api/gen/models/v1;modelsv1";
 
+// UserRole — роли пользователя в системе
 enum UserRole {
+    // Не указано (значение по умолчанию, не должно использоваться)
     USER_ROLE_UNSPECIFIED = 0;
+    // Гость (минимальные права для просмотра публичной информации)
     USER_ROLE_GUEST = 1;
+    // Трейдер (базовые торговые права)
     USER_ROLE_TRADER = 2;
+    // Маркет-мейкер (специальные права на создание ликвидности)
     USER_ROLE_MARKET_MAKER = 3;
+    // Модератор
     USER_ROLE_MODER = 4;
-    USER_ROLE_ADMIN = 5;  
+    // Администратор
+    USER_ROLE_ADMIN = 5;
 }

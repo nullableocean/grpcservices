@@ -6,10 +6,16 @@ option go_package = "github.com/nullableocean/grpcservices/api/gen/models/v1;mod
 
 import "google/protobuf/timestamp.proto";
 
+// Market хранит информацию о торговым рынке
 message Market {
+    // UUID рынка
     string uuid = 1;
+    // Название рынка
     string name = 2;
+    // Активность рынка
     bool is_active = 3;
+    // Когда создан
     google.protobuf.Timestamp created_at = 4;
+    // Последнее обновление
     google.protobuf.Timestamp updated_at = 5;
 }

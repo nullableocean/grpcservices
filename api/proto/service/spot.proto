@@ -8,29 +8,62 @@ import "models/user.proto";
 import "models/market.proto";
 import "validate/validate.proto";
 
+// Сервис SpotInstrument предоставляет информацию о маркетах
 service SpotInstrument {
+    // ViewMarkets возвращает список доступных маркетов с пагинацией
     rpc ViewMarkets(ViewMarketsRequest) returns (ViewMarketsResponse);
+
+    // FindMarket возвращает информацию о конкретном маркете
     rpc FindMarket(FindMarketRequest) returns (FindMarketResponse);
 }
 
-message ViewMarketsResponse {
-    repeated models.v1.Market markets = 1;
-    string next_page_token = 2;    
-}
-
-// ViewMarketsResponse.next_page_token
+// Запрос на получение списка маркетов
 message ViewMarketsRequest {
-    repeated models.v1.UserRole user_roles = 1 [(validate.rules).repeated = {min_items: 0,max_items: 10,unique: true, items: {enum: {defined_only: true, not_in: [0]}}}];
-    string page_token = 2 [(validate.rules).string = {ignore_empty: true, max_len: 512}];
-    int32 page_size = 3 [(validate.rules).int32 = {gte: 1,lte: 200}];
+    // Роли пользователя для фильтрации доступных маркетов
+    repeated models.v1.UserRole user_roles = 1 [(validate.rules).repeated = {
+        min_items: 0,
+        max_items: 10,
+        unique: true,
+        items: {enum: {defined_only: true, not_in: [0]}}
+    }];
+
+    // Токен пагинации
+    string page_token = 2 [(validate.rules).string = {
+        ignore_empty: true,
+        max_len: 512
+    }];
+
+    // Размер страницы (1–200)
+    int32 page_size = 3 [(validate.rules).int32 = {
+        gte: 1,
+        lte: 200
+    }];
 }
 
+// Ответ со списком маркетов
+message ViewMarketsResponse {
+    // Список маркетов
+    repeated models.v1.Market markets = 1;
+    // Токен для следующей страницы
+    string next_page_token = 2;
+}
+
+// Запрос на поиск одного маркета
 message FindMarketRequest {
-    string market_uuid = 1 [(validate.rules).string = {uuid: true}]; 
-    repeated models.v1.UserRole user_roles = 2 [(validate.rules).repeated = {min_items: 0,max_items: 10,unique: true, items: {enum: {defined_only: true, not_in: [0]}}}];
+    // UUID маркета
+    string market_uuid = 1 [(validate.rules).string = {uuid: true}];
+
+    // Роли пользователя для проверки доступа к этому рынку
+    repeated models.v1.UserRole user_roles = 2 [(validate.rules).repeated = {
+        min_items: 0,
+        max_items: 10,
+        unique: true,
+        items: {enum: {defined_only: true, not_in: [0]}}
+    }];
 }
 
+// Ответ с деталями маркета
 message FindMarketResponse {
+    // Найденный маркет
     models.v1.Market market = 1;
 }
-    

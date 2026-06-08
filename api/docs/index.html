@@ -1,0 +1,1976 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>Protocol Documentation</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Ubuntu:400,700,400italic"/>
+    <style>
+      body {
+        width: 60em;
+        margin: 1em auto;
+        color: #222;
+        font-family: "Ubuntu", sans-serif;
+        padding-bottom: 4em;
+      }
+
+      h1 {
+        font-weight: normal;
+        border-bottom: 1px solid #aaa;
+        padding-bottom: 0.5ex;
+      }
+
+      h2 {
+        border-bottom: 1px solid #aaa;
+        padding-bottom: 0.5ex;
+        margin: 1.5em 0;
+      }
+
+      h3 {
+        font-weight: normal;
+        border-bottom: 1px solid #aaa;
+        padding-bottom: 0.5ex;
+      }
+
+      a {
+        text-decoration: none;
+        color: #567e25;
+      }
+
+      table {
+        width: 100%;
+        font-size: 80%;
+        border-collapse: collapse;
+      }
+
+      thead {
+        font-weight: 700;
+        background-color: #dcdcdc;
+      }
+
+      tbody tr:nth-child(even) {
+        background-color: #fbfbfb;
+      }
+
+      td {
+        border: 1px solid #ccc;
+        padding: 0.5ex 2ex;
+      }
+
+      td p {
+        text-indent: 1em;
+        margin: 0;
+      }
+
+      td p:nth-child(1) {
+        text-indent: 0;  
+      }
+
+       
+      .field-table td:nth-child(1) {  
+        width: 10em;
+      }
+      .field-table td:nth-child(2) {  
+        width: 10em;
+      }
+      .field-table td:nth-child(3) {  
+        width: 6em;
+      }
+      .field-table td:nth-child(4) {  
+        width: auto;
+      }
+
+       
+      .extension-table td:nth-child(1) {  
+        width: 10em;
+      }
+      .extension-table td:nth-child(2) {  
+        width: 10em;
+      }
+      .extension-table td:nth-child(3) {  
+        width: 10em;
+      }
+      .extension-table td:nth-child(4) {  
+        width: 5em;
+      }
+      .extension-table td:nth-child(5) {  
+        width: auto;
+      }
+
+       
+      .enum-table td:nth-child(1) {  
+        width: 10em;
+      }
+      .enum-table td:nth-child(2) {  
+        width: 10em;
+      }
+      .enum-table td:nth-child(3) {  
+        width: auto;
+      }
+
+       
+      .scalar-value-types-table tr {
+        height: 3em;
+      }
+
+       
+      #toc-container ul {
+        list-style-type: none;
+        padding-left: 1em;
+        line-height: 180%;
+        margin: 0;
+      }
+      #toc > li > a {
+        font-weight: bold;
+      }
+
+       
+      .file-heading {
+        width: 100%;
+        display: table;
+        border-bottom: 1px solid #aaa;
+        margin: 4em 0 1.5em 0;
+      }
+      .file-heading h2 {
+        border: none;
+        display: table-cell;
+      }
+      .file-heading a {
+        text-align: right;
+        display: table-cell;
+      }
+
+       
+      .badge {
+        width: 1.6em;
+        height: 1.6em;
+        display: inline-block;
+
+        line-height: 1.6em;
+        text-align: center;
+        font-weight: bold;
+        font-size: 60%;
+
+        color: #89ba48;
+        background-color: #dff0c8;
+
+        margin: 0.5ex 1em 0.5ex -1em;
+        border: 1px solid #fbfbfb;
+        border-radius: 1ex;
+      }
+    </style>
+
+    
+    <link rel="stylesheet" type="text/css" href="stylesheet.css"/>
+  </head>
+
+  <body>
+
+    <h1 id="title">Protocol Documentation</h1>
+
+    <h2>Table of Contents</h2>
+
+    <div id="toc-container">
+      <ul id="toc">
+        
+          
+          <li>
+            <a href="#models%2fdecimal.proto">models/decimal.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#models.v1.Decimal"><span class="badge">M</span>Decimal</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#models%2fmarket.proto">models/market.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#models.v1.Market"><span class="badge">M</span>Market</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#models%2fmoney.proto">models/money.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#models.v1.Money"><span class="badge">M</span>Money</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#models%2forder.proto">models/order.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#models.v1.Order"><span class="badge">M</span>Order</a>
+                </li>
+              
+              
+                <li>
+                  <a href="#models.v1.OrderSide"><span class="badge">E</span>OrderSide</a>
+                </li>
+              
+                <li>
+                  <a href="#models.v1.OrderStatus"><span class="badge">E</span>OrderStatus</a>
+                </li>
+              
+                <li>
+                  <a href="#models.v1.OrderType"><span class="badge">E</span>OrderType</a>
+                </li>
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#models%2fuser.proto">models/user.proto</a>
+            <ul>
+              
+              
+                <li>
+                  <a href="#models.v1.UserRole"><span class="badge">E</span>UserRole</a>
+                </li>
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#service%2forder.proto">service/order.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#order.v1.CreateOrderRequest"><span class="badge">M</span>CreateOrderRequest</a>
+                </li>
+              
+                <li>
+                  <a href="#order.v1.CreateOrderResponse"><span class="badge">M</span>CreateOrderResponse</a>
+                </li>
+              
+                <li>
+                  <a href="#order.v1.GetStatusRequest"><span class="badge">M</span>GetStatusRequest</a>
+                </li>
+              
+                <li>
+                  <a href="#order.v1.GetStatusResponse"><span class="badge">M</span>GetStatusResponse</a>
+                </li>
+              
+                <li>
+                  <a href="#order.v1.GetUpdatesRequest"><span class="badge">M</span>GetUpdatesRequest</a>
+                </li>
+              
+                <li>
+                  <a href="#order.v1.UpdatesResponse"><span class="badge">M</span>UpdatesResponse</a>
+                </li>
+              
+              
+              
+              
+                <li>
+                  <a href="#order.v1.Order"><span class="badge">S</span>Order</a>
+                </li>
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#service%2fspot.proto">service/spot.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#spot.v1.FindMarketRequest"><span class="badge">M</span>FindMarketRequest</a>
+                </li>
+              
+                <li>
+                  <a href="#spot.v1.FindMarketResponse"><span class="badge">M</span>FindMarketResponse</a>
+                </li>
+              
+                <li>
+                  <a href="#spot.v1.ViewMarketsRequest"><span class="badge">M</span>ViewMarketsRequest</a>
+                </li>
+              
+                <li>
+                  <a href="#spot.v1.ViewMarketsResponse"><span class="badge">M</span>ViewMarketsResponse</a>
+                </li>
+              
+              
+              
+              
+                <li>
+                  <a href="#spot.v1.SpotInstrument"><span class="badge">S</span>SpotInstrument</a>
+                </li>
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#events%2forder%2fcreated.proto">events/order/created.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#events.order.v1.CreatedOrderEvent"><span class="badge">M</span>CreatedOrderEvent</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#events%2forder%2fupdate.proto">events/order/update.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#events.order.v1.UpdateStatus"><span class="badge">M</span>UpdateStatus</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#events%2fmarkets%2fupdate.proto">events/markets/update.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#events.markets.v1.MarketUpdated"><span class="badge">M</span>MarketUpdated</a>
+                </li>
+              
+              
+              
+              
+            </ul>
+          </li>
+        
+        <li><a href="#scalar-value-types">Scalar Value Types</a></li>
+      </ul>
+    </div>
+
+    
+      
+      <div class="file-heading">
+        <h2 id="models/decimal.proto">models/decimal.proto</h2><a href="#title">Top</a>
+      </div>
+      <p></p>
+
+      
+        <h3 id="models.v1.Decimal">Decimal</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>units</td>
+                  <td><a href="#int64">int64</a></td>
+                  <td></td>
+                  <td><p>The whole units of the amount. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>nanos</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td></td>
+                  <td><p>Number of nano (10^-9) units of the amount.
+The value must be between -999,999,999 and &#43;999,999,999 inclusive.
+If `units` is positive, `nanos` must be positive or zero.
+If `units` is zero, `nanos` can be positive, zero, or negative.
+If `units` is negative, `nanos` must be negative or zero. </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="models/market.proto">models/market.proto</h2><a href="#title">Top</a>
+      </div>
+      <p></p>
+
+      
+        <h3 id="models.v1.Market">Market</h3>
+        <p>Market хранит информацию о торговым рынке</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID рынка </p></td>
+                </tr>
+              
+                <tr>
+                  <td>name</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>Название рынка </p></td>
+                </tr>
+              
+                <tr>
+                  <td>is_active</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td></td>
+                  <td><p>Активность рынка </p></td>
+                </tr>
+              
+                <tr>
+                  <td>created_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p>Когда создан </p></td>
+                </tr>
+              
+                <tr>
+                  <td>updated_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p>Последнее обновление </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="models/money.proto">models/money.proto</h2><a href="#title">Top</a>
+      </div>
+      <p></p>
+
+      
+        <h3 id="models.v1.Money">Money</h3>
+        <p>Money represents an amount of money with its currency type</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>units</td>
+                  <td><a href="#int64">int64</a></td>
+                  <td></td>
+                  <td><p>The whole units of the amount. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>nanos</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td></td>
+                  <td><p>Number of nano (10^-9) units of the amount.
+The value must be between -999,999,999 and &#43;999,999,999 inclusive.
+If `units` is positive, `nanos` must be positive or zero.
+If `units` is zero, `nanos` can be positive, zero, or negative.
+If `units` is negative, `nanos` must be negative or zero. </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="models/order.proto">models/order.proto</h2><a href="#title">Top</a>
+      </div>
+      <p></p>
+
+      
+        <h3 id="models.v1.Order">Order</h3>
+        <p>Order операция на рынке</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>order_uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID ордера </p></td>
+                </tr>
+              
+                <tr>
+                  <td>user_uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID пользователя, создавшего ордер </p></td>
+                </tr>
+              
+                <tr>
+                  <td>market_uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID рынка, на котором размещён ордер </p></td>
+                </tr>
+              
+                <tr>
+                  <td>type</td>
+                  <td><a href="#models.v1.OrderType">OrderType</a></td>
+                  <td></td>
+                  <td><p>Тип ордера </p></td>
+                </tr>
+              
+                <tr>
+                  <td>status</td>
+                  <td><a href="#models.v1.OrderStatus">OrderStatus</a></td>
+                  <td></td>
+                  <td><p>Текущий статус ордера </p></td>
+                </tr>
+              
+                <tr>
+                  <td>side</td>
+                  <td><a href="#models.v1.OrderSide">OrderSide</a></td>
+                  <td></td>
+                  <td><p>Направление (покупка или продажа) </p></td>
+                </tr>
+              
+                <tr>
+                  <td>price</td>
+                  <td><a href="#models.v1.Money">Money</a></td>
+                  <td></td>
+                  <td><p>Цена за единицу позиции рынка </p></td>
+                </tr>
+              
+                <tr>
+                  <td>quantity</td>
+                  <td><a href="#models.v1.Decimal">Decimal</a></td>
+                  <td></td>
+                  <td><p>Количество </p></td>
+                </tr>
+              
+                <tr>
+                  <td>created_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p>Время создания ордера </p></td>
+                </tr>
+              
+                <tr>
+                  <td>updated_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p>Время последнего обновления ордера </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+        <h3 id="models.v1.OrderSide">OrderSide</h3>
+        <p>OrderSide — направление сделки (покупка или продажа)</p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>ORDER_SIDE_UNSPECIFIED</td>
+                <td>0</td>
+                <td><p>Не указано (значение по умолчанию, не должно использоваться)</p></td>
+              </tr>
+            
+              <tr>
+                <td>ORDER_SIDE_BUY</td>
+                <td>1</td>
+                <td><p>Покупка</p></td>
+              </tr>
+            
+              <tr>
+                <td>ORDER_SIDE_SELL</td>
+                <td>2</td>
+                <td><p>Продажа</p></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+        <h3 id="models.v1.OrderStatus">OrderStatus</h3>
+        <p>OrderStatus — статус выполнения ордера</p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>ORDER_STATUS_UNSPECIFIED</td>
+                <td>0</td>
+                <td><p>Не указано (значение по умолчанию, не должно использоваться)</p></td>
+              </tr>
+            
+              <tr>
+                <td>ORDER_STATUS_CREATED</td>
+                <td>1</td>
+                <td><p>Создан</p></td>
+              </tr>
+            
+              <tr>
+                <td>ORDER_STATUS_PENDING</td>
+                <td>2</td>
+                <td><p>В обработке</p></td>
+              </tr>
+            
+              <tr>
+                <td>ORDER_STATUS_COMPLETED</td>
+                <td>3</td>
+                <td><p>Исполнен</p></td>
+              </tr>
+            
+              <tr>
+                <td>ORDER_STATUS_CANCELLED</td>
+                <td>4</td>
+                <td><p>Отменён</p></td>
+              </tr>
+            
+              <tr>
+                <td>ORDER_STATUS_REJECTED</td>
+                <td>5</td>
+                <td><p>Отклонён</p></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+        <h3 id="models.v1.OrderType">OrderType</h3>
+        <p>OrderType — тип ордера</p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>ORDER_TYPE_UNSPECIFIED</td>
+                <td>0</td>
+                <td><p>Не указано (значение по умолчанию, не должно использоваться)</p></td>
+              </tr>
+            
+              <tr>
+                <td>ORDER_TYPE_MARKET</td>
+                <td>1</td>
+                <td><p>Рыночный ордер</p></td>
+              </tr>
+            
+              <tr>
+                <td>ORDER_TYPE_LIMIT</td>
+                <td>2</td>
+                <td><p>Лимитный ордер</p></td>
+              </tr>
+            
+              <tr>
+                <td>ORDER_TYPE_STOP_LOSS</td>
+                <td>3</td>
+                <td><p>Стоп-лосс</p></td>
+              </tr>
+            
+              <tr>
+                <td>ORDER_TYPE_TAKE_PROFIT</td>
+                <td>4</td>
+                <td><p>Тейк-профит</p></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="models/user.proto">models/user.proto</h2><a href="#title">Top</a>
+      </div>
+      <p></p>
+
+      
+
+      
+        <h3 id="models.v1.UserRole">UserRole</h3>
+        <p>UserRole — роли пользователя в системе</p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>USER_ROLE_UNSPECIFIED</td>
+                <td>0</td>
+                <td><p>Не указано (значение по умолчанию, не должно использоваться)</p></td>
+              </tr>
+            
+              <tr>
+                <td>USER_ROLE_GUEST</td>
+                <td>1</td>
+                <td><p>Гость (минимальные права для просмотра публичной информации)</p></td>
+              </tr>
+            
+              <tr>
+                <td>USER_ROLE_TRADER</td>
+                <td>2</td>
+                <td><p>Трейдер (базовые торговые права)</p></td>
+              </tr>
+            
+              <tr>
+                <td>USER_ROLE_MARKET_MAKER</td>
+                <td>3</td>
+                <td><p>Маркет-мейкер (специальные права на создание ликвидности)</p></td>
+              </tr>
+            
+              <tr>
+                <td>USER_ROLE_MODER</td>
+                <td>4</td>
+                <td><p>Модератор</p></td>
+              </tr>
+            
+              <tr>
+                <td>USER_ROLE_ADMIN</td>
+                <td>5</td>
+                <td><p>Администратор</p></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="service/order.proto">service/order.proto</h2><a href="#title">Top</a>
+      </div>
+      <p></p>
+
+      
+        <h3 id="order.v1.CreateOrderRequest">CreateOrderRequest</h3>
+        <p>Запрос на создание ордера</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>user_uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID пользователя </p></td>
+                </tr>
+              
+                <tr>
+                  <td>market_uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID рынка </p></td>
+                </tr>
+              
+                <tr>
+                  <td>order_type</td>
+                  <td><a href="#models.v1.OrderType">models.v1.OrderType</a></td>
+                  <td></td>
+                  <td><p>Тип ордера (лимитный, рыночный и т.д.) </p></td>
+                </tr>
+              
+                <tr>
+                  <td>order_side</td>
+                  <td><a href="#models.v1.OrderSide">models.v1.OrderSide</a></td>
+                  <td></td>
+                  <td><p>Покупка или продажа </p></td>
+                </tr>
+              
+                <tr>
+                  <td>price</td>
+                  <td><a href="#models.v1.Money">models.v1.Money</a></td>
+                  <td></td>
+                  <td><p>Цена за единицу </p></td>
+                </tr>
+              
+                <tr>
+                  <td>quantity</td>
+                  <td><a href="#models.v1.Decimal">models.v1.Decimal</a></td>
+                  <td></td>
+                  <td><p>Количество </p></td>
+                </tr>
+              
+                <tr>
+                  <td>idempotency_key</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>Ключ идемпотентности (UUID) </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>user_uuid</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>market_uuid</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>order_type</td>
+                  <td>
+                    <ul>
+                    
+                      <li>enum.defined_only: true</li>
+                    
+                      <li>enum.not_in: [0]</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>order_side</td>
+                  <td>
+                    <ul>
+                    
+                      <li>enum.defined_only: true</li>
+                    
+                      <li>enum.not_in: [0]</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>price</td>
+                  <td>
+                    <ul>
+                    
+                      <li>message.required: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>quantity</td>
+                  <td>
+                    <ul>
+                    
+                      <li>message.required: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>idempotency_key</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+        <h3 id="order.v1.CreateOrderResponse">CreateOrderResponse</h3>
+        <p>Ответ на создание ордера</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>order_uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID созданного ордера </p></td>
+                </tr>
+              
+                <tr>
+                  <td>status</td>
+                  <td><a href="#models.v1.OrderStatus">models.v1.OrderStatus</a></td>
+                  <td></td>
+                  <td><p>Статус созданного ордера </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="order.v1.GetStatusRequest">GetStatusRequest</h3>
+        <p>Запрос статуса ордера</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>order_uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID ордера </p></td>
+                </tr>
+              
+                <tr>
+                  <td>user_uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID пользователя </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>order_uuid</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>user_uuid</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+        <h3 id="order.v1.GetStatusResponse">GetStatusResponse</h3>
+        <p>Информация о статусе ордера</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>status</td>
+                  <td><a href="#models.v1.OrderStatus">models.v1.OrderStatus</a></td>
+                  <td></td>
+                  <td><p>Текущий статус </p></td>
+                </tr>
+              
+                <tr>
+                  <td>updated_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p>Время последнего изменения </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="order.v1.GetUpdatesRequest">GetUpdatesRequest</h3>
+        <p>Запрос на стриминг обновлений</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>order_uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID ордера </p></td>
+                </tr>
+              
+                <tr>
+                  <td>user_uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID пользователя </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>order_uuid</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>user_uuid</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+        <h3 id="order.v1.UpdatesResponse">UpdatesResponse</h3>
+        <p>Сообщения обновления статуса в потоке</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>status</td>
+                  <td><a href="#models.v1.OrderStatus">models.v1.OrderStatus</a></td>
+                  <td></td>
+                  <td><p>Новый статус </p></td>
+                </tr>
+              
+                <tr>
+                  <td>old_status</td>
+                  <td><a href="#models.v1.OrderStatus">models.v1.OrderStatus</a></td>
+                  <td></td>
+                  <td><p>Предыдущий статус </p></td>
+                </tr>
+              
+                <tr>
+                  <td>updated_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p>Время обновления </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+        <h3 id="order.v1.Order">Order</h3>
+        <p>Сервис Order управляет ордерами — создание, получение статуса, стриминг обновлений</p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Method Name</td><td>Request Type</td><td>Response Type</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>CreateOrder</td>
+                <td><a href="#order.v1.CreateOrderRequest">CreateOrderRequest</a></td>
+                <td><a href="#order.v1.CreateOrderResponse">CreateOrderResponse</a></td>
+                <td><p>CreateOrder создаёт новый ордер</p></td>
+              </tr>
+            
+              <tr>
+                <td>GetOrderStatus</td>
+                <td><a href="#order.v1.GetStatusRequest">GetStatusRequest</a></td>
+                <td><a href="#order.v1.GetStatusResponse">GetStatusResponse</a></td>
+                <td><p>GetOrderStatus возвращает информацию о статусе ордера</p></td>
+              </tr>
+            
+              <tr>
+                <td>StreamOrderUpdates</td>
+                <td><a href="#order.v1.GetUpdatesRequest">GetUpdatesRequest</a></td>
+                <td><a href="#order.v1.UpdatesResponse">UpdatesResponse</a> stream</td>
+                <td><p>StreamOrderUpdates получение обновлений статуса в потоковом режиме</p></td>
+              </tr>
+            
+          </tbody>
+        </table>
+
+        
+    
+      
+      <div class="file-heading">
+        <h2 id="service/spot.proto">service/spot.proto</h2><a href="#title">Top</a>
+      </div>
+      <p></p>
+
+      
+        <h3 id="spot.v1.FindMarketRequest">FindMarketRequest</h3>
+        <p>Запрос на поиск одного маркета</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>market_uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID маркета </p></td>
+                </tr>
+              
+                <tr>
+                  <td>user_roles</td>
+                  <td><a href="#models.v1.UserRole">models.v1.UserRole</a></td>
+                  <td>repeated</td>
+                  <td><p>Роли пользователя для проверки доступа к этому рынку </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>market_uuid</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>user_roles</td>
+                  <td>
+                    <ul>
+                    
+                      <li>repeated.min_items: 0</li>
+                    
+                      <li>repeated.max_items: 10</li>
+                    
+                      <li>repeated.unique: true</li>
+                    
+                      <li>repeated.items.enum.defined_only: true</li>
+                    
+                      <li>repeated.items.enum.not_in: [0]</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+        <h3 id="spot.v1.FindMarketResponse">FindMarketResponse</h3>
+        <p>Ответ с деталями маркета</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>market</td>
+                  <td><a href="#models.v1.Market">models.v1.Market</a></td>
+                  <td></td>
+                  <td><p>Найденный маркет </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="spot.v1.ViewMarketsRequest">ViewMarketsRequest</h3>
+        <p>Запрос на получение списка маркетов</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>user_roles</td>
+                  <td><a href="#models.v1.UserRole">models.v1.UserRole</a></td>
+                  <td>repeated</td>
+                  <td><p>Роли пользователя для фильтрации доступных маркетов </p></td>
+                </tr>
+              
+                <tr>
+                  <td>page_token</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>Токен пагинации </p></td>
+                </tr>
+              
+                <tr>
+                  <td>page_size</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td></td>
+                  <td><p>Размер страницы (1–200) </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>user_roles</td>
+                  <td>
+                    <ul>
+                    
+                      <li>repeated.min_items: 0</li>
+                    
+                      <li>repeated.max_items: 10</li>
+                    
+                      <li>repeated.unique: true</li>
+                    
+                      <li>repeated.items.enum.defined_only: true</li>
+                    
+                      <li>repeated.items.enum.not_in: [0]</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>page_token</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.max_len: 512</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>page_size</td>
+                  <td>
+                    <ul>
+                    
+                      <li>int32.lte: 200</li>
+                    
+                      <li>int32.gte: 1</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+        <h3 id="spot.v1.ViewMarketsResponse">ViewMarketsResponse</h3>
+        <p>Ответ со списком маркетов</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>markets</td>
+                  <td><a href="#models.v1.Market">models.v1.Market</a></td>
+                  <td>repeated</td>
+                  <td><p>Список маркетов </p></td>
+                </tr>
+              
+                <tr>
+                  <td>next_page_token</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>Токен для следующей страницы </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+
+      
+
+      
+        <h3 id="spot.v1.SpotInstrument">SpotInstrument</h3>
+        <p>Сервис SpotInstrument предоставляет информацию о маркетах</p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Method Name</td><td>Request Type</td><td>Response Type</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>ViewMarkets</td>
+                <td><a href="#spot.v1.ViewMarketsRequest">ViewMarketsRequest</a></td>
+                <td><a href="#spot.v1.ViewMarketsResponse">ViewMarketsResponse</a></td>
+                <td><p>ViewMarkets возвращает список доступных маркетов с пагинацией</p></td>
+              </tr>
+            
+              <tr>
+                <td>FindMarket</td>
+                <td><a href="#spot.v1.FindMarketRequest">FindMarketRequest</a></td>
+                <td><a href="#spot.v1.FindMarketResponse">FindMarketResponse</a></td>
+                <td><p>FindMarket возвращает информацию о конкретном маркете</p></td>
+              </tr>
+            
+          </tbody>
+        </table>
+
+        
+    
+      
+      <div class="file-heading">
+        <h2 id="events/order/created.proto">events/order/created.proto</h2><a href="#title">Top</a>
+      </div>
+      <p></p>
+
+      
+        <h3 id="events.order.v1.CreatedOrderEvent">CreatedOrderEvent</h3>
+        <p>CreatedOrderEvent — событие о создании нового ордера</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>event_uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID события </p></td>
+                </tr>
+              
+                <tr>
+                  <td>created_order</td>
+                  <td><a href="#models.v1.Order">models.v1.Order</a></td>
+                  <td></td>
+                  <td><p>Созданный ордер </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>event_uuid</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="events/order/update.proto">events/order/update.proto</h2><a href="#title">Top</a>
+      </div>
+      <p></p>
+
+      
+        <h3 id="events.order.v1.UpdateStatus">UpdateStatus</h3>
+        <p>UpdateStatus — событие об изменении статуса ордера</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID события </p></td>
+                </tr>
+              
+                <tr>
+                  <td>order_uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID ордера, у которого изменился статус </p></td>
+                </tr>
+              
+                <tr>
+                  <td>new_status</td>
+                  <td><a href="#models.v1.OrderStatus">models.v1.OrderStatus</a></td>
+                  <td></td>
+                  <td><p>Новый статус ордера </p></td>
+                </tr>
+              
+                <tr>
+                  <td>created_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p>Время создания события </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>uuid</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>order_uuid</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="events/markets/update.proto">events/markets/update.proto</h2><a href="#title">Top</a>
+      </div>
+      <p></p>
+
+      
+        <h3 id="events.markets.v1.MarketUpdated">MarketUpdated</h3>
+        <p>MarketUpdated — событие об изменении данных рынка</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>market_uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID обновлённого рынка </p></td>
+                </tr>
+              
+                <tr>
+                  <td>updated_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p>Время создания события </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>market_uuid</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+
+      
+
+      
+
+      
+    
+
+    <h2 id="scalar-value-types">Scalar Value Types</h2>
+    <table class="scalar-value-types-table">
+      <thead>
+        <tr><td>.proto Type</td><td>Notes</td><td>C++</td><td>Java</td><td>Python</td><td>Go</td><td>C#</td><td>PHP</td><td>Ruby</td></tr>
+      </thead>
+      <tbody>
+        
+          <tr id="double">
+            <td>double</td>
+            <td></td>
+            <td>double</td>
+            <td>double</td>
+            <td>float</td>
+            <td>float64</td>
+            <td>double</td>
+            <td>float</td>
+            <td>Float</td>
+          </tr>
+        
+          <tr id="float">
+            <td>float</td>
+            <td></td>
+            <td>float</td>
+            <td>float</td>
+            <td>float</td>
+            <td>float32</td>
+            <td>float</td>
+            <td>float</td>
+            <td>Float</td>
+          </tr>
+        
+          <tr id="int32">
+            <td>int32</td>
+            <td>Uses variable-length encoding. Inefficient for encoding negative numbers – if your field is likely to have negative values, use sint32 instead.</td>
+            <td>int32</td>
+            <td>int</td>
+            <td>int</td>
+            <td>int32</td>
+            <td>int</td>
+            <td>integer</td>
+            <td>Bignum or Fixnum (as required)</td>
+          </tr>
+        
+          <tr id="int64">
+            <td>int64</td>
+            <td>Uses variable-length encoding. Inefficient for encoding negative numbers – if your field is likely to have negative values, use sint64 instead.</td>
+            <td>int64</td>
+            <td>long</td>
+            <td>int/long</td>
+            <td>int64</td>
+            <td>long</td>
+            <td>integer/string</td>
+            <td>Bignum</td>
+          </tr>
+        
+          <tr id="uint32">
+            <td>uint32</td>
+            <td>Uses variable-length encoding.</td>
+            <td>uint32</td>
+            <td>int</td>
+            <td>int/long</td>
+            <td>uint32</td>
+            <td>uint</td>
+            <td>integer</td>
+            <td>Bignum or Fixnum (as required)</td>
+          </tr>
+        
+          <tr id="uint64">
+            <td>uint64</td>
+            <td>Uses variable-length encoding.</td>
+            <td>uint64</td>
+            <td>long</td>
+            <td>int/long</td>
+            <td>uint64</td>
+            <td>ulong</td>
+            <td>integer/string</td>
+            <td>Bignum or Fixnum (as required)</td>
+          </tr>
+        
+          <tr id="sint32">
+            <td>sint32</td>
+            <td>Uses variable-length encoding. Signed int value. These more efficiently encode negative numbers than regular int32s.</td>
+            <td>int32</td>
+            <td>int</td>
+            <td>int</td>
+            <td>int32</td>
+            <td>int</td>
+            <td>integer</td>
+            <td>Bignum or Fixnum (as required)</td>
+          </tr>
+        
+          <tr id="sint64">
+            <td>sint64</td>
+            <td>Uses variable-length encoding. Signed int value. These more efficiently encode negative numbers than regular int64s.</td>
+            <td>int64</td>
+            <td>long</td>
+            <td>int/long</td>
+            <td>int64</td>
+            <td>long</td>
+            <td>integer/string</td>
+            <td>Bignum</td>
+          </tr>
+        
+          <tr id="fixed32">
+            <td>fixed32</td>
+            <td>Always four bytes. More efficient than uint32 if values are often greater than 2^28.</td>
+            <td>uint32</td>
+            <td>int</td>
+            <td>int</td>
+            <td>uint32</td>
+            <td>uint</td>
+            <td>integer</td>
+            <td>Bignum or Fixnum (as required)</td>
+          </tr>
+        
+          <tr id="fixed64">
+            <td>fixed64</td>
+            <td>Always eight bytes. More efficient than uint64 if values are often greater than 2^56.</td>
+            <td>uint64</td>
+            <td>long</td>
+            <td>int/long</td>
+            <td>uint64</td>
+            <td>ulong</td>
+            <td>integer/string</td>
+            <td>Bignum</td>
+          </tr>
+        
+          <tr id="sfixed32">
+            <td>sfixed32</td>
+            <td>Always four bytes.</td>
+            <td>int32</td>
+            <td>int</td>
+            <td>int</td>
+            <td>int32</td>
+            <td>int</td>
+            <td>integer</td>
+            <td>Bignum or Fixnum (as required)</td>
+          </tr>
+        
+          <tr id="sfixed64">
+            <td>sfixed64</td>
+            <td>Always eight bytes.</td>
+            <td>int64</td>
+            <td>long</td>
+            <td>int/long</td>
+            <td>int64</td>
+            <td>long</td>
+            <td>integer/string</td>
+            <td>Bignum</td>
+          </tr>
+        
+          <tr id="bool">
+            <td>bool</td>
+            <td></td>
+            <td>bool</td>
+            <td>boolean</td>
+            <td>boolean</td>
+            <td>bool</td>
+            <td>bool</td>
+            <td>boolean</td>
+            <td>TrueClass/FalseClass</td>
+          </tr>
+        
+          <tr id="string">
+            <td>string</td>
+            <td>A string must always contain UTF-8 encoded or 7-bit ASCII text.</td>
+            <td>string</td>
+            <td>String</td>
+            <td>str/unicode</td>
+            <td>string</td>
+            <td>string</td>
+            <td>string</td>
+            <td>String (UTF-8)</td>
+          </tr>
+        
+          <tr id="bytes">
+            <td>bytes</td>
+            <td>May contain any arbitrary sequence of bytes.</td>
+            <td>string</td>
+            <td>ByteString</td>
+            <td>str</td>
+            <td>[]byte</td>
+            <td>ByteString</td>
+            <td>string</td>
+            <td>String (ASCII-8BIT)</td>
+          </tr>
+        
+      </tbody>
+    </table>
+  </body>
+</html>
+

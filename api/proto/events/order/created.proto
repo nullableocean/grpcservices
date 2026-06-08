@@ -7,7 +7,10 @@ option go_package = "github.com/nullableocean/grpcservices/api/gen/events/order/
 import "models/order.proto";
 import "validate/validate.proto";
 
+// CreatedOrderEvent — событие о создании нового ордера
 message CreatedOrderEvent {
+    // UUID события
     string event_uuid = 1 [(validate.rules).string = {uuid: true}];
+    // Созданный ордер
     models.v1.Order created_order = 2;
 }

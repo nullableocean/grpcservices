@@ -8,38 +8,66 @@ import "google/protobuf/timestamp.proto";
 import "models/money.proto";
 import "models/decimal.proto";
 
+// Order операция на рынке
 message Order {
+    // UUID ордера
     string order_uuid = 1;
+    // UUID пользователя, создавшего ордер
     string user_uuid = 2;
+    // UUID рынка, на котором размещён ордер
     string market_uuid = 3;
+    // Тип ордера
     OrderType type = 4;
+    // Текущий статус ордера
     OrderStatus status = 5;
+    // Направление (покупка или продажа)
     OrderSide side = 6;
+    // Цена за единицу позиции рынка
     Money price = 7;
+    // Количество
     Decimal quantity = 8;
+    // Время создания ордера
     google.protobuf.Timestamp created_at = 9;
+    // Время последнего обновления ордера
     google.protobuf.Timestamp updated_at = 10;
 }
 
+// OrderSide — направление сделки (покупка или продажа)
 enum OrderSide {
-  ORDER_SIDE_UNSPECIFIED = 0;
-  ORDER_SIDE_BUY = 1;
-  ORDER_SIDE_SELL = 2;
+    // Не указано (значение по умолчанию, не должно использоваться)
+    ORDER_SIDE_UNSPECIFIED = 0;
+    // Покупка
+    ORDER_SIDE_BUY = 1;
+    // Продажа
+    ORDER_SIDE_SELL = 2;
 }
 
+// OrderType — тип ордера
 enum OrderType {
-  ORDER_TYPE_UNSPECIFIED = 0;
-  ORDER_TYPE_MARKET = 1;
-  ORDER_TYPE_LIMIT = 2;
-  ORDER_TYPE_STOP_LOSS = 3;
-  ORDER_TYPE_TAKE_PROFIT = 4;
+    // Не указано (значение по умолчанию, не должно использоваться)
+    ORDER_TYPE_UNSPECIFIED = 0;
+    // Рыночный ордер
+    ORDER_TYPE_MARKET = 1;
+    // Лимитный ордер
+    ORDER_TYPE_LIMIT = 2;
+    // Стоп-лосс
+    ORDER_TYPE_STOP_LOSS = 3;
+    // Тейк-профит
+    ORDER_TYPE_TAKE_PROFIT = 4;
 }
 
+// OrderStatus — статус выполнения ордера
 enum OrderStatus {
-  ORDER_STATUS_UNSPECIFIED = 0;
-  ORDER_STATUS_CREATED = 1;
-  ORDER_STATUS_PENDING = 2;
-  ORDER_STATUS_COMPLETED = 3;
-  ORDER_STATUS_CANCELLED = 4;
-  ORDER_STATUS_REJECTED = 5;
+    // Не указано (значение по умолчанию, не должно использоваться)
+    ORDER_STATUS_UNSPECIFIED = 0;
+    // Создан
+    ORDER_STATUS_CREATED = 1;
+    // В обработке
+    ORDER_STATUS_PENDING = 2;
+    // Исполнен
+    ORDER_STATUS_COMPLETED = 3;
+    // Отменён
+    ORDER_STATUS_CANCELLED = 4;
+    // Отклонён
+    ORDER_STATUS_REJECTED = 5;
 }
