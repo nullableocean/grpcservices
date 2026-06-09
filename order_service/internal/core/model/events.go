@@ -28,9 +28,9 @@ type EventCreatedData struct {
 }
 
 type EventOrderCreated struct {
-	UUID      string
-	OrderUUID string
-	Data      *EventCreatedData
+	UUID      string            `json:"uuid"`
+	OrderUUID string            `json:"order_uuid"`
+	Data      *EventCreatedData `json:"data"`
 }
 
 func (e *EventOrderCreated) ID() string {
@@ -56,9 +56,9 @@ type EventUpdatedData struct {
 }
 
 type EventOrderUpdated struct {
-	UUID      string
-	OrderUUID string
-	Data      *EventUpdatedData
+	UUID      string            `json:"uuid"`
+	OrderUUID string            `json:"order_uuid"`
+	Data      *EventUpdatedData `json:"data"`
 }
 
 func (e *EventOrderUpdated) ID() string {

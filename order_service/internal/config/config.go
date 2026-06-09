@@ -23,7 +23,8 @@ type Config struct {
 	Retry          RetryConfig
 	Kafka          KafkaConfig
 	Outbox         OutboxConfig
-	Idempotency    IdempotencyConfig
+	Cache          CacheConfig
+	QueueRedis     QueueRedisConfig
 	Events         EventsConfig
 	Env            EnvConfig
 }
@@ -43,16 +44,34 @@ type AuthConfig struct {
 	JWTSecret string `env:"JWT_SECRET" env-required:"true"`
 }
 
-type IdempotencyConfig struct {
-	RedisAddr     string        `env:"IDEMPOTENCY_REDIS_ADDR" env-default:"redis:6379"`
-	RedisPassword string        `env:"IDEMPOTENCY_REDIS_PASSWORD" env-default:""`
-	RedisDB       int           `env:"IDEMPOTENCY_REDIS_DB" env-default:"0"`
-	TTL           time.Duration `env:"IDEMPOTENCY_TTL" env-default:"10m"`
-	DialTimeout   time.Duration `env:"IDEMPOTENCY_DIAL_TIMEOUT" env-default:"5s"`
-	ReadTimeout   time.Duration `env:"IDEMPOTENCY_READ_TIMEOUT" env-default:"3s"`
-	WriteTimeout  time.Duration `env:"IDEMPOTENCY_WRITE_TIMEOUT" env-default:"3s"`
-	PoolSize      int           `env:"IDEMPOTENCY_REDIS_POOL_SIZE" env-default:"10"`
-	MaxRetries    int           `env:"IDEMPOTENCY_REDIS_MAX_RETRIES" env-default:"3"`
+type CacheConfig struct {
+	RedisAddr       string        `env:"IDEMPOTENCY_REDIS_ADDR" env-default:"redis:6379"`
+	RedisPassword   string        `env:"IDEMPOTENCY_REDIS_PASSWORD" env-default:""`
+	RedisDB         int           `env:"IDEMPOTENCY_REDIS_DB" env-default:"0"`
+	TTL             time.Duration `env:"IDEMPOTENCY_TTL" env-default:"10m"`
+	DialTimeout     time.Duration `env:"IDEMPOTENCY_DIAL_TIMEOUT" env-default:"5s"`
+	ReadTimeout     time.Duration `env:"IDEMPOTENCY_READ_TIMEOUT" env-default:"3s"`
+	WriteTimeout    time.Duration `env:"IDEMPOTENCY_WRITE_TIMEOUT" env-default:"3s"`
+	PoolSize        int           `env:"IDEMPOTENCY_REDIS_POOL_SIZE" env-default:"10"`
+	MaxRetries      int           `env:"IDEMPOTENCY_REDIS_MAX_RETRIES" env-default:"3"`
+	MinBackoffDelay time.Duration `env:"IDEMPOTENCY_WRITE_TIMEOUT" env-default:"10ms"`
+	MaxBackoffDelay time.Duration `env:"IDEMPOTENCY_WRITE_TIMEOUT" env-default:"300ms"`
+}
+
+type QueueRedisConfig struct {
+	Addr            string        `env:"QUEUE_REDIS_ADDR" env-default:"redis:6379"`
+	Password        string        `env:"QUEUE_REDIS_PASSWORD" env-default:""`
+	DB              int           `env:"QUEUE_REDIS_DB" env-default:"0"`
+	TTL             time.Duration `env:"QUEUE_TTL" env-default:"10m"`
+	DialTimeout     time.Duration `env:"QUEUE_DIAL_TIMEOUT" env-default:"5s"`
+	ReadTimeout     time.Duration `env:"QUEUE_READ_TIMEOUT" env-default:"3s"`
+	WriteTimeout    time.Duration `env:"QUEUE_WRITE_TIMEOUT" env-default:"3s"`
+	PoolSize        int           `env:"QUEUE_REDIS_POOL_SIZE" env-default:"10"`
+	MaxRetries      int           `env:"QUEUE_REDIS_MAX_RETRIES" env-default:"3"`
+	MinBackoffDelay time.Duration `env:"QUEUE_MIN_BACKOFF_DELAY" env-default:"10ms"`
+	MaxBackoffDelay time.Duration `env:"QUEUE_MAN_BACKOFF_DELAY" env-default:"300ms"`
+
+	UpdatesChannel string `env:"REDIS_UPDATES_CHANNEL" env-default:"updates"`
 }
 
 type PostgresConfig struct {

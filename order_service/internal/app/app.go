@@ -19,9 +19,10 @@ import (
 	spotv1 "github.com/nullableocean/grpcservices/api/gen/spot/v1"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/access"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/cache/rdb"
-	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/publishers"
-	kafka_publisher "github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/publishers/kafka"
-	updatenotifier "github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/publishers/update_notifier"
+	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/bus"
+	kafka_publisher "github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/kafka"
+	events_rdb "github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/rdb"
+	updatenotifier "github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/update_notifier"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/breaker"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/client"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/server"
@@ -51,7 +52,8 @@ type App struct {
 	cnf    *config.Config
 	logger *zap.Logger
 
-	idemRedis      *redis.Client
+	redis *redis.Client
+
 	pgPool         *pgxpool.Pool
 	metricsReg     *prometheus.Registry
 	grpcMetricsSrv *grpc_prometheus.ServerMetrics
@@ -63,6 +65,7 @@ type App struct {
 	orderService    *order.OrderService
 	outboxRelay     *outbox.OutboxRelay
 	updatesNotifier *updatenotifier.UpdateNotifier
+	redisSub        *events_rdb.RedisEventSubscriber
 
 	closers []func() error
 }
@@ -116,6 +119,10 @@ func (a *App) Run() error {
 		return err
 	}
 
+	if err := a.redisSub.Start(context.Background()); err != nil {
+		return fmt.Errorf("failed start redis messages subsriber: %w", err)
+	}
+
 	outboxCtx, cancelOutbox := context.WithCancel(context.Background())
 	defer cancelOutbox()
 	go a.outboxRelay.Start(outboxCtx)
@@ -161,6 +168,108 @@ func (a *App) Run() error {
 	return nil
 }
 
+func (a *App) initServices() error {
+	spotProtoClient := spotv1.NewSpotInstrumentClient(a.spotConn)
+	spotInstrument, err := client.NewSpotInstrumentClient(a.logger, spotProtoClient, client.Option{
+		RequestTimeout: a.cnf.GRPC.ClientTimeout,
+	})
+	if err != nil {
+		return fmt.Errorf("failed create spot instrument client: %w", err)
+	}
+
+	outboxWriter := outbox.NewOutboxWriter()
+	orderRepo := postgres.NewOrderRepository(a.logger, a.pgPool, outboxWriter)
+
+	accessService := access.NewRoleAccessService()
+	metricsRecorder := metrics.NewOrderMetricsRecorder(a.metricsReg)
+	redisRecorder := metrics.NewRedisMetricsRecorder(a.metricsReg)
+	a.orderService = order.NewOrderService(
+		a.logger,
+		orderRepo,
+		spotInstrument,
+		accessService,
+		metricsRecorder,
+		rdb.NewRedisIdempotencyCache(a.redis, a.cnf.Cache.TTL, redisRecorder),
+	)
+
+	pubBus := bus.NewEventPublisherBus()
+
+	// GRPC STREAM NOTIFIER
+
+	a.updatesNotifier, err = updatenotifier.NewUpdateNotifier(a.logger, updatenotifier.Options{
+		SendTimeoutOnSub: a.cnf.Events.STREAM_SEND_TIMEOUT,
+		SendTries:        a.cnf.Events.STREAM_SEND_RETRIES,
+	})
+	if err != nil {
+		return fmt.Errorf("failed create update notifier: %w", err)
+	}
+
+	// REDIS EVENTS
+
+	updatesHandler := events_rdb.NewUpdatesMessageHandler(a.logger, a.updatesNotifier)
+	a.redisSub = events_rdb.NewRedisSubscriber(a.logger, a.redis, []string{a.cnf.QueueRedis.UpdatesChannel}, updatesHandler)
+	a.closers = append(a.closers, func() error {
+		if err := a.redisSub.Stop(); err != nil {
+			return fmt.Errorf("failed stop redis subsriber: %w", err)
+		}
+
+		return nil
+	})
+
+	redisPublisher := events_rdb.NewRedisPublisher(a.logger, a.redis, a.cnf.QueueRedis.UpdatesChannel)
+
+	// KAFKA PUBLISHERS
+
+	kafkaMetrics := metrics.NewKafkaMetricsRecorder(a.metricsReg)
+	kafkaProducer, err := newSaramaSyncProducer(a.cnf.Kafka)
+	if err != nil {
+		return fmt.Errorf("failed to create Sarama producer: %w", err)
+	}
+	a.closers = append(a.closers, func() error {
+		if err := kafkaProducer.Close(); err != nil {
+			return fmt.Errorf("failed close kafka producer: %w", err)
+		}
+		return nil
+	})
+
+	kafkaUpdatedPublisher := kafka_publisher.NewKafkaPublisher(a.logger, kafkaProducer, a.cnf.Kafka.TopicUpdates, kafkaMetrics)
+	kafkaCreatedPublisher := kafka_publisher.NewKafkaPublisher(a.logger, kafkaProducer, a.cnf.Kafka.TopicCreated, kafkaMetrics)
+	dlqPublisher := kafka_publisher.NewKafkaPublisher(a.logger, kafkaProducer, a.cnf.Kafka.DLQTopic, kafkaMetrics)
+
+	dlqPublishCfg := kafka_publisher.Config{
+		MaxAttempts: a.cnf.Kafka.ProducerRetries,
+		BackoffFunc: shared_retry.NewExponentialBackoffFunc(a.cnf.Kafka.ProducerStartRetryDelay, a.cnf.Kafka.ProducerMaxRetryDelay),
+	}
+
+	publisherUpdatesDlqDecorator, err := kafka_publisher.NewDlqPublisherDecorator(a.logger, dlqPublisher, kafkaUpdatedPublisher, kafkaMetrics, dlqPublishCfg)
+	if err != nil {
+		return fmt.Errorf("failed create DlqPublishRetrayer for updates events: %w", err)
+	}
+	publisherCreatedDlqDecorator, err := kafka_publisher.NewDlqPublisherDecorator(a.logger, dlqPublisher, kafkaCreatedPublisher, kafkaMetrics, dlqPublishCfg)
+	if err != nil {
+		return fmt.Errorf("failed create DlqPublishRetrayer for created events: %w", err)
+	}
+
+	// REGISTER PUBLISHERS
+
+	pubBus.Register(model.EVENT_ORDER_UPDATED, redisPublisher)
+	pubBus.Register(model.EVENT_ORDER_UPDATED, publisherUpdatesDlqDecorator)
+	pubBus.Register(model.EVENT_ORDER_CREATED, publisherCreatedDlqDecorator)
+
+	outboxMetrics := metrics.NewOutboxMetricsRecorder(a.metricsReg)
+	outboxRelay, err := outbox.NewRelay(a.logger, a.pgPool, pubBus, outboxMetrics, outbox.Config{
+		Interval:  a.cnf.Outbox.PollInterval,
+		BatchSize: a.cnf.Outbox.BatchSize,
+	})
+	if err != nil {
+		return fmt.Errorf("failed create outbox relay: %w", err)
+	}
+
+	a.outboxRelay = outboxRelay
+
+	return nil
+}
+
 func (a *App) initTelemetry() error {
 	cfg := &telemetry.Config{
 		ServiceName:        a.cnf.App.Name,
@@ -184,26 +293,28 @@ func (a *App) initTelemetry() error {
 }
 
 func (a *App) initCache() error {
-	client := redis.NewClient(&redis.Options{
-		Addr:         a.cnf.Idempotency.RedisAddr,
-		Password:     a.cnf.Idempotency.RedisPassword,
-		DB:           a.cnf.Idempotency.RedisDB,
-		DialTimeout:  a.cnf.Idempotency.DialTimeout,
-		ReadTimeout:  a.cnf.Idempotency.ReadTimeout,
-		WriteTimeout: a.cnf.Idempotency.WriteTimeout,
-		PoolSize:     a.cnf.Idempotency.PoolSize,
-		MaxRetries:   a.cnf.Idempotency.MaxRetries,
-	})
+	settings := &redisSetting{
+		Addr:            a.cnf.Cache.RedisAddr,
+		Password:        a.cnf.Cache.RedisPassword,
+		DB:              a.cnf.Cache.RedisDB,
+		DialTimeout:     a.cnf.Cache.DialTimeout,
+		ReadTimeout:     a.cnf.Cache.ReadTimeout,
+		WriteTimeout:    a.cnf.Cache.WriteTimeout,
+		MaxRetries:      a.cnf.Cache.MaxRetries,
+		MinBackoffDelay: a.cnf.Cache.MinBackoffDelay,
+		MaxBackoffDelay: a.cnf.Cache.MaxBackoffDelay,
+	}
 
-	if err := client.Ping(context.Background()).Err(); err != nil {
-		return fmt.Errorf("failed redis ping: %w", err)
+	client, err := a.createRedisClient(settings)
+	if err != nil {
+		return fmt.Errorf("failed init cache: %w", err)
 	}
 
 	a.closers = append(a.closers, func() error {
 		return client.Close()
 	})
 
-	a.idemRedis = client
+	a.redis = client
 
 	return nil
 }
@@ -341,89 +452,6 @@ func (a *App) closeGRPCClients() {
 	if a.spotConn != nil {
 		_ = a.spotConn.Close()
 	}
-}
-
-func (a *App) initServices() error {
-	spotProtoClient := spotv1.NewSpotInstrumentClient(a.spotConn)
-	spotInstrument, err := client.NewSpotInstrumentClient(a.logger, spotProtoClient, client.Option{
-		RequestTimeout: a.cnf.GRPC.ClientTimeout,
-	})
-	if err != nil {
-		return fmt.Errorf("failed create spot instrument client: %w", err)
-	}
-
-	outboxWriter := outbox.NewOutboxWriter()
-	orderRepo := postgres.NewOrderRepository(a.logger, a.pgPool, outboxWriter)
-
-	accessService := access.NewRoleAccessService()
-	metricsRecorder := metrics.NewOrderMetricsRecorder(a.metricsReg)
-	redisRecorder := metrics.NewRedisMetricsRecorder(a.metricsReg)
-	a.orderService = order.NewOrderService(
-		a.logger,
-		orderRepo,
-		spotInstrument,
-		accessService,
-		metricsRecorder,
-		rdb.NewRedisIdempotencyCache(a.idemRedis, a.cnf.Idempotency.TTL, redisRecorder),
-	)
-
-	pubBus := publishers.NewEventPublisherBus()
-
-	a.updatesNotifier, err = updatenotifier.NewUpdateNotifier(a.logger, updatenotifier.Options{
-		SendTimeoutOnSub: a.cnf.Events.STREAM_SEND_TIMEOUT,
-		SendTries:        a.cnf.Events.STREAM_SEND_RETRIES,
-	})
-	if err != nil {
-		return fmt.Errorf("failed create update notifier: %w", err)
-	}
-
-	kafkaMetrics := metrics.NewKafkaMetricsRecorder(a.metricsReg)
-
-	kafkaProducer, err := newSaramaSyncProducer(a.cnf.Kafka)
-	if err != nil {
-		return fmt.Errorf("failed to create Sarama producer: %w", err)
-	}
-	a.closers = append(a.closers, func() error {
-		if err := kafkaProducer.Close(); err != nil {
-			return fmt.Errorf("failed close kafka producer: %w", err)
-		}
-		return nil
-	})
-
-	kafkaUpdatedPublisher := kafka_publisher.NewKafkaPublisher(a.logger, kafkaProducer, a.cnf.Kafka.TopicUpdates, kafkaMetrics)
-	kafkaCreatedPublisher := kafka_publisher.NewKafkaPublisher(a.logger, kafkaProducer, a.cnf.Kafka.TopicCreated, kafkaMetrics)
-	dlqPublisher := kafka_publisher.NewKafkaPublisher(a.logger, kafkaProducer, a.cnf.Kafka.DLQTopic, kafkaMetrics)
-
-	dlqPublishCfg := kafka_publisher.Config{
-		MaxAttempts: a.cnf.Kafka.ProducerRetries,
-		BackoffFunc: shared_retry.NewExponentialBackoffFunc(a.cnf.Kafka.ProducerStartRetryDelay, a.cnf.Kafka.ProducerMaxRetryDelay),
-	}
-
-	publisherUpdatesDlqDecorator, err := kafka_publisher.NewDlqPublisherDecorator(a.logger, dlqPublisher, kafkaUpdatedPublisher, kafkaMetrics, dlqPublishCfg)
-	if err != nil {
-		return fmt.Errorf("failed create DlqPublishRetrayer for updates events: %w", err)
-	}
-	publisherCreatedDlqDecorator, err := kafka_publisher.NewDlqPublisherDecorator(a.logger, dlqPublisher, kafkaCreatedPublisher, kafkaMetrics, dlqPublishCfg)
-	if err != nil {
-		return fmt.Errorf("failed create DlqPublishRetrayer for created events: %w", err)
-	}
-
-	pubBus.Register(model.EVENT_ORDER_UPDATED, a.updatesNotifier)
-	pubBus.Register(model.EVENT_ORDER_UPDATED, publisherUpdatesDlqDecorator)
-	pubBus.Register(model.EVENT_ORDER_CREATED, publisherCreatedDlqDecorator)
-
-	outboxMetrics := metrics.NewOutboxMetricsRecorder(a.metricsReg)
-	outboxRelay, err := outbox.NewRelay(a.logger, a.pgPool, pubBus, outboxMetrics, outbox.Config{
-		Interval:  a.cnf.Outbox.PollInterval,
-		BatchSize: a.cnf.Outbox.BatchSize,
-	})
-	if err != nil {
-		return fmt.Errorf("failed create outbox relay: %w", err)
-	}
-
-	a.outboxRelay = outboxRelay
-
-	return nil
 }
 
 func newSaramaSyncProducer(cfg config.KafkaConfig) (sarama.SyncProducer, error) {
