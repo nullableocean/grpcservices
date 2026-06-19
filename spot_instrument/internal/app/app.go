@@ -191,7 +191,7 @@ func (a *App) initGRPCServer() error {
 	unaryInterceptors := grpc.ChainUnaryInterceptor(
 		shared_inters.UnaryServerPanicRecovery(a.logger, a.cfg.Log.StackLines),
 		shared_inters.UnaryServerLogger(a.logger),
-		shared_inters.UnaryServerTelemetry(),
+		shared_inters.UnaryServerTelemetry(a.logger),
 		a.grpcMetricsSrv.UnaryServerInterceptor(),
 		shared_inters.ValidationUnaryInterceptor(a.logger),
 		shared_inters.UnaryJwtAuthInterceptor(a.logger, jwtParser),

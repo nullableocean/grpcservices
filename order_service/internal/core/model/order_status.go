@@ -8,6 +8,7 @@ import (
 type OrderStatus string
 
 const (
+	OrderStatusUndefined OrderStatus = "UNDEFINED"
 	OrderStatusCreated   OrderStatus = "CREATED"
 	OrderStatusPending   OrderStatus = "PENDING"
 	OrderStatusCompleted OrderStatus = "COMPLETED"

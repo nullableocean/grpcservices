@@ -22,12 +22,16 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// OrderSide — направление сделки (покупка или продажа)
 type OrderSide int32
 
 const (
+	// Не указано (значение по умолчанию, не должно использоваться)
 	OrderSide_ORDER_SIDE_UNSPECIFIED OrderSide = 0
-	OrderSide_ORDER_SIDE_BUY         OrderSide = 1
-	OrderSide_ORDER_SIDE_SELL        OrderSide = 2
+	// Покупка
+	OrderSide_ORDER_SIDE_BUY OrderSide = 1
+	// Продажа
+	OrderSide_ORDER_SIDE_SELL OrderSide = 2
 )
 
 // Enum value maps for OrderSide.
@@ -71,13 +75,19 @@ func (OrderSide) EnumDescriptor() ([]byte, []int) {
 	return file_models_order_proto_rawDescGZIP(), []int{0}
 }
 
+// OrderType — тип ордера
 type OrderType int32
 
 const (
+	// Не указано (значение по умолчанию, не должно использоваться)
 	OrderType_ORDER_TYPE_UNSPECIFIED OrderType = 0
-	OrderType_ORDER_TYPE_MARKET      OrderType = 1
-	OrderType_ORDER_TYPE_LIMIT       OrderType = 2
-	OrderType_ORDER_TYPE_STOP_LOSS   OrderType = 3
+	// Рыночный ордер
+	OrderType_ORDER_TYPE_MARKET OrderType = 1
+	// Лимитный ордер
+	OrderType_ORDER_TYPE_LIMIT OrderType = 2
+	// Стоп-лосс
+	OrderType_ORDER_TYPE_STOP_LOSS OrderType = 3
+	// Тейк-профит
 	OrderType_ORDER_TYPE_TAKE_PROFIT OrderType = 4
 )
 
@@ -126,15 +136,22 @@ func (OrderType) EnumDescriptor() ([]byte, []int) {
 	return file_models_order_proto_rawDescGZIP(), []int{1}
 }
 
+// OrderStatus — статус выполнения ордера
 type OrderStatus int32
 
 const (
+	// Не указано (значение по умолчанию, не должно использоваться)
 	OrderStatus_ORDER_STATUS_UNSPECIFIED OrderStatus = 0
-	OrderStatus_ORDER_STATUS_CREATED     OrderStatus = 1
-	OrderStatus_ORDER_STATUS_PENDING     OrderStatus = 2
-	OrderStatus_ORDER_STATUS_COMPLETED   OrderStatus = 3
-	OrderStatus_ORDER_STATUS_CANCELLED   OrderStatus = 4
-	OrderStatus_ORDER_STATUS_REJECTED    OrderStatus = 5
+	// Создан
+	OrderStatus_ORDER_STATUS_CREATED OrderStatus = 1
+	// В обработке
+	OrderStatus_ORDER_STATUS_PENDING OrderStatus = 2
+	// Исполнен
+	OrderStatus_ORDER_STATUS_COMPLETED OrderStatus = 3
+	// Отменён
+	OrderStatus_ORDER_STATUS_CANCELLED OrderStatus = 4
+	// Отклонён
+	OrderStatus_ORDER_STATUS_REJECTED OrderStatus = 5
 )
 
 // Enum value maps for OrderStatus.
@@ -184,17 +201,28 @@ func (OrderStatus) EnumDescriptor() ([]byte, []int) {
 	return file_models_order_proto_rawDescGZIP(), []int{2}
 }
 
+// Order операция на рынке
 type Order struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrderUuid     string                 `protobuf:"bytes,1,opt,name=order_uuid,json=orderUuid,proto3" json:"order_uuid,omitempty"`
-	UserUuid      string                 `protobuf:"bytes,2,opt,name=user_uuid,json=userUuid,proto3" json:"user_uuid,omitempty"`
-	MarketUuid    string                 `protobuf:"bytes,3,opt,name=market_uuid,json=marketUuid,proto3" json:"market_uuid,omitempty"`
-	Type          OrderType              `protobuf:"varint,4,opt,name=type,proto3,enum=models.v1.OrderType" json:"type,omitempty"`
-	Status        OrderStatus            `protobuf:"varint,5,opt,name=status,proto3,enum=models.v1.OrderStatus" json:"status,omitempty"`
-	Side          OrderSide              `protobuf:"varint,6,opt,name=side,proto3,enum=models.v1.OrderSide" json:"side,omitempty"`
-	Price         *Money                 `protobuf:"bytes,7,opt,name=price,proto3" json:"price,omitempty"`
-	Quantity      *Decimal               `protobuf:"bytes,8,opt,name=quantity,proto3" json:"quantity,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// UUID ордера
+	OrderUuid string `protobuf:"bytes,1,opt,name=order_uuid,json=orderUuid,proto3" json:"order_uuid,omitempty"`
+	// UUID пользователя, создавшего ордер
+	UserUuid string `protobuf:"bytes,2,opt,name=user_uuid,json=userUuid,proto3" json:"user_uuid,omitempty"`
+	// UUID рынка, на котором размещён ордер
+	MarketUuid string `protobuf:"bytes,3,opt,name=market_uuid,json=marketUuid,proto3" json:"market_uuid,omitempty"`
+	// Тип ордера
+	Type OrderType `protobuf:"varint,4,opt,name=type,proto3,enum=models.v1.OrderType" json:"type,omitempty"`
+	// Текущий статус ордера
+	Status OrderStatus `protobuf:"varint,5,opt,name=status,proto3,enum=models.v1.OrderStatus" json:"status,omitempty"`
+	// Направление (покупка или продажа)
+	Side OrderSide `protobuf:"varint,6,opt,name=side,proto3,enum=models.v1.OrderSide" json:"side,omitempty"`
+	// Цена за единицу позиции рынка
+	Price *Money `protobuf:"bytes,7,opt,name=price,proto3" json:"price,omitempty"`
+	// Количество
+	Quantity *Decimal `protobuf:"bytes,8,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	// Время создания ордера
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Время последнего обновления ордера
 	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

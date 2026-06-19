@@ -14,6 +14,7 @@ type Config struct {
 	App            AppConfig
 	Auth           AuthConfig
 	Postgres       PostgresConfig
+	Repo           RepoConfig
 	Spot           SpotConfig
 	Metrics        MetricsConfig
 	Telemetry      TelemetryConfig
@@ -88,6 +89,12 @@ type PostgresConfig struct {
 	DSN             string        `env:"-"`
 }
 
+type RepoConfig struct {
+	MaxRetries        int           `env:"REPOSITORY_MAX_RETRY" env-default:"3"`
+	BackoffStartDelay time.Duration `env:"RETRY_BACKOFF_START_DELAY" env-default:"100ms"`
+	BackoffMaxDelay   time.Duration `env:"RETRY_BACKOFF_MAX_DELAY" env-default:"1000ms"`
+}
+
 type SpotConfig struct {
 	Endpoint string `env:"SPOT_GRPC_ENDPOINT" env-required:"true"`
 }
@@ -135,7 +142,7 @@ type CircuitBreakerConfig struct {
 }
 
 type RetryConfig struct {
-	MaxRetries uint          `env:"RETRY_MAX" env-default:"3"`
+	MaxRetries int           `env:"RETRY_MAX" env-default:"3"`
 	Backoff    time.Duration `env:"RETRY_BACKOFF" env-default:"100ms"`
 }
 
@@ -156,7 +163,7 @@ type KafkaConfig struct {
 	MaxWait           time.Duration `env:"KAFKA_MAX_WAIT" env-default:"1s"`
 	DialTimeout       time.Duration `env:"KAFKA_DIAL_TIMEOUT" env-default:"10s"`
 	WriteTimeout      time.Duration `env:"KAFKA_WRITE_TIMEOUT" env-default:"3s"`
-	ReadTimeout       time.Duration `env:"KAFKA_WRITE_TIMEOUT" env-default:"3s"`
+	ReadTimeout       time.Duration `env:"KAFKA_READ_TIMEOUT" env-default:"3s"`
 	AutoTopicCreation bool          `env:"KAFKA_AUTO_TOPIC_CREATION" env-default:"true"`
 
 	ProducerAcks                string        `env:"KAFKA_PRODUCER_ACKS"             env-default:"all"`      // all one
@@ -170,9 +177,10 @@ type KafkaConfig struct {
 }
 
 type OutboxConfig struct {
-	PollInterval time.Duration `env:"OUTBOX_POLL_INTERVAL" env-default:"1s"`
-	BatchSize    int           `env:"OUTBOX_BATCH_SIZE" env-default:"100"`
-	MaxRetries   int           `env:"OUTBOX_MAX_RETRIES" env-default:"3"`
+	PollInterval       time.Duration `env:"OUTBOX_POLL_INTERVAL" env-default:"1s"`
+	BatchHandleTimeout time.Duration `env:"OUTBOX_BATCH_TIMEOUT" env-default:"10s"`
+	BatchSize          int           `env:"OUTBOX_BATCH_SIZE" env-default:"100"`
+	MaxRetries         int           `env:"OUTBOX_MAX_RETRIES" env-default:"3"`
 }
 
 func (c *Config) afterLoad() {

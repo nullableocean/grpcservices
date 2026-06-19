@@ -43,7 +43,7 @@ func (cb *CircuitBreaker) Execute(fn func() (interface{}, error)) (interface{}, 
 		r, err := fn()
 
 		if mapping.IsClientSideGrpcError(err) {
-			cb.logger.Info("circuit breaker skip client side error", zap.Error(err))
+			cb.logger.Debug("circuit breaker skip client side error", zap.Error(err))
 
 			return r, nil
 		}
@@ -86,7 +86,7 @@ func (cb *CircuitBreaker) updateStateAndMetrics() {
 
 		cb.metrics.RecordStateTransition(fromStr, toStr)
 
-		cb.logger.Info("circuit breaker state changed",
+		cb.logger.Debug("circuit breaker state changed",
 			zap.String("from", fromStr),
 			zap.String("to", toStr),
 			zap.Uint32("consecutive_failures", counts.ConsecutiveFailures),

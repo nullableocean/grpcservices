@@ -26,7 +26,7 @@ func (srv *OrderServer) CreateOrder(ctx context.Context, req *orderv1.CreateOrde
 
 	span.SetAttributes(attribute.String("user_uuid", userUUID))
 	logger := srv.logger.With(zap.String("user_uuid", userUUID))
-	logger.Info("grpc received call for create order")
+	logger.Debug("grpc received call for create order")
 
 	ctxRoles, ok := shared_inters.RolesFromContext(ctx)
 	if !ok {
@@ -57,7 +57,7 @@ func (srv *OrderServer) CreateOrder(ctx context.Context, req *orderv1.CreateOrde
 	}
 
 	span.AddEvent("order created")
-	logger.Info("order created", zap.String("order_uuid", newOrder.UUID))
+	logger.Debug("order created", zap.String("order_uuid", newOrder.UUID))
 
 	return srv.mapOrderToResponse(newOrder), nil
 }
@@ -86,6 +86,6 @@ func (srv *OrderServer) mapCreateRequestToDto(req *orderv1.CreateOrderRequest, u
 func (srv *OrderServer) mapOrderToResponse(o *model.Order) *orderv1.CreateOrderResponse {
 	return &orderv1.CreateOrderResponse{
 		OrderUuid: o.UUID,
-		Status:    mapping.MapOrderStatusToProtoStatus(o.Status),
+		Order:     mapping.MapOrderToProtoOrder(o),
 	}
 }

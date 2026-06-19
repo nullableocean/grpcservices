@@ -286,6 +286,18 @@
                 </li>
               
                 <li>
+                  <a href="#order.v1.OrdersListFilter"><span class="badge">M</span>OrdersListFilter</a>
+                </li>
+              
+                <li>
+                  <a href="#order.v1.OrdersListRequest"><span class="badge">M</span>OrdersListRequest</a>
+                </li>
+              
+                <li>
+                  <a href="#order.v1.OrdersListResponse"><span class="badge">M</span>OrdersListResponse</a>
+                </li>
+              
+                <li>
                   <a href="#order.v1.UpdatesResponse"><span class="badge">M</span>UpdatesResponse</a>
                 </li>
               
@@ -1011,10 +1023,10 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
                 </tr>
               
                 <tr>
-                  <td>status</td>
-                  <td><a href="#models.v1.OrderStatus">models.v1.OrderStatus</a></td>
+                  <td>order</td>
+                  <td><a href="#models.v1.Order">models.v1.Order</a></td>
                   <td></td>
-                  <td><p>Статус созданного ордера </p></td>
+                  <td><p>Созданный ордер </p></td>
                 </tr>
               
             </tbody>
@@ -1193,6 +1205,242 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
 
         
       
+        <h3 id="order.v1.OrdersListFilter">OrdersListFilter</h3>
+        <p>Опциональные фильтры для получения списка ордеров</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>statuses</td>
+                  <td><a href="#models.v1.OrderStatus">models.v1.OrderStatus</a></td>
+                  <td>repeated</td>
+                  <td><p>Список статусов </p></td>
+                </tr>
+              
+                <tr>
+                  <td>market_uuids</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><p>Список рынков </p></td>
+                </tr>
+              
+                <tr>
+                  <td>type</td>
+                  <td><a href="#models.v1.OrderType">models.v1.OrderType</a></td>
+                  <td>optional</td>
+                  <td><p>Тип ордеров </p></td>
+                </tr>
+              
+                <tr>
+                  <td>created_from</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td>optional</td>
+                  <td><p>Интервал времени &#34;созданные от&#34; </p></td>
+                </tr>
+              
+                <tr>
+                  <td>created_to</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td>optional</td>
+                  <td><p>Интервал времени &#34;созданные до&#34; </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>statuses</td>
+                  <td>
+                    <ul>
+                    
+                      <li>repeated.max_items: 20</li>
+                    
+                      <li>repeated.items.enum.defined_only: true</li>
+                    
+                      <li>repeated.items.enum.not_in: [0]</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>market_uuids</td>
+                  <td>
+                    <ul>
+                    
+                      <li>repeated.max_items: 20</li>
+                    
+                      <li>repeated.items.string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>type</td>
+                  <td>
+                    <ul>
+                    
+                      <li>enum.defined_only: true</li>
+                    
+                      <li>enum.not_in: [0]</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+        <h3 id="order.v1.OrdersListRequest">OrdersListRequest</h3>
+        <p>Запрос списка ордеров</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>filters</td>
+                  <td><a href="#order.v1.OrdersListFilter">OrdersListFilter</a></td>
+                  <td></td>
+                  <td><p>Фильтры </p></td>
+                </tr>
+              
+                <tr>
+                  <td>user_uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>Владелец ордеров (в основном берётся из JWT) </p></td>
+                </tr>
+              
+                <tr>
+                  <td>page_size</td>
+                  <td><a href="#int32">int32</a></td>
+                  <td></td>
+                  <td><p>Развер списка </p></td>
+                </tr>
+              
+                <tr>
+                  <td>page_token</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>Токен для пагинации. пустая строка = начало </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>user_uuid</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>page_size</td>
+                  <td>
+                    <ul>
+                    
+                      <li>int32.lte: 1000</li>
+                    
+                      <li>int32.gt: 0</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>page_token</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.max_len: 512</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+        <h3 id="order.v1.OrdersListResponse">OrdersListResponse</h3>
+        <p>Список ордеров с токеном для пагинации</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>orders</td>
+                  <td><a href="#models.v1.Order">models.v1.Order</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>next_page_token</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
         <h3 id="order.v1.UpdatesResponse">UpdatesResponse</h3>
         <p>Сообщения обновления статуса в потоке</p>
 
@@ -1250,6 +1498,13 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
                 <td><a href="#order.v1.CreateOrderRequest">CreateOrderRequest</a></td>
                 <td><a href="#order.v1.CreateOrderResponse">CreateOrderResponse</a></td>
                 <td><p>CreateOrder создаёт новый ордер</p></td>
+              </tr>
+            
+              <tr>
+                <td>OrdersList</td>
+                <td><a href="#order.v1.OrdersListRequest">OrdersListRequest</a></td>
+                <td><a href="#order.v1.OrdersListResponse">OrdersListResponse</a></td>
+                <td><p>OrdersList возвращает список ордеров</p></td>
               </tr>
             
               <tr>
@@ -1630,7 +1885,7 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
             <tbody>
               
                 <tr>
-                  <td>uuid</td>
+                  <td>event_uuid</td>
                   <td><a href="#string">string</a></td>
                   <td></td>
                   <td><p>UUID события </p></td>
@@ -1651,7 +1906,14 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
                 </tr>
               
                 <tr>
-                  <td>created_at</td>
+                  <td>old_status</td>
+                  <td><a href="#models.v1.OrderStatus">models.v1.OrderStatus</a></td>
+                  <td></td>
+                  <td><p>Предыдущий статус </p></td>
+                </tr>
+              
+                <tr>
+                  <td>updated_at</td>
                   <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
                   <td></td>
                   <td><p>Время создания события </p></td>
@@ -1674,7 +1936,7 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
               <tbody>
               
                 <tr>
-                  <td>uuid</td>
+                  <td>event_uuid</td>
                   <td>
                     <ul>
                     

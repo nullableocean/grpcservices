@@ -21,15 +21,22 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// UserRole — роли пользователя в системе
 type UserRole int32
 
 const (
-	UserRole_USER_ROLE_UNSPECIFIED  UserRole = 0
-	UserRole_USER_ROLE_GUEST        UserRole = 1
-	UserRole_USER_ROLE_TRADER       UserRole = 2
+	// Не указано (значение по умолчанию, не должно использоваться)
+	UserRole_USER_ROLE_UNSPECIFIED UserRole = 0
+	// Гость (минимальные права для просмотра публичной информации)
+	UserRole_USER_ROLE_GUEST UserRole = 1
+	// Трейдер (базовые торговые права)
+	UserRole_USER_ROLE_TRADER UserRole = 2
+	// Маркет-мейкер (специальные права на создание ликвидности)
 	UserRole_USER_ROLE_MARKET_MAKER UserRole = 3
-	UserRole_USER_ROLE_MODER        UserRole = 4
-	UserRole_USER_ROLE_ADMIN        UserRole = 5
+	// Модератор
+	UserRole_USER_ROLE_MODER UserRole = 4
+	// Администратор
+	UserRole_USER_ROLE_ADMIN UserRole = 5
 )
 
 // Enum value maps for UserRole.

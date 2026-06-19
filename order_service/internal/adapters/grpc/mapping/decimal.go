@@ -30,3 +30,15 @@ func MapDecimalToProtoMoney(dec decimal.Decimal) *modelsv1.Money {
 		Nanos: int32(nanos),
 	}
 }
+
+func MapDecimalToProtoDecimal(dec decimal.Decimal) *modelsv1.Decimal {
+	units := dec.IntPart()
+
+	fractional := dec.Sub(decimal.NewFromInt(units))
+	nanos := fractional.Mul(decimal.NewFromInt(1e9)).IntPart()
+
+	return &modelsv1.Decimal{
+		Units: units,
+		Nanos: int32(nanos),
+	}
+}

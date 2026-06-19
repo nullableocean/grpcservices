@@ -46,7 +46,7 @@ func (s *OrderService) UpdateOrder(ctx context.Context, orderUUID string, data *
 	}
 
 	s.recordUpdatedMetric(ctx, data.Status)
-	logger.Info("order updated successfully", zap.String("new_status", string(data.Status)))
+	logger.Debug("order updated successfully", zap.String("new_status", string(data.Status)))
 
 	return nil
 }

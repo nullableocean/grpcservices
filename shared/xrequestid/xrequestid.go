@@ -2,11 +2,11 @@ package xrequestid
 
 import "github.com/google/uuid"
 
-func NewXRequestId() string {
+func NewXRequestId() (string, error) {
 	uuid, err := uuid.NewRandom()
 	if err != nil {
-		return ""
+		return "", err
 	}
 
-	return uuid.String()
+	return uuid.String(), nil
 }

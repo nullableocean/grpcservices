@@ -27,6 +27,11 @@ func (m *mockOrderRepository) Save(ctx context.Context, order *model.Order, even
 	return args.Error(0)
 }
 
+func (m *mockOrderRepository) List(ctx context.Context, userUUID string, filters model.OrderListFilter) (model.OrderList, error) {
+	args := m.Called(ctx, userUUID, filters)
+	return args.Get(0).(model.OrderList), args.Error(0)
+}
+
 func (m *mockOrderRepository) Update(ctx context.Context, order *model.Order, events ...model.Event) error {
 	args := m.Called(ctx, order, events)
 	return args.Error(0)

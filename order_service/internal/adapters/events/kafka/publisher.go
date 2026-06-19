@@ -9,6 +9,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/metrics"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
+	"github.com/nullableocean/grpcservices/shared/xrequestid"
 	"go.uber.org/zap"
 )
 
@@ -62,7 +63,7 @@ func (p *Publisher) Publish(ctx context.Context, event model.Event) error {
 
 	p.metrics.MessagePublished(ctx)
 
-	p.logger.Info("event published in kafka",
+	p.logger.Debug("event published in kafka",
 		zap.String("topic", p.topic),
 		zap.String("event_id", event.ID()),
 		zap.String("order_id", event.GetOrderUUID()),
@@ -76,8 +77,14 @@ func (p *Publisher) Publish(ctx context.Context, event model.Event) error {
 }
 
 func (p *Publisher) getHeaders(event model.Event) []sarama.RecordHeader {
+	xreq, err := xrequestid.NewXRequestId()
+	if err != nil {
+		p.logger.Error("failed create request id in kafka publisher", zap.Error(err))
+	}
+
 	return []sarama.RecordHeader{
 		{Key: []byte("event_type"), Value: []byte(event.EventType().String())},
 		{Key: []byte("event_id"), Value: []byte(event.ID())},
+		{Key: []byte(xrequestid.XREQUEST_ID_KEY), Value: []byte(xreq)},
 	}
 }

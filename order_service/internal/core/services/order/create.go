@@ -60,12 +60,12 @@ func (s *OrderService) CreateOrder(ctx context.Context, data *dto.CreateOrderPar
 				return nil, err
 			}
 
-			logger.Info("order found by idempotency cached uuid")
+			logger.Debug("order found by idempotency cached uuid")
 			return order, nil
 		case idemData.IsProcessing():
 			return nil, errs.ErrIdempotencyProcessing
 		case idemData.IsFailed():
-			logger.Info("previous request by idempotency key was failed, go retry", zap.String("previous_error", idemData.LastError))
+			logger.Debug("previous request by idempotency key was failed, go retry", zap.String("previous_error", idemData.LastError))
 
 			err := s.idempotencyGuard.SetProcessing(ctx, data.IdempotencyKey)
 			if err != nil {
@@ -76,7 +76,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, data *dto.CreateOrderPar
 	}
 
 	if err := s.accessService.CanCreateOrder(ctx, data.User, data); err != nil {
-		logger.Info("access denied", zap.Error(err))
+		logger.Debug("access denied", zap.Error(err))
 
 		s.idempotencyGuard.SetFailed(ctx, data.IdempotencyKey)
 
@@ -104,7 +104,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, data *dto.CreateOrderPar
 		return nil, fmt.Errorf("failed to save order: %w", err)
 	}
 
-	logger.Info("order created successfully", zap.String("order_uuid", newOrder.UUID))
+	logger.Debug("order created successfully", zap.String("order_uuid", newOrder.UUID))
 	s.metrics.OrderCreated(ctx)
 
 	s.idempotencyGuard.SetCompleted(ctx, data.IdempotencyKey, newOrder.UUID)

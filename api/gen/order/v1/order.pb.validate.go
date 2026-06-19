@@ -42,6 +42,595 @@ var (
 // define the regex for a UUID once up-front
 var _order_uuidPattern = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
+// Validate checks the field values on OrdersListFilter with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *OrdersListFilter) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on OrdersListFilter with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// OrdersListFilterMultiError, or nil if none found.
+func (m *OrdersListFilter) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *OrdersListFilter) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(m.GetStatuses()) > 20 {
+		err := OrdersListFilterValidationError{
+			field:  "Statuses",
+			reason: "value must contain no more than 20 item(s)",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	for idx, item := range m.GetStatuses() {
+		_, _ = idx, item
+
+		if _, ok := _OrdersListFilter_Statuses_NotInLookup[item]; ok {
+			err := OrdersListFilterValidationError{
+				field:  fmt.Sprintf("Statuses[%v]", idx),
+				reason: "value must not be in list [0]",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if _, ok := modelsv1.OrderStatus_name[int32(item)]; !ok {
+			err := OrdersListFilterValidationError{
+				field:  fmt.Sprintf("Statuses[%v]", idx),
+				reason: "value must be one of the defined enum values",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if len(m.GetMarketUuids()) > 20 {
+		err := OrdersListFilterValidationError{
+			field:  "MarketUuids",
+			reason: "value must contain no more than 20 item(s)",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	for idx, item := range m.GetMarketUuids() {
+		_, _ = idx, item
+
+		if err := m._validateUuid(item); err != nil {
+			err = OrdersListFilterValidationError{
+				field:  fmt.Sprintf("MarketUuids[%v]", idx),
+				reason: "value must be a valid UUID",
+				cause:  err,
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if m.Type != nil {
+
+		if _, ok := _OrdersListFilter_Type_NotInLookup[m.GetType()]; ok {
+			err := OrdersListFilterValidationError{
+				field:  "Type",
+				reason: "value must not be in list [ORDER_TYPE_UNSPECIFIED]",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if _, ok := modelsv1.OrderType_name[int32(m.GetType())]; !ok {
+			err := OrdersListFilterValidationError{
+				field:  "Type",
+				reason: "value must be one of the defined enum values",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if m.CreatedFrom != nil {
+
+		if all {
+			switch v := interface{}(m.GetCreatedFrom()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, OrdersListFilterValidationError{
+						field:  "CreatedFrom",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, OrdersListFilterValidationError{
+						field:  "CreatedFrom",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetCreatedFrom()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return OrdersListFilterValidationError{
+					field:  "CreatedFrom",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	if m.CreatedTo != nil {
+
+		if all {
+			switch v := interface{}(m.GetCreatedTo()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, OrdersListFilterValidationError{
+						field:  "CreatedTo",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, OrdersListFilterValidationError{
+						field:  "CreatedTo",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetCreatedTo()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return OrdersListFilterValidationError{
+					field:  "CreatedTo",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return OrdersListFilterMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *OrdersListFilter) _validateUuid(uuid string) error {
+	if matched := _order_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// OrdersListFilterMultiError is an error wrapping multiple validation errors
+// returned by OrdersListFilter.ValidateAll() if the designated constraints
+// aren't met.
+type OrdersListFilterMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m OrdersListFilterMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m OrdersListFilterMultiError) AllErrors() []error { return m }
+
+// OrdersListFilterValidationError is the validation error returned by
+// OrdersListFilter.Validate if the designated constraints aren't met.
+type OrdersListFilterValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e OrdersListFilterValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e OrdersListFilterValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e OrdersListFilterValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e OrdersListFilterValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e OrdersListFilterValidationError) ErrorName() string { return "OrdersListFilterValidationError" }
+
+// Error satisfies the builtin error interface
+func (e OrdersListFilterValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sOrdersListFilter.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = OrdersListFilterValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = OrdersListFilterValidationError{}
+
+var _OrdersListFilter_Statuses_NotInLookup = map[modelsv1.OrderStatus]struct{}{
+	0: {},
+}
+
+var _OrdersListFilter_Type_NotInLookup = map[modelsv1.OrderType]struct{}{
+	0: {},
+}
+
+// Validate checks the field values on OrdersListRequest with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *OrdersListRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on OrdersListRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// OrdersListRequestMultiError, or nil if none found.
+func (m *OrdersListRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *OrdersListRequest) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetFilters()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, OrdersListRequestValidationError{
+					field:  "Filters",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, OrdersListRequestValidationError{
+					field:  "Filters",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetFilters()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return OrdersListRequestValidationError{
+				field:  "Filters",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if err := m._validateUuid(m.GetUserUuid()); err != nil {
+		err = OrdersListRequestValidationError{
+			field:  "UserUuid",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if val := m.GetPageSize(); val <= 0 || val > 1000 {
+		err := OrdersListRequestValidationError{
+			field:  "PageSize",
+			reason: "value must be inside range (0, 1000]",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if m.GetPageToken() != "" {
+
+		if utf8.RuneCountInString(m.GetPageToken()) > 512 {
+			err := OrdersListRequestValidationError{
+				field:  "PageToken",
+				reason: "value length must be at most 512 runes",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return OrdersListRequestMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *OrdersListRequest) _validateUuid(uuid string) error {
+	if matched := _order_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// OrdersListRequestMultiError is an error wrapping multiple validation errors
+// returned by OrdersListRequest.ValidateAll() if the designated constraints
+// aren't met.
+type OrdersListRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m OrdersListRequestMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m OrdersListRequestMultiError) AllErrors() []error { return m }
+
+// OrdersListRequestValidationError is the validation error returned by
+// OrdersListRequest.Validate if the designated constraints aren't met.
+type OrdersListRequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e OrdersListRequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e OrdersListRequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e OrdersListRequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e OrdersListRequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e OrdersListRequestValidationError) ErrorName() string {
+	return "OrdersListRequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e OrdersListRequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sOrdersListRequest.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = OrdersListRequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = OrdersListRequestValidationError{}
+
+// Validate checks the field values on OrdersListResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *OrdersListResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on OrdersListResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// OrdersListResponseMultiError, or nil if none found.
+func (m *OrdersListResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *OrdersListResponse) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	for idx, item := range m.GetOrders() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, OrdersListResponseValidationError{
+						field:  fmt.Sprintf("Orders[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, OrdersListResponseValidationError{
+						field:  fmt.Sprintf("Orders[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return OrdersListResponseValidationError{
+					field:  fmt.Sprintf("Orders[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	// no validation rules for NextPageToken
+
+	if len(errors) > 0 {
+		return OrdersListResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// OrdersListResponseMultiError is an error wrapping multiple validation errors
+// returned by OrdersListResponse.ValidateAll() if the designated constraints
+// aren't met.
+type OrdersListResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m OrdersListResponseMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m OrdersListResponseMultiError) AllErrors() []error { return m }
+
+// OrdersListResponseValidationError is the validation error returned by
+// OrdersListResponse.Validate if the designated constraints aren't met.
+type OrdersListResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e OrdersListResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e OrdersListResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e OrdersListResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e OrdersListResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e OrdersListResponseValidationError) ErrorName() string {
+	return "OrdersListResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e OrdersListResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sOrdersListResponse.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = OrdersListResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = OrdersListResponseValidationError{}
+
 // Validate checks the field values on GetStatusRequest with the rules defined
 // in the proto definition for this message. If any rules are violated, the
 // first error encountered is returned, or nil if there are no violations.
@@ -173,6 +762,139 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = GetStatusRequestValidationError{}
+
+// Validate checks the field values on GetStatusResponse with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *GetStatusResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on GetStatusResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// GetStatusResponseMultiError, or nil if none found.
+func (m *GetStatusResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *GetStatusResponse) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Status
+
+	if all {
+		switch v := interface{}(m.GetUpdatedAt()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, GetStatusResponseValidationError{
+					field:  "UpdatedAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, GetStatusResponseValidationError{
+					field:  "UpdatedAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetUpdatedAt()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return GetStatusResponseValidationError{
+				field:  "UpdatedAt",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return GetStatusResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// GetStatusResponseMultiError is an error wrapping multiple validation errors
+// returned by GetStatusResponse.ValidateAll() if the designated constraints
+// aren't met.
+type GetStatusResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GetStatusResponseMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GetStatusResponseMultiError) AllErrors() []error { return m }
+
+// GetStatusResponseValidationError is the validation error returned by
+// GetStatusResponse.Validate if the designated constraints aren't met.
+type GetStatusResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e GetStatusResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e GetStatusResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e GetStatusResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e GetStatusResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e GetStatusResponseValidationError) ErrorName() string {
+	return "GetStatusResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e GetStatusResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sGetStatusResponse.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = GetStatusResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = GetStatusResponseValidationError{}
 
 // Validate checks the field values on GetUpdatesRequest with the rules defined
 // in the proto definition for this message. If any rules are violated, the
@@ -307,139 +1029,6 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = GetUpdatesRequestValidationError{}
-
-// Validate checks the field values on GetStatusResponse with the rules defined
-// in the proto definition for this message. If any rules are violated, the
-// first error encountered is returned, or nil if there are no violations.
-func (m *GetStatusResponse) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on GetStatusResponse with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// GetStatusResponseMultiError, or nil if none found.
-func (m *GetStatusResponse) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *GetStatusResponse) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for Status
-
-	if all {
-		switch v := interface{}(m.GetUpdatedAt()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, GetStatusResponseValidationError{
-					field:  "UpdatedAt",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		case interface{ Validate() error }:
-			if err := v.Validate(); err != nil {
-				errors = append(errors, GetStatusResponseValidationError{
-					field:  "UpdatedAt",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		}
-	} else if v, ok := interface{}(m.GetUpdatedAt()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return GetStatusResponseValidationError{
-				field:  "UpdatedAt",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
-	if len(errors) > 0 {
-		return GetStatusResponseMultiError(errors)
-	}
-
-	return nil
-}
-
-// GetStatusResponseMultiError is an error wrapping multiple validation errors
-// returned by GetStatusResponse.ValidateAll() if the designated constraints
-// aren't met.
-type GetStatusResponseMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m GetStatusResponseMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m GetStatusResponseMultiError) AllErrors() []error { return m }
-
-// GetStatusResponseValidationError is the validation error returned by
-// GetStatusResponse.Validate if the designated constraints aren't met.
-type GetStatusResponseValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e GetStatusResponseValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e GetStatusResponseValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e GetStatusResponseValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e GetStatusResponseValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e GetStatusResponseValidationError) ErrorName() string {
-	return "GetStatusResponseValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e GetStatusResponseValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sGetStatusResponse.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = GetStatusResponseValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = GetStatusResponseValidationError{}
 
 // Validate checks the field values on UpdatesResponse with the rules defined
 // in the proto definition for this message. If any rules are violated, the
@@ -876,7 +1465,34 @@ func (m *CreateOrderResponse) validate(all bool) error {
 
 	// no validation rules for OrderUuid
 
-	// no validation rules for Status
+	if all {
+		switch v := interface{}(m.GetOrder()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, CreateOrderResponseValidationError{
+					field:  "Order",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, CreateOrderResponseValidationError{
+					field:  "Order",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetOrder()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return CreateOrderResponseValidationError{
+				field:  "Order",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
 
 	if len(errors) > 0 {
 		return CreateOrderResponseMultiError(errors)

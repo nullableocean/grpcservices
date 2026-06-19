@@ -12,10 +12,6 @@ type PaginationData struct {
 	NextPageToken PageToken
 }
 
-var (
-	separator = "|"
-)
-
 type PaginationCursor struct {
 	MarketName string
 	MarketUuid string

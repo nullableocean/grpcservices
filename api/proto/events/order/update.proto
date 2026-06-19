@@ -11,11 +11,13 @@ import "validate/validate.proto";
 // UpdateStatus — событие об изменении статуса ордера
 message UpdateStatus {
     // UUID события
-    string uuid = 1 [(validate.rules).string = {uuid: true}];
+    string event_uuid = 1 [(validate.rules).string = {uuid: true}];
     // UUID ордера, у которого изменился статус
     string order_uuid = 2 [(validate.rules).string = {uuid: true}];
     // Новый статус ордера
     models.v1.OrderStatus new_status = 3;
+    // Предыдущий статус
+    models.v1.OrderStatus old_status = 4;
     // Время создания события
-    google.protobuf.Timestamp created_at = 4;
+    google.protobuf.Timestamp updated_at = 5;
 }

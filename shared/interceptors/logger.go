@@ -2,7 +2,6 @@ package interceptors
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/nullableocean/grpcservices/shared/xrequestid"
@@ -14,6 +13,7 @@ import (
 )
 
 const (
+	RESPONSE_STATUS   = "grpc_response_status"
 	CALLED_METHOD_KEY = "called_method"
 	CALL_DURATION_KEY = "duration"
 	STACK_KEY         = "stack"
@@ -27,12 +27,12 @@ func UnaryServerLogger(logger *zap.Logger) grpc.UnaryServerInterceptor {
 			zap.String(xrequestid.XREQUEST_ID_KEY, xrequestid.GetFromIncomingCtx(ctx)),
 		)
 
-		l.Info("received grpc request")
+		l.Debug("received grpc request")
 
 		start := time.Now()
 		resp, err = handler(ctx, req)
 
-		l.Info("request handled", zap.Duration(CALL_DURATION_KEY, time.Since(start)), zap.Error(err))
+		l.Debug("request handled", zap.Duration(CALL_DURATION_KEY, time.Since(start)), zap.String(RESPONSE_STATUS, getGRPCStatusCode(err).String()), zap.Error(err))
 
 		return resp, err
 	}
@@ -45,10 +45,11 @@ func UnaryClientLogger(logger *zap.Logger) grpc.UnaryClientInterceptor {
 
 		err := invoker(ctx, method, req, reply, cc, opts...)
 
-		logger.Info("grpc client called",
+		logger.Debug("grpc client called",
 			zap.String(CALLED_METHOD_KEY, method),
 			zap.Duration(CALL_DURATION_KEY, time.Since(start)),
 			zap.String(xrequestid.XREQUEST_ID_KEY, xrequestid.GetFromIncomingCtx(ctx)),
+			zap.String(RESPONSE_STATUS, getGRPCStatusCode(err).String()),
 			zap.Error(err),
 		)
 
@@ -56,15 +57,13 @@ func UnaryClientLogger(logger *zap.Logger) grpc.UnaryClientInterceptor {
 	}
 }
 
-// ловим панику при отправке запроса
-func UnaryClientPanicRecovery() grpc.UnaryClientInterceptor {
-	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error) {
-		defer func() {
-			if r := recover(); r != nil {
-				err = status.Error(codes.Internal, fmt.Sprintf("sent grpc request panic: %v", r))
-			}
-		}()
-
-		return invoker(ctx, method, req, reply, cc, opts...)
+func getGRPCStatusCode(err error) codes.Code {
+	if err == nil {
+		return codes.OK
 	}
+	st, ok := status.FromError(err)
+	if !ok {
+		return codes.Unknown
+	}
+	return st.Code()
 }

@@ -42,7 +42,7 @@ func (p *RedisEventPublisher) Publish(ctx context.Context, event model.Event) er
 		return err
 	}
 
-	logger.Info("event published to redis")
+	logger.Debug("event published to redis")
 
 	return nil
 }

@@ -10,6 +10,7 @@ import (
 )
 
 type Service interface {
+	OrdersList(ctx context.Context, userUUID string, filters model.OrderListFilter) (model.OrderList, error)
 	CreateOrder(ctx context.Context, data *dto.CreateOrderParameters) (*model.Order, error)
 	GetOrder(ctx context.Context, orderUUID, userUUID string) (*model.Order, error)
 	UpdateOrder(ctx context.Context, orderUUID string, data *dto.UpdateOrderParameters) error

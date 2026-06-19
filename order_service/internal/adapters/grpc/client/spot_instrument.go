@@ -42,7 +42,7 @@ func (cl *SpotInstrumentClient) ViewMarkets(ctx context.Context, userRoles []mod
 	ctx, span := otel.Tracer("spot_grpc_client").Start(ctx, "view_markets")
 	defer span.End()
 
-	cl.logger.Info("call ViewMarkets from SpotInstrument grpc server")
+	cl.logger.Debug("call ViewMarkets from SpotInstrument grpc server")
 
 	request := &spotv1.ViewMarketsRequest{
 		UserRoles: mapping.MapRolesToProtoUserRoles(userRoles),
@@ -59,7 +59,7 @@ func (cl *SpotInstrumentClient) ViewMarkets(ctx context.Context, userRoles []mod
 		return nil, mapping.MapGrpcStatusToError(err)
 	}
 
-	cl.logger.Info("got markets from grpc server")
+	cl.logger.Debug("got markets from grpc server")
 	span.AddEvent("success grpc call")
 
 	return mapping.MapProtoMarketsToMarkets(response.Markets), nil
@@ -69,7 +69,7 @@ func (cl *SpotInstrumentClient) FindMarket(ctx context.Context, marketUuid strin
 	ctx, span := otel.Tracer("spot_grpc_client").Start(ctx, "find_markets")
 	defer span.End()
 
-	cl.logger.Info("call FindMarket from SpotInstrument grpc server")
+	cl.logger.Debug("call FindMarket from SpotInstrument grpc server")
 
 	request := &spotv1.FindMarketRequest{
 		MarketUuid: marketUuid,

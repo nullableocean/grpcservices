@@ -10,4 +10,5 @@ type OrderRepository interface {
 	Save(ctx context.Context, order *model.Order, events ...model.Event) error
 	Update(ctx context.Context, updatedOrder *model.Order, events ...model.Event) error
 	FindByUUID(ctx context.Context, orderUUID string) (*model.Order, error)
+	List(ctx context.Context, userUUID string, filters model.OrderListFilter) (model.OrderList, error)
 }

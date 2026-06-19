@@ -24,12 +24,19 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// UpdateStatus — событие об изменении статуса ордера
 type UpdateStatus struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Uuid          string                 `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
-	OrderUuid     string                 `protobuf:"bytes,2,opt,name=order_uuid,json=orderUuid,proto3" json:"order_uuid,omitempty"`
-	NewStatus     v1.OrderStatus         `protobuf:"varint,3,opt,name=new_status,json=newStatus,proto3,enum=models.v1.OrderStatus" json:"new_status,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// UUID события
+	EventUuid string `protobuf:"bytes,1,opt,name=event_uuid,json=eventUuid,proto3" json:"event_uuid,omitempty"`
+	// UUID ордера, у которого изменился статус
+	OrderUuid string `protobuf:"bytes,2,opt,name=order_uuid,json=orderUuid,proto3" json:"order_uuid,omitempty"`
+	// Новый статус ордера
+	NewStatus v1.OrderStatus `protobuf:"varint,3,opt,name=new_status,json=newStatus,proto3,enum=models.v1.OrderStatus" json:"new_status,omitempty"`
+	// Предыдущий статус
+	OldStatus v1.OrderStatus `protobuf:"varint,4,opt,name=old_status,json=oldStatus,proto3,enum=models.v1.OrderStatus" json:"old_status,omitempty"`
+	// Время создания события
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -64,9 +71,9 @@ func (*UpdateStatus) Descriptor() ([]byte, []int) {
 	return file_events_order_update_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *UpdateStatus) GetUuid() string {
+func (x *UpdateStatus) GetEventUuid() string {
 	if x != nil {
-		return x.Uuid
+		return x.EventUuid
 	}
 	return ""
 }
@@ -85,9 +92,16 @@ func (x *UpdateStatus) GetNewStatus() v1.OrderStatus {
 	return v1.OrderStatus(0)
 }
 
-func (x *UpdateStatus) GetCreatedAt() *timestamppb.Timestamp {
+func (x *UpdateStatus) GetOldStatus() v1.OrderStatus {
 	if x != nil {
-		return x.CreatedAt
+		return x.OldStatus
+	}
+	return v1.OrderStatus(0)
+}
+
+func (x *UpdateStatus) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
 	}
 	return nil
 }
@@ -96,15 +110,18 @@ var File_events_order_update_proto protoreflect.FileDescriptor
 
 const file_events_order_update_proto_rawDesc = "" +
 	"\n" +
-	"\x19events/order/update.proto\x12\x0fevents.order.v1\x1a\x12models/order.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17validate/validate.proto\"\xc7\x01\n" +
-	"\fUpdateStatus\x12\x1c\n" +
-	"\x04uuid\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\x04uuid\x12'\n" +
+	"\x19events/order/update.proto\x12\x0fevents.order.v1\x1a\x12models/order.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17validate/validate.proto\"\x89\x02\n" +
+	"\fUpdateStatus\x12'\n" +
+	"\n" +
+	"event_uuid\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\teventUuid\x12'\n" +
 	"\n" +
 	"order_uuid\x18\x02 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\torderUuid\x125\n" +
 	"\n" +
-	"new_status\x18\x03 \x01(\x0e2\x16.models.v1.OrderStatusR\tnewStatus\x129\n" +
+	"new_status\x18\x03 \x01(\x0e2\x16.models.v1.OrderStatusR\tnewStatus\x125\n" +
 	"\n" +
-	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtBMZKgithub.com/nullableocean/grpcservices/api/gen/events/order/v1;ordereventsv1b\x06proto3"
+	"old_status\x18\x04 \x01(\x0e2\x16.models.v1.OrderStatusR\toldStatus\x129\n" +
+	"\n" +
+	"updated_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAtBMZKgithub.com/nullableocean/grpcservices/api/gen/events/order/v1;ordereventsv1b\x06proto3"
 
 var (
 	file_events_order_update_proto_rawDescOnce sync.Once
@@ -126,12 +143,13 @@ var file_events_order_update_proto_goTypes = []any{
 }
 var file_events_order_update_proto_depIdxs = []int32{
 	1, // 0: events.order.v1.UpdateStatus.new_status:type_name -> models.v1.OrderStatus
-	2, // 1: events.order.v1.UpdateStatus.created_at:type_name -> google.protobuf.Timestamp
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	1, // 1: events.order.v1.UpdateStatus.old_status:type_name -> models.v1.OrderStatus
+	2, // 2: events.order.v1.UpdateStatus.updated_at:type_name -> google.protobuf.Timestamp
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_events_order_update_proto_init() }

@@ -26,8 +26,12 @@ const (
 // SpotInstrumentClient is the client API for SpotInstrument service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// Сервис SpotInstrument предоставляет информацию о маркетах
 type SpotInstrumentClient interface {
+	// ViewMarkets возвращает список доступных маркетов с пагинацией
 	ViewMarkets(ctx context.Context, in *ViewMarketsRequest, opts ...grpc.CallOption) (*ViewMarketsResponse, error)
+	// FindMarket возвращает информацию о конкретном маркете
 	FindMarket(ctx context.Context, in *FindMarketRequest, opts ...grpc.CallOption) (*FindMarketResponse, error)
 }
 
@@ -62,8 +66,12 @@ func (c *spotInstrumentClient) FindMarket(ctx context.Context, in *FindMarketReq
 // SpotInstrumentServer is the server API for SpotInstrument service.
 // All implementations must embed UnimplementedSpotInstrumentServer
 // for forward compatibility.
+//
+// Сервис SpotInstrument предоставляет информацию о маркетах
 type SpotInstrumentServer interface {
+	// ViewMarkets возвращает список доступных маркетов с пагинацией
 	ViewMarkets(context.Context, *ViewMarketsRequest) (*ViewMarketsResponse, error)
+	// FindMarket возвращает информацию о конкретном маркете
 	FindMarket(context.Context, *FindMarketRequest) (*FindMarketResponse, error)
 	mustEmbedUnimplementedSpotInstrumentServer()
 }

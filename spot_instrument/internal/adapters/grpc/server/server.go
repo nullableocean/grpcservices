@@ -39,7 +39,7 @@ func (srv *SpotInstrumentServer) FindMarket(ctx context.Context, req *spotv1.Fin
 
 	logger := srv.logger.With(zap.String("user_uuid", userUUID))
 
-	logger.Info("got grpc call FindMarket in SpotInstrumentServer")
+	logger.Debug("got grpc call FindMarket in SpotInstrumentServer")
 
 	roles := mapping.MapProtoUserRolesToRoles(req.UserRoles)
 
@@ -52,7 +52,7 @@ func (srv *SpotInstrumentServer) FindMarket(ctx context.Context, req *spotv1.Fin
 	}
 
 	span.AddEvent("success find markets")
-	logger.Info("market found", zap.String("market_uuid", market.UUID))
+	logger.Debug("market found", zap.String("market_uuid", market.UUID))
 
 	response := &spotv1.FindMarketResponse{
 		Market: mapping.MapMarketToProtoMarket(market),
@@ -72,7 +72,7 @@ func (srv *SpotInstrumentServer) ViewMarkets(ctx context.Context, req *spotv1.Vi
 
 	logger := srv.logger.With(zap.String("user_uuid", userUUID))
 
-	logger.Info("got grpc call ViewMarkets in SpotInstrumentServer")
+	logger.Debug("got grpc call ViewMarkets in SpotInstrumentServer")
 
 	roles := mapping.MapProtoUserRolesToRoles(req.UserRoles)
 
@@ -89,7 +89,7 @@ func (srv *SpotInstrumentServer) ViewMarkets(ctx context.Context, req *spotv1.Vi
 	}
 
 	span.AddEvent("success find markets")
-	logger.Info("response markets", zap.Int("markets_count", len(data.Markets)))
+	logger.Debug("response markets", zap.Int("markets_count", len(data.Markets)))
 
 	return srv.mapMarketsToResponse(data.Markets, data.NextPageToken.Token), nil
 }

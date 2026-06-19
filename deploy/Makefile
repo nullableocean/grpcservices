@@ -60,7 +60,7 @@ clean-srvs:
 	cd $(SPOT_DIR) && make clean
 	cd $(ORDER_DIR) && make clean
 
-down: down-spot down-order down-metrics rm-net
+down: down-spot down-order down-kafka down-metrics rm-net
 
 create-net:
 	docker network inspect ${APP_NETWORK} >/dev/null 2>&1 || docker network create ${APP_NETWORK}

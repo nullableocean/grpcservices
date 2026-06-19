@@ -30,7 +30,7 @@ func (srv *OrderServer) GetOrderStatus(ctx context.Context, req *orderv1.GetStat
 	span.SetAttributes(attribute.String("order_uuid", orderUUID))
 
 	logger := srv.logger.With(zap.String("user_uuid", userUUID), zap.String("order_uuid", orderUUID))
-	logger.Info("grpc received call for get order status")
+	logger.Debug("grpc received call for get order status")
 
 	o, err := srv.orderService.GetOrder(ctx, req.OrderUuid, userUUID)
 	if err != nil {

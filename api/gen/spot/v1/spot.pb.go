@@ -23,71 +23,22 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type ViewMarketsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Markets       []*v1.Market           `protobuf:"bytes,1,rep,name=markets,proto3" json:"markets,omitempty"`
-	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ViewMarketsResponse) Reset() {
-	*x = ViewMarketsResponse{}
-	mi := &file_service_spot_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ViewMarketsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ViewMarketsResponse) ProtoMessage() {}
-
-func (x *ViewMarketsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_service_spot_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ViewMarketsResponse.ProtoReflect.Descriptor instead.
-func (*ViewMarketsResponse) Descriptor() ([]byte, []int) {
-	return file_service_spot_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *ViewMarketsResponse) GetMarkets() []*v1.Market {
-	if x != nil {
-		return x.Markets
-	}
-	return nil
-}
-
-func (x *ViewMarketsResponse) GetNextPageToken() string {
-	if x != nil {
-		return x.NextPageToken
-	}
-	return ""
-}
-
-// ViewMarketsResponse.next_page_token
+// Запрос на получение списка маркетов
 type ViewMarketsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserRoles     []v1.UserRole          `protobuf:"varint,1,rep,packed,name=user_roles,json=userRoles,proto3,enum=models.v1.UserRole" json:"user_roles,omitempty"`
-	PageToken     string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Роли пользователя для фильтрации доступных маркетов
+	UserRoles []v1.UserRole `protobuf:"varint,1,rep,packed,name=user_roles,json=userRoles,proto3,enum=models.v1.UserRole" json:"user_roles,omitempty"`
+	// Токен пагинации
+	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Размер страницы (1–200)
+	PageSize      int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ViewMarketsRequest) Reset() {
 	*x = ViewMarketsRequest{}
-	mi := &file_service_spot_proto_msgTypes[1]
+	mi := &file_service_spot_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -99,7 +50,7 @@ func (x *ViewMarketsRequest) String() string {
 func (*ViewMarketsRequest) ProtoMessage() {}
 
 func (x *ViewMarketsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_service_spot_proto_msgTypes[1]
+	mi := &file_service_spot_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -112,7 +63,7 @@ func (x *ViewMarketsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ViewMarketsRequest.ProtoReflect.Descriptor instead.
 func (*ViewMarketsRequest) Descriptor() ([]byte, []int) {
-	return file_service_spot_proto_rawDescGZIP(), []int{1}
+	return file_service_spot_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ViewMarketsRequest) GetUserRoles() []v1.UserRole {
@@ -136,10 +87,68 @@ func (x *ViewMarketsRequest) GetPageSize() int32 {
 	return 0
 }
 
+// Ответ со списком маркетов
+type ViewMarketsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Список маркетов
+	Markets []*v1.Market `protobuf:"bytes,1,rep,name=markets,proto3" json:"markets,omitempty"`
+	// Токен для следующей страницы
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ViewMarketsResponse) Reset() {
+	*x = ViewMarketsResponse{}
+	mi := &file_service_spot_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ViewMarketsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ViewMarketsResponse) ProtoMessage() {}
+
+func (x *ViewMarketsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_service_spot_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ViewMarketsResponse.ProtoReflect.Descriptor instead.
+func (*ViewMarketsResponse) Descriptor() ([]byte, []int) {
+	return file_service_spot_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ViewMarketsResponse) GetMarkets() []*v1.Market {
+	if x != nil {
+		return x.Markets
+	}
+	return nil
+}
+
+func (x *ViewMarketsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+// Запрос на поиск одного маркета
 type FindMarketRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	MarketUuid    string                 `protobuf:"bytes,1,opt,name=market_uuid,json=marketUuid,proto3" json:"market_uuid,omitempty"`
-	UserRoles     []v1.UserRole          `protobuf:"varint,2,rep,packed,name=user_roles,json=userRoles,proto3,enum=models.v1.UserRole" json:"user_roles,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// UUID маркета
+	MarketUuid string `protobuf:"bytes,1,opt,name=market_uuid,json=marketUuid,proto3" json:"market_uuid,omitempty"`
+	// Роли пользователя для проверки доступа к этому рынку
+	UserRoles     []v1.UserRole `protobuf:"varint,2,rep,packed,name=user_roles,json=userRoles,proto3,enum=models.v1.UserRole" json:"user_roles,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -188,9 +197,11 @@ func (x *FindMarketRequest) GetUserRoles() []v1.UserRole {
 	return nil
 }
 
+// Ответ с деталями маркета
 type FindMarketResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Market        *v1.Market             `protobuf:"bytes,1,opt,name=market,proto3" json:"market,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Найденный маркет
+	Market        *v1.Market `protobuf:"bytes,1,opt,name=market,proto3" json:"market,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -236,10 +247,7 @@ var File_service_spot_proto protoreflect.FileDescriptor
 
 const file_service_spot_proto_rawDesc = "" +
 	"\n" +
-	"\x12service/spot.proto\x12\aspot.v1\x1a\x11models/user.proto\x1a\x13models/market.proto\x1a\x17validate/validate.proto\"j\n" +
-	"\x13ViewMarketsResponse\x12+\n" +
-	"\amarkets\x18\x01 \x03(\v2\x11.models.v1.MarketR\amarkets\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb4\x01\n" +
+	"\x12service/spot.proto\x12\aspot.v1\x1a\x11models/user.proto\x1a\x13models/market.proto\x1a\x17validate/validate.proto\"\xb4\x01\n" +
 	"\x12ViewMarketsRequest\x12I\n" +
 	"\n" +
 	"user_roles\x18\x01 \x03(\x0e2\x13.models.v1.UserRoleB\x15\xfaB\x12\x92\x01\x0f\b\x00\x10\n" +
@@ -247,7 +255,10 @@ const file_service_spot_proto_rawDesc = "" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tB\v\xfaB\br\x06\x18\x80\x04\xd0\x01\x01R\tpageToken\x12'\n" +
 	"\tpage_size\x18\x03 \x01(\x05B\n" +
-	"\xfaB\a\x1a\x05\x18\xc8\x01(\x01R\bpageSize\"\x89\x01\n" +
+	"\xfaB\a\x1a\x05\x18\xc8\x01(\x01R\bpageSize\"j\n" +
+	"\x13ViewMarketsResponse\x12+\n" +
+	"\amarkets\x18\x01 \x03(\v2\x11.models.v1.MarketR\amarkets\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x89\x01\n" +
 	"\x11FindMarketRequest\x12)\n" +
 	"\vmarket_uuid\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\n" +
 	"marketUuid\x12I\n" +
@@ -275,21 +286,21 @@ func file_service_spot_proto_rawDescGZIP() []byte {
 
 var file_service_spot_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_service_spot_proto_goTypes = []any{
-	(*ViewMarketsResponse)(nil), // 0: spot.v1.ViewMarketsResponse
-	(*ViewMarketsRequest)(nil),  // 1: spot.v1.ViewMarketsRequest
+	(*ViewMarketsRequest)(nil),  // 0: spot.v1.ViewMarketsRequest
+	(*ViewMarketsResponse)(nil), // 1: spot.v1.ViewMarketsResponse
 	(*FindMarketRequest)(nil),   // 2: spot.v1.FindMarketRequest
 	(*FindMarketResponse)(nil),  // 3: spot.v1.FindMarketResponse
-	(*v1.Market)(nil),           // 4: models.v1.Market
-	(v1.UserRole)(0),            // 5: models.v1.UserRole
+	(v1.UserRole)(0),            // 4: models.v1.UserRole
+	(*v1.Market)(nil),           // 5: models.v1.Market
 }
 var file_service_spot_proto_depIdxs = []int32{
-	4, // 0: spot.v1.ViewMarketsResponse.markets:type_name -> models.v1.Market
-	5, // 1: spot.v1.ViewMarketsRequest.user_roles:type_name -> models.v1.UserRole
-	5, // 2: spot.v1.FindMarketRequest.user_roles:type_name -> models.v1.UserRole
-	4, // 3: spot.v1.FindMarketResponse.market:type_name -> models.v1.Market
-	1, // 4: spot.v1.SpotInstrument.ViewMarkets:input_type -> spot.v1.ViewMarketsRequest
+	4, // 0: spot.v1.ViewMarketsRequest.user_roles:type_name -> models.v1.UserRole
+	5, // 1: spot.v1.ViewMarketsResponse.markets:type_name -> models.v1.Market
+	4, // 2: spot.v1.FindMarketRequest.user_roles:type_name -> models.v1.UserRole
+	5, // 3: spot.v1.FindMarketResponse.market:type_name -> models.v1.Market
+	0, // 4: spot.v1.SpotInstrument.ViewMarkets:input_type -> spot.v1.ViewMarketsRequest
 	2, // 5: spot.v1.SpotInstrument.FindMarket:input_type -> spot.v1.FindMarketRequest
-	0, // 6: spot.v1.SpotInstrument.ViewMarkets:output_type -> spot.v1.ViewMarketsResponse
+	1, // 6: spot.v1.SpotInstrument.ViewMarkets:output_type -> spot.v1.ViewMarketsResponse
 	3, // 7: spot.v1.SpotInstrument.FindMarket:output_type -> spot.v1.FindMarketResponse
 	6, // [6:8] is the sub-list for method output_type
 	4, // [4:6] is the sub-list for method input_type

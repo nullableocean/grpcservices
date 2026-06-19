@@ -33,7 +33,7 @@ func (s *SpotInstrument) ViewMarketsPaginated(ctx context.Context, userRoles []m
 	defer span.End()
 
 	s.metrics.ViewMarkets(ctx)
-	s.logger.Info("view markets with pagination", zap.String("page_token", pageToken.Token))
+	s.logger.Debug("view markets with pagination", zap.String("page_token", pageToken.Token))
 
 	paginatonData, err := s.marketRepo.FindEnabledByRolesPaginated(ctx, userRoles, pageToken, pageSize)
 	if err != nil {
@@ -51,7 +51,7 @@ func (s *SpotInstrument) ViewMarkets(ctx context.Context, userRoles []model.User
 	defer span.End()
 
 	s.metrics.ViewMarkets(ctx)
-	s.logger.Info("view markets")
+	s.logger.Debug("view markets")
 
 	markets, err := s.marketRepo.FindEnabledByRoles(ctx, userRoles)
 	if err != nil {
@@ -70,7 +70,7 @@ func (s *SpotInstrument) FindWithRoles(ctx context.Context, marketUuid string, u
 	span.SetAttributes(attribute.String("market_uuid", marketUuid))
 
 	s.metrics.FindMarket(ctx)
-	s.logger.Info("find market", zap.String("market_uuid", marketUuid))
+	s.logger.Debug("find market", zap.String("market_uuid", marketUuid))
 
 	market, err := s.marketRepo.FindByUUID(ctx, marketUuid)
 	if err != nil {

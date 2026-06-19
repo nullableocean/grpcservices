@@ -16,11 +16,46 @@ service Order {
     // CreateOrder создаёт новый ордер
     rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
 
+    // OrdersList возвращает список ордеров
+    rpc OrdersList(OrdersListRequest) returns (OrdersListResponse);
+
     // GetOrderStatus возвращает информацию о статусе ордера
     rpc GetOrderStatus(GetStatusRequest) returns (GetStatusResponse);
 
     // StreamOrderUpdates получение обновлений статуса в потоковом режиме
     rpc StreamOrderUpdates(GetUpdatesRequest) returns (stream UpdatesResponse);
+}
+
+// Опциональные фильтры для получения списка ордеров
+message OrdersListFilter {
+    // Список статусов 
+    repeated models.v1.OrderStatus statuses = 1 [(validate.rules).repeated = {items: {enum: {defined_only: true, not_in: [0]}} max_items: 20}];
+    // Список рынков
+    repeated string market_uuids = 2 [(validate.rules).repeated = {items: {string: {uuid: true}} max_items: 20}];
+    // Тип ордеров
+    optional models.v1.OrderType type = 3 [(validate.rules).enum = {defined_only: true, not_in: [0]}];
+    // Интервал времени "созданные от"
+    optional google.protobuf.Timestamp created_from = 4;
+    // Интервал времени "созданные до"
+    optional google.protobuf.Timestamp created_to = 5;
+}
+
+// Запрос списка ордеров
+message OrdersListRequest {
+    // Фильтры
+    OrdersListFilter filters = 1;
+    // Владелец ордеров (в основном берётся из JWT)
+    string user_uuid = 2 [(validate.rules).string = {uuid: true}];
+    // Размер списка
+    int32 page_size = 3 [(validate.rules).int32 = {gt: 0, lte: 1000}];
+    // Токен для пагинации. пустая строка = начало
+    string page_token = 4 [(validate.rules).string = {ignore_empty: true,max_len: 512}];
+}
+
+// Список ордеров с токеном для пагинации
+message OrdersListResponse {
+    repeated models.v1.Order orders = 1;
+    string next_page_token = 2;
 }
 
 // Запрос статуса ордера
@@ -35,6 +70,7 @@ message GetStatusRequest {
 message GetStatusResponse {
     // Текущий статус
     models.v1.OrderStatus status = 1;
+
     // Время последнего изменения
     google.protobuf.Timestamp updated_at = 2;
 }
@@ -79,6 +115,6 @@ message CreateOrderRequest {
 message CreateOrderResponse {
     // UUID созданного ордера
     string order_uuid = 1;
-    // Статус созданного ордера
-    models.v1.OrderStatus status = 2;
+    // Созданный ордер
+    models.v1.Order order = 2;
 }

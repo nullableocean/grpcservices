@@ -54,7 +54,7 @@ func (r *MarketRepository) refreshLoop(ctx context.Context, interval time.Durati
 	for {
 		select {
 		case <-ctx.Done():
-			r.logger.Info("stopping role map refresher")
+			r.logger.Debug("stopping role map refresher")
 			return
 		case <-ticker.C:
 			if err := r.loadRoleMap(ctx); err != nil {

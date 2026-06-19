@@ -23,9 +23,12 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// MarketUpdated — событие об изменении данных рынка
 type MarketUpdated struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	MarketUuid    string                 `protobuf:"bytes,1,opt,name=market_uuid,json=marketUuid,proto3" json:"market_uuid,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// UUID обновлённого рынка
+	MarketUuid string `protobuf:"bytes,1,opt,name=market_uuid,json=marketUuid,proto3" json:"market_uuid,omitempty"`
+	// Время создания события
 	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

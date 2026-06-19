@@ -101,23 +101,24 @@ func (notifier *UpdateNotifier) publish(ctx context.Context, orderUUID string, e
 	for _, sub := range cpSubs {
 		select {
 		case <-ctx.Done():
-			logger.Info("context closed", zap.Error(ctx.Err()))
+			logger.Debug("context closed", zap.Error(ctx.Err()))
 			return ctx.Err()
 
 		case <-sub.closeCh:
-			logger.Info("sub closed", zap.Int("sub_id", sub.id))
+			logger.Debug("sub closed", zap.Int("sub_id", sub.id))
 
 			subs.Remove(sub.id)
 		case <-time.After(notifier.sendTimeout):
-			logger.Info("timeout notify sub", zap.Int("sub_id", sub.id))
+			logger.Debug("timeout notify sub", zap.Int("sub_id", sub.id))
 
 			if atomic.AddInt32(&sub.timeouts, 1) >= notifier.sendTries {
-				logger.Info("expired timeouts. remove sub", zap.Int("sub_id", sub.id))
+				logger.Debug("expired timeouts. remove sub", zap.Int("sub_id", sub.id))
 
 				subs.Remove(sub.id)
 			}
 		case sub.updatesCh <- event:
-			logger.Info("subscriber notified", zap.Int("sub_id", sub.id))
+			logger.Debug("subscriber notified", zap.Int("sub_id", sub.id))
+			atomic.StoreInt32(&sub.timeouts, 0)
 		}
 	}
 

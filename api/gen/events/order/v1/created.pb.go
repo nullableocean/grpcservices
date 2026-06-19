@@ -23,10 +23,13 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// CreatedOrderEvent — событие о создании нового ордера
 type CreatedOrderEvent struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	EventUuid     string                 `protobuf:"bytes,1,opt,name=event_uuid,json=eventUuid,proto3" json:"event_uuid,omitempty"`
-	CreatedOrder  *v1.Order              `protobuf:"bytes,2,opt,name=created_order,json=createdOrder,proto3" json:"created_order,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// UUID события
+	EventUuid string `protobuf:"bytes,1,opt,name=event_uuid,json=eventUuid,proto3" json:"event_uuid,omitempty"`
+	// Созданный ордер
+	CreatedOrder  *v1.Order `protobuf:"bytes,2,opt,name=created_order,json=createdOrder,proto3" json:"created_order,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
