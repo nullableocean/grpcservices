@@ -8,15 +8,18 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 )
 
 type OutboxRecord struct {
-	EventUUID   string
-	OrderUUID   string
-	EventType   string
-	Payload     json.RawMessage
-	CreatedAt   time.Time
-	ProcessedAt *time.Time
+	EventUUID string
+	OrderUUID string
+	EventType string
+	Attempts  int
+	Payload   json.RawMessage
+	Error     string
+	CreatedAt time.Time
+	UpdatedAt *time.Time
 }
 
 type OutboxReader struct {
@@ -29,14 +32,14 @@ func NewOutboxReader(pool *pgxpool.Pool) *OutboxReader {
 
 func (r *OutboxReader) FetchUnprocessedTx(ctx context.Context, tx pgx.Tx, limit int) ([]*OutboxRecord, error) {
 	const query = `
-        SELECT uuid, order_uuid, event_type, payload, created_at, processed_at
+        SELECT uuid, order_uuid, event_type, payload, attempts, error, created_at, updated_at
         FROM outbox_orders_events
-        WHERE processed_at IS NULL
+        WHERE status IN ($1,$2)
         ORDER BY created_at
-        LIMIT $1
+        LIMIT $3
         FOR UPDATE SKIP LOCKED
     `
-	rows, err := tx.Query(ctx, query, limit)
+	rows, err := tx.Query(ctx, query, model.OutboxStatusPending, model.OutboxStatusFailed, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query outbox: %w", err)
 	}
@@ -46,8 +49,8 @@ func (r *OutboxReader) FetchUnprocessedTx(ctx context.Context, tx pgx.Tx, limit 
 	for rows.Next() {
 		var rec OutboxRecord
 		err := rows.Scan(
-			&rec.EventUUID, &rec.OrderUUID, &rec.EventType, &rec.Payload,
-			&rec.CreatedAt, &rec.ProcessedAt,
+			&rec.EventUUID, &rec.OrderUUID, &rec.EventType, &rec.Payload, &rec.Attempts, &rec.Error,
+			&rec.CreatedAt, &rec.UpdatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan outbox row: %w", err)
@@ -61,11 +64,42 @@ func (r *OutboxReader) FetchUnprocessedTx(ctx context.Context, tx pgx.Tx, limit 
 	return records, nil
 }
 
-func (r *OutboxReader) MarkProcessedTx(ctx context.Context, tx pgx.Tx, uuid string) error {
-	const query = `UPDATE outbox_orders_events SET processed_at = NOW() WHERE uuid = $1`
-	_, err := tx.Exec(ctx, query, uuid)
+func (r *OutboxReader) MarkProcessedTx(ctx context.Context, tx pgx.Tx, eventUUID string) error {
+	const query = `UPDATE outbox_orders_events 
+         SET status = $1, updated_at = NOW(), error = NULL, attempts = attempts + 1 
+         WHERE uuid = $2`
+
+	_, err := tx.Exec(ctx, query, model.OutboxStatusPending, eventUUID)
 	if err != nil {
 		return fmt.Errorf("failed to mark event in outbox as processed: %w", err)
 	}
+
+	return nil
+}
+
+func (r *OutboxReader) MarkFailedTx(ctx context.Context, tx pgx.Tx, eventUUID string, errorMessage string) error {
+	const query = `UPDATE outbox_orders_events 
+         SET status = $1, updated_at = NOW(), error = $2, attempts = attempts + 1 
+         WHERE uuid = $3`
+
+	_, err := tx.Exec(ctx, query, model.OutboxStatusFailed, errorMessage, eventUUID)
+	if err != nil {
+		return fmt.Errorf("failed to mark event in outbox as failed: %w", err)
+	}
+
+	return nil
+}
+
+func (r *OutboxReader) MarkDeadTx(ctx context.Context, tx pgx.Tx, eventUUID string, errorMessage string) error {
+	const query = `UPDATE outbox_orders_events 
+         SET status = $1, updated_at = NOW(), error = $2, attempts = attempts + 1 
+         WHERE uuid = $3`
+
+	_, err := tx.Exec(ctx, query, model.OutboxStatusDeadLetter, errorMessage, eventUUID)
+
+	if err != nil {
+		return fmt.Errorf("failed to mark event in outbox as dead: %w", err)
+	}
+
 	return nil
 }

@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE INDEX idx_orders_uuid ON orders (uuid);
 CREATE INDEX idx_orders_user_uuid ON orders (user_uuid);
 
+CREATE TYPE outbox_event_status AS ENUM ('PENDING', 'PROCESSED', 'FAILED', 'DEAD_LETTER');
+
 CREATE TABLE IF NOT EXISTS outbox_orders_events (
     id            BIGSERIAL PRIMARY KEY,
     order_id      BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
@@ -54,9 +56,15 @@ CREATE TABLE IF NOT EXISTS outbox_orders_events (
     order_uuid    UUID NOT NULL,
     event_type    VARCHAR(100) NOT NULL,
     payload       JSONB NOT NULL,
+    status outbox_event_status NOT NULL DEFAULT 'PENDING',
+    error TEXT,
+    attempts INT NOT NULL DEFAULT 0,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    processed_at  TIMESTAMPTZ
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_outbox_order_uuid ON outbox_orders_events (order_uuid);
-CREATE INDEX idx_outbox_unprocessed ON outbox_orders_events (created_at) WHERE processed_at IS NULL;
+
+CREATE INDEX idx_outbox_pending_events 
+    ON outbox_orders_events (created_at) 
+    WHERE status IN ('PENDING', 'FAILED');

@@ -132,6 +132,7 @@ func (a *App) initServices() error {
 		Interval:     a.cnf.Outbox.PollInterval,
 		BatchSize:    a.cnf.Outbox.BatchSize,
 		BatchTimeout: a.cnf.Outbox.BatchHandleTimeout,
+		MaxRetry:     a.cnf.Outbox.MaxRetries,
 	})
 	if err != nil {
 		return fmt.Errorf("failed create outbox relay: %w", err)

@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/metrics"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
@@ -23,6 +24,7 @@ type OutboxRelay struct {
 	interval  time.Duration
 	timeout   time.Duration
 	batchSize int
+	maxRetry  int
 
 	cancel    context.CancelFunc
 	stopped   atomic.Bool
@@ -36,19 +38,32 @@ type Config struct {
 	Interval     time.Duration
 	BatchTimeout time.Duration
 	BatchSize    int
+	MaxRetry     int
+}
+
+func (c Config) Validate() error {
+	if c.Interval <= 0 {
+		return fmt.Errorf("invalid outbox relay interval. cant be negative or zero: %s", c.Interval)
+	}
+
+	if c.BatchTimeout <= 0 {
+		return fmt.Errorf("invalid outbox batch timeout. cant be negative or zero: %s", c.BatchTimeout)
+	}
+
+	if c.BatchSize <= 0 {
+		return fmt.Errorf("invalid outbox relay batch size. cant be negative or zero: %d", c.BatchSize)
+	}
+
+	if c.MaxRetry <= 0 {
+		return fmt.Errorf("invalid outbox relay retry. cant be negative or zero: %d", c.MaxRetry)
+	}
+
+	return nil
 }
 
 func NewRelay(l *zap.Logger, pool *pgxpool.Pool, publisher ports.EventPublisher, outboxMetrics *metrics.OutboxMetricsRecorder, opt Config) (*OutboxRelay, error) {
-	if opt.Interval <= 0 {
-		return nil, fmt.Errorf("invalid outbox relay interval. cant be negative or zero: %s", opt.Interval)
-	}
-
-	if opt.BatchTimeout <= 0 {
-		return nil, fmt.Errorf("invalid outbox batch timeout. cant be negative or zero: %s", opt.BatchTimeout)
-	}
-
-	if opt.BatchSize <= 0 {
-		return nil, fmt.Errorf("invalid outbox relay batch size. cant be negative or zero: %d", opt.BatchSize)
+	if err := opt.Validate(); err != nil {
+		return nil, err
 	}
 
 	return &OutboxRelay{
@@ -58,6 +73,7 @@ func NewRelay(l *zap.Logger, pool *pgxpool.Pool, publisher ports.EventPublisher,
 		interval:  opt.Interval,
 		batchSize: opt.BatchSize,
 		timeout:   opt.BatchTimeout,
+		maxRetry:  opt.MaxRetry,
 		logger:    l,
 		metrics:   outboxMetrics,
 	}, nil
@@ -111,7 +127,13 @@ func (r *OutboxRelay) processBatch(ctx context.Context) {
 		}
 		return
 	}
-	defer tx.Rollback(ctx)
+
+	defer func() {
+		err := tx.Rollback(context.WithoutCancel(ctx))
+		if err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+			r.logger.Error("failed outbox transaction rollback", zap.Error(err))
+		}
+	}()
 
 	records, err := r.reader.FetchUnprocessedTx(ctx, tx, r.batchSize)
 	if err != nil {
@@ -130,6 +152,7 @@ func (r *OutboxRelay) processBatch(ctx context.Context) {
 		return
 	}
 
+LOOP:
 	for i, rec := range records {
 		select {
 		case <-ctx.Done():
@@ -138,17 +161,32 @@ func (r *OutboxRelay) processBatch(ctx context.Context) {
 				zap.Int("total", len(records)),
 				zap.Error(ctx.Err()),
 			)
-			return
+			break LOOP
 		default:
 		}
-
 		r.metrics.EventFetched(ctx)
+
+		if rec.Attempts >= r.maxRetry {
+			markErr := r.reader.MarkDeadTx(ctx, tx, rec.EventUUID, rec.Error)
+			if markErr != nil {
+				r.logger.Error("failed mark dead event", zap.Error(err))
+				return
+			}
+			continue
+		}
 
 		event, err := r.unmarshalEvent(rec)
 		if err != nil {
 			r.logger.Error("failed to unmarshal event",
 				zap.Error(err),
 				zap.String("event_uuid", rec.EventUUID))
+
+			markErr := r.reader.MarkDeadTx(ctx, tx, rec.EventUUID, err.Error())
+			if markErr != nil {
+				r.logger.Error("failed mark dead event", zap.Error(err))
+				return
+			}
+
 			r.metrics.EventFailed(ctx)
 			continue
 		}
@@ -157,6 +195,13 @@ func (r *OutboxRelay) processBatch(ctx context.Context) {
 			r.logger.Error("failed to publish event",
 				zap.Error(err),
 				zap.String("event_uuid", rec.EventUUID))
+
+			markErr := r.reader.MarkFailedTx(ctx, tx, rec.EventUUID, err.Error())
+			if markErr != nil {
+				r.logger.Error("failed mark failed event", zap.Error(err))
+				return
+			}
+
 			r.metrics.EventFailed(ctx)
 			continue
 		}
@@ -165,12 +210,13 @@ func (r *OutboxRelay) processBatch(ctx context.Context) {
 			r.logger.Error("failed to mark event as processed",
 				zap.Error(err),
 				zap.String("event_uuid", rec.EventUUID))
+
 			r.metrics.EventFailed(ctx)
 			return
 		}
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	if err := tx.Commit(context.WithoutCancel(ctx)); err != nil {
 		r.logger.Error("failed to commit transaction", zap.Error(err))
 		return
 	}
