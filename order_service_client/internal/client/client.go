@@ -31,9 +31,14 @@ func NewClient(grpcAddr string) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) CreateOrder(ctx context.Context, token string, dto *dto.CreateOrderParameters) (*Response, error) {
+func (c *Client) CreateOrder(ctx context.Context, authToken string, dto *dto.CreateOrderParameters) (*Response, error) {
 	if err := dto.Validate(); err != nil {
 		return nil, err
+	}
+
+	idemKey := dto.IdemKey
+	if idemKey == "" {
+		idemKey = uuid.NewString()
 	}
 
 	req := &orderv1.CreateOrderRequest{
@@ -43,11 +48,11 @@ func (c *Client) CreateOrder(ctx context.Context, token string, dto *dto.CreateO
 		OrderSide:      MapOrderSideToProtoSide(dto.Side),
 		Price:          MapDecimalToProtoMoney(dto.Price),
 		Quantity:       MapDecimalToProtoDecimal(dto.Quantity),
-		IdempotencyKey: uuid.NewString(),
+		IdempotencyKey: idemKey,
 	}
 
 	md := metadata.New(map[string]string{
-		TokenMetadataKey: token,
+		TokenMetadataKey: authToken,
 	})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
@@ -58,7 +63,7 @@ func (c *Client) CreateOrder(ctx context.Context, token string, dto *dto.CreateO
 
 	return &Response{
 		NewOrderUuid: response.OrderUuid,
-		Status:       MapProtoStatusToStatus(response.Status),
+		Status:       MapProtoStatusToStatus(response.Order.Status),
 	}, nil
 }
 

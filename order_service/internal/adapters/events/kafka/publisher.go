@@ -7,6 +7,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/metrics"
+	"github.com/nullableocean/grpcservices/orderservice/internal/core/errs"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
 	"github.com/nullableocean/grpcservices/shared/xrequestid"
@@ -31,7 +32,16 @@ func NewKafkaPublisher(logger *zap.Logger, producer sarama.SyncProducer, topic s
 	}
 }
 
-func (p *Publisher) Publish(ctx context.Context, event model.Event) error {
+func (p *Publisher) Publish(ctx context.Context, event model.Event) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			msg := fmt.Sprintf("grpc request panic: %v", r)
+			p.logger.Error("panic in kafka publisher", zap.Any("error", msg))
+
+			err = fmt.Errorf("panic in publisher: %w: %s", errs.ErrInternal, msg)
+		}
+	}()
+
 	payload, err := event.Payload()
 	if err != nil {
 		p.logger.Error("failed to serialize event data",
@@ -73,14 +83,10 @@ func (p *Publisher) Publish(ctx context.Context, event model.Event) error {
 	)
 
 	return nil
-
 }
 
 func (p *Publisher) getHeaders(event model.Event) []sarama.RecordHeader {
-	xreq, err := xrequestid.NewXRequestId()
-	if err != nil {
-		p.logger.Error("failed create request id in kafka publisher", zap.Error(err))
-	}
+	xreq := xrequestid.NewXRequestId()
 
 	return []sarama.RecordHeader{
 		{Key: []byte("event_type"), Value: []byte(event.EventType().String())},

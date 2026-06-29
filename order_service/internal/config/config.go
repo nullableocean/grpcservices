@@ -27,6 +27,7 @@ type Config struct {
 	Cache          CacheConfig
 	QueueRedis     QueueRedisConfig
 	Events         EventsConfig
+	RolesRateLimit RolesLimitConfig
 	Env            EnvConfig
 }
 

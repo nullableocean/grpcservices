@@ -24,10 +24,7 @@ func (c *Cli) StreamCmd() *cobra.Command {
 
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		token := c.args.User.Jwt
-		userUUID, err := c.parseUserFromToken(token)
-		if err != nil {
-			log.Fatalln("failed parse token:", err)
-		}
+		userUUID := c.args.User.UUID
 
 		c.streamUpdates(c.getOrderClient(), token, c.args.StreamArgs.OrderUUID, userUUID)
 	}

@@ -6,24 +6,18 @@ import (
 	"github.com/nullableocean/grpcservices/shared/xrequestid"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
 // UnaryServerTelemetry извлекает из входящего контекста x-request-id или генерирует новый и добавляет его в атрибуты трейса
-func UnaryServerTelemetry(logger *zap.Logger) grpc.UnaryServerInterceptor {
+func UnaryServerTelemetry() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		span := trace.SpanFromContext(ctx)
 		if span.IsRecording() {
 			reqid := xrequestid.GetFromIncomingCtx(ctx)
-			if reqid == "" {
-				var xreqErr error
-				reqid, xreqErr = xrequestid.NewXRequestId()
-				if xreqErr != nil {
-					logger.Error("failed create xrequestid for income request", zap.Error(err))
-				}
 
-				ctx = xrequestid.SetInOutCtx(reqid, ctx)
+			if reqid == "" {
+				ctx = xrequestid.CreateNewToOutCtx(ctx)
 			}
 
 			span.SetAttributes(attribute.String(xrequestid.XREQUEST_ID_KEY, reqid))
@@ -48,18 +42,14 @@ func UnaryClientXReqIdTelemetry() grpc.UnaryClientInterceptor {
 }
 
 // UnaryClientXReqId добавляет x-request-id в исходящий контекст
-func UnaryClientXReqId(logger *zap.Logger) grpc.UnaryClientInterceptor {
+func UnaryClientXReqId() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		reqid := xrequestid.GetFromIncomingCtx(ctx)
 
 		if reqid == "" {
-			var err error
-			ctx, err = xrequestid.CreateToOutCtx(ctx)
-			if err != nil {
-				logger.Error("failed create xrequestid for outgoing request", zap.Error(err))
-			}
+			ctx = xrequestid.CreateNewToOutCtx(ctx)
 		} else {
-			ctx = xrequestid.SetInOutCtx(reqid, ctx)
+			ctx = xrequestid.SetToOutCtx(reqid, ctx)
 		}
 
 		return invoker(ctx, method, req, reply, cc, opts...)

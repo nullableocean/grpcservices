@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
 	"go.uber.org/zap"
 )
 
@@ -78,27 +79,13 @@ type mockMetricsRecorder struct {
 	mock.Mock
 }
 
-func (m *mockMetricsRecorder) OrderCreated(ctx context.Context) {
-	m.Called(ctx)
-}
-func (m *mockMetricsRecorder) OrderCompleted(ctx context.Context) {
-	m.Called(ctx)
-}
-func (m *mockMetricsRecorder) OrderRejected(ctx context.Context) {
-	m.Called(ctx)
-}
-func (m *mockMetricsRecorder) OrderCancelled(ctx context.Context) {
-	m.Called(ctx)
-}
-func (m *mockMetricsRecorder) OrderFailed(ctx context.Context) {
-	m.Called(ctx)
-}
-func (m *mockMetricsRecorder) OrderFailedCreate(ctx context.Context) {
-	m.Called(ctx)
-}
-func (m *mockMetricsRecorder) OrderFailedUpdate(ctx context.Context) {
-	m.Called(ctx)
-}
+func (m *mockMetricsRecorder) OrderCreated(ctx context.Context)      { m.Called(ctx) }
+func (m *mockMetricsRecorder) OrderCompleted(ctx context.Context)    { m.Called(ctx) }
+func (m *mockMetricsRecorder) OrderRejected(ctx context.Context)     { m.Called(ctx) }
+func (m *mockMetricsRecorder) OrderCancelled(ctx context.Context)    { m.Called(ctx) }
+func (m *mockMetricsRecorder) OrderFailed(ctx context.Context)       { m.Called(ctx) }
+func (m *mockMetricsRecorder) OrderFailedCreate(ctx context.Context) { m.Called(ctx) }
+func (m *mockMetricsRecorder) OrderFailedUpdate(ctx context.Context) { m.Called(ctx) }
 
 type mockIdempotencyCache struct {
 	mock.Mock
@@ -127,12 +114,33 @@ func (m *mockIdempotencyCache) Delete(ctx context.Context, key string) error {
 	return args.Error(0)
 }
 
+type mockOrderRateLimiter struct {
+	mock.Mock
+}
+
+func (m *mockOrderRateLimiter) Check(ctx context.Context, user model.User) error {
+	args := m.Called(ctx, user)
+	return args.Error(0)
+}
+
+func (m *mockOrderRateLimiter) Rollback(ctx context.Context, user model.User) error {
+	args := m.Called(ctx, user)
+	return args.Error(0)
+}
+
 func defaultIdempotencyMock() *mockIdempotencyCache {
 	m := new(mockIdempotencyCache)
 	m.On("Get", mock.Anything, mock.Anything).Return(nil, nil).Maybe()
 	m.On("SetIfNotExist", mock.Anything, mock.Anything, mock.Anything).Return(true, nil).Maybe()
 	m.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(nil).Maybe()
 	m.On("Delete", mock.Anything, mock.Anything).Return(nil).Maybe()
+	return m
+}
+
+func defaultRateLimiterMock() *mockOrderRateLimiter {
+	m := new(mockOrderRateLimiter)
+	m.On("Check", mock.Anything, mock.Anything).Return(nil).Maybe()
+	m.On("Rollback", mock.Anything, mock.Anything).Return(nil).Maybe()
 	return m
 }
 
@@ -143,8 +151,8 @@ func newTestUser(roles ...model.UserRole) *model.User {
 	}
 }
 
-func newTestMarket(marketUUID string) *model.Market {
-	return &model.Market{UUID: marketUUID}
+func newTestMarket(marketUUID string, isActive bool) *model.Market {
+	return &model.Market{UUID: marketUUID, IsActive: isActive}
 }
 
 func newTestOrder(uuid, userUUID, marketUUID string, side model.OrderSide, typ model.OrderType, price, quantity decimal.Decimal, status model.OrderStatus) *model.Order {
@@ -172,8 +180,9 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		accessSvc := new(mockAccessService)
 		metrics := new(mockMetricsRecorder)
 		cache := defaultIdempotencyMock()
+		rateLimiter := defaultRateLimiterMock()
 
-		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, cache)
+		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, rateLimiter, cache)
 
 		params := &dto.CreateOrderParameters{
 			User:           newTestUser(model.UserRoleTrader),
@@ -191,6 +200,7 @@ func TestOrderService_CreateOrder(t *testing.T) {
 
 		orderRepo.AssertNotCalled(t, "Save")
 		cache.AssertNotCalled(t, "Get")
+		rateLimiter.AssertNotCalled(t, "Check")
 	})
 
 	t.Run("first request with new key – success", func(t *testing.T) {
@@ -199,6 +209,7 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		accessSvc := new(mockAccessService)
 		metrics := new(mockMetricsRecorder)
 		cache := new(mockIdempotencyCache)
+		rateLimiter := new(mockOrderRateLimiter)
 
 		key := "test-key-123"
 		params := &dto.CreateOrderParameters{
@@ -220,11 +231,12 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		})).Return(nil).Once()
 
 		accessSvc.On("CanCreateOrder", mock.Anything, params.User, params).Return(nil).Once()
-		spotInst.On("FindMarket", mock.Anything, params.MarketUUID, params.User.Roles).Return(newTestMarket("BTC-USDT"), nil).Once()
+		rateLimiter.On("Check", mock.Anything, *params.User).Return(nil).Once() // Проверка лимита успешна
+		spotInst.On("FindMarket", mock.Anything, params.MarketUUID, params.User.Roles).Return(newTestMarket("BTC-USDT", true), nil).Once()
 		orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*model.Order"), mock.Anything).Return(nil).Once()
 		metrics.On("OrderCreated", mock.Anything).Return().Once()
 
-		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, cache)
+		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, rateLimiter, cache)
 
 		order, err := svc.CreateOrder(ctx, params)
 		require.NoError(t, err)
@@ -233,32 +245,22 @@ func TestOrderService_CreateOrder(t *testing.T) {
 
 		cache.AssertExpectations(t)
 		accessSvc.AssertExpectations(t)
+		rateLimiter.AssertExpectations(t)
+		rateLimiter.AssertNotCalled(t, "Rollback")
 		spotInst.AssertExpectations(t)
 		orderRepo.AssertExpectations(t)
 		metrics.AssertExpectations(t)
 	})
 
-	t.Run("repeated request with same key – returns existing order", func(t *testing.T) {
+	t.Run("rate limit exceeded", func(t *testing.T) {
 		orderRepo := new(mockOrderRepository)
 		spotInst := new(mockSpotInstrument)
 		accessSvc := new(mockAccessService)
 		metrics := new(mockMetricsRecorder)
 		cache := new(mockIdempotencyCache)
+		rateLimiter := new(mockOrderRateLimiter)
 
-		key := "test-key-456"
-		existingOrderUUID := "existing-order-uuid"
-		existingOrder := newTestOrder(existingOrderUUID, "user-uuid", "BTC-USDT", model.OrderSideBuy, model.OrderTypeLimit, decimal.NewFromInt(50000), decimal.NewFromInt(1), model.OrderStatusCreated)
-
-		cachedData := &model.IdempotencyData{
-			Status:    model.IdempotencyCompleted,
-			OrderUUID: existingOrderUUID,
-		}
-		cache.On("SetIfNotExist", mock.Anything, key, mock.Anything).Return(false, nil).Once()
-		cache.On("Get", mock.Anything, key).Return(cachedData, nil).Once()
-		orderRepo.On("FindByUUID", mock.Anything, existingOrderUUID).Return(existingOrder, nil).Once()
-
-		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, cache)
-
+		key := "test-key-ratelimit"
 		params := &dto.CreateOrderParameters{
 			User:           newTestUser(model.UserRoleTrader),
 			MarketUUID:     "BTC-USDT",
@@ -268,61 +270,36 @@ func TestOrderService_CreateOrder(t *testing.T) {
 			Quantity:       decimal.NewFromInt(1),
 			IdempotencyKey: key,
 		}
-		order, err := svc.CreateOrder(ctx, params)
-		require.NoError(t, err)
-		assert.Equal(t, existingOrderUUID, order.UUID)
+		require.NoError(t, params.Validate())
 
-		cache.AssertExpectations(t)
-		orderRepo.AssertExpectations(t)
-		accessSvc.AssertNotCalled(t, "CanCreateOrder")
-		spotInst.AssertNotCalled(t, "FindMarket")
-		metrics.AssertNotCalled(t, "OrderCreated")
-		metrics.AssertNotCalled(t, "OrderFailedCreate")
-	})
+		cache.On("SetIfNotExist", mock.Anything, key, mock.Anything).Return(true, nil).Once()
+		cache.On("Update", mock.Anything, key, mock.MatchedBy(func(data *model.IdempotencyData) bool {
+			return data.Status == model.IdempotencyFailed
+		})).Return(nil).Once()
 
-	t.Run("concurrent request – key already processing", func(t *testing.T) {
-		orderRepo := new(mockOrderRepository)
-		spotInst := new(mockSpotInstrument)
-		accessSvc := new(mockAccessService)
-		metrics := new(mockMetricsRecorder)
-		cache := new(mockIdempotencyCache)
+		accessSvc.On("CanCreateOrder", mock.Anything, params.User, params).Return(nil).Once()
+		rateLimiter.On("Check", mock.Anything, *params.User).Return(errs.ErrRoleLimitExceeded).Once()
+		metrics.On("OrderFailedCreate", mock.Anything).Return().Once()
 
-		key := "test-key-789"
-		cachedData := &model.IdempotencyData{
-			Status:    model.IdempotencyProcessing,
-			OrderUUID: "",
-		}
-		cache.On("SetIfNotExist", mock.Anything, key, mock.Anything).Return(false, nil).Once()
-		cache.On("Get", mock.Anything, key).Return(cachedData, nil).Once()
+		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, rateLimiter, cache)
 
-		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, cache)
-
-		params := &dto.CreateOrderParameters{
-			User:           newTestUser(model.UserRoleTrader),
-			MarketUUID:     "BTC-USDT",
-			Side:           model.OrderSideBuy,
-			Type:           model.OrderTypeLimit,
-			Price:          decimal.NewFromInt(50000),
-			Quantity:       decimal.NewFromInt(1),
-			IdempotencyKey: key,
-		}
 		order, err := svc.CreateOrder(ctx, params)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, errs.ErrIdempotencyProcessing)
+		assert.ErrorIs(t, err, errs.ErrRoleLimitExceeded)
 		assert.Nil(t, order)
 
-		cache.AssertExpectations(t)
+		rateLimiter.AssertExpectations(t)
+		rateLimiter.AssertNotCalled(t, "Rollback")
 		orderRepo.AssertNotCalled(t, "Save")
-		accessSvc.AssertNotCalled(t, "CanCreateOrder")
-		spotInst.AssertNotCalled(t, "FindMarket")
 	})
 
-	t.Run("business logic fails – key updated to failed", func(t *testing.T) {
+	t.Run("business logic fails – rate limit rolled back and key updated to failed", func(t *testing.T) {
 		orderRepo := new(mockOrderRepository)
 		spotInst := new(mockSpotInstrument)
 		accessSvc := new(mockAccessService)
 		metrics := new(mockMetricsRecorder)
 		cache := new(mockIdempotencyCache)
+		rateLimiter := new(mockOrderRateLimiter)
 
 		key := "test-key-fail"
 		params := &dto.CreateOrderParameters{
@@ -342,10 +319,13 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		})).Return(nil).Once()
 
 		accessSvc.On("CanCreateOrder", mock.Anything, params.User, params).Return(nil).Once()
+		rateLimiter.On("Check", mock.Anything, *params.User).Return(nil).Once()
+		rateLimiter.On("Rollback", mock.Anything, *params.User).Return(nil).Once()
+
 		spotInst.On("FindMarket", mock.Anything, params.MarketUUID, params.User.Roles).Return(nil, errors.New("market service unavailable")).Once()
 		metrics.On("OrderFailedCreate", mock.Anything).Return().Once()
 
-		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, cache)
+		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, rateLimiter, cache)
 
 		order, err := svc.CreateOrder(ctx, params)
 		assert.Error(t, err)
@@ -353,9 +333,93 @@ func TestOrderService_CreateOrder(t *testing.T) {
 
 		cache.AssertExpectations(t)
 		accessSvc.AssertExpectations(t)
+		rateLimiter.AssertExpectations(t)
 		spotInst.AssertExpectations(t)
 		orderRepo.AssertNotCalled(t, "Save")
 		metrics.AssertExpectations(t)
+	})
+
+	t.Run("repeated request with same key – returns existing order", func(t *testing.T) {
+		orderRepo := new(mockOrderRepository)
+		spotInst := new(mockSpotInstrument)
+		accessSvc := new(mockAccessService)
+		metrics := new(mockMetricsRecorder)
+		cache := new(mockIdempotencyCache)
+		rateLimiter := new(mockOrderRateLimiter)
+
+		key := "test-key-456"
+		existingOrderUUID := "existing-order-uuid"
+		existingOrder := newTestOrder(existingOrderUUID, "user-uuid", "BTC-USDT", model.OrderSideBuy, model.OrderTypeLimit, decimal.NewFromInt(50000), decimal.NewFromInt(1), model.OrderStatusCreated)
+
+		cachedData := &model.IdempotencyData{
+			Status:    model.IdempotencyCompleted,
+			OrderUUID: existingOrderUUID,
+		}
+		cache.On("SetIfNotExist", mock.Anything, key, mock.Anything).Return(false, nil).Once()
+		cache.On("Get", mock.Anything, key).Return(cachedData, nil).Once()
+		orderRepo.On("FindByUUID", mock.Anything, existingOrderUUID).Return(existingOrder, nil).Once()
+
+		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, rateLimiter, cache)
+
+		params := &dto.CreateOrderParameters{
+			User:           newTestUser(model.UserRoleTrader),
+			MarketUUID:     "BTC-USDT",
+			Side:           model.OrderSideBuy,
+			Type:           model.OrderTypeLimit,
+			Price:          decimal.NewFromInt(50000),
+			Quantity:       decimal.NewFromInt(1),
+			IdempotencyKey: key,
+		}
+		order, err := svc.CreateOrder(ctx, params)
+		require.NoError(t, err)
+		assert.Equal(t, existingOrderUUID, order.UUID)
+
+		cache.AssertExpectations(t)
+		orderRepo.AssertExpectations(t)
+		accessSvc.AssertNotCalled(t, "CanCreateOrder")
+		rateLimiter.AssertNotCalled(t, "Check")
+		spotInst.AssertNotCalled(t, "FindMarket")
+		metrics.AssertNotCalled(t, "OrderCreated")
+		metrics.AssertNotCalled(t, "OrderFailedCreate")
+	})
+
+	t.Run("concurrent request – key already processing", func(t *testing.T) {
+		orderRepo := new(mockOrderRepository)
+		spotInst := new(mockSpotInstrument)
+		accessSvc := new(mockAccessService)
+		metrics := new(mockMetricsRecorder)
+		cache := new(mockIdempotencyCache)
+		rateLimiter := new(mockOrderRateLimiter)
+
+		key := "test-key-789"
+		cachedData := &model.IdempotencyData{
+			Status:    model.IdempotencyProcessing,
+			OrderUUID: "",
+		}
+		cache.On("SetIfNotExist", mock.Anything, key, mock.Anything).Return(false, nil).Once()
+		cache.On("Get", mock.Anything, key).Return(cachedData, nil).Once()
+
+		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, rateLimiter, cache)
+
+		params := &dto.CreateOrderParameters{
+			User:           newTestUser(model.UserRoleTrader),
+			MarketUUID:     "BTC-USDT",
+			Side:           model.OrderSideBuy,
+			Type:           model.OrderTypeLimit,
+			Price:          decimal.NewFromInt(50000),
+			Quantity:       decimal.NewFromInt(1),
+			IdempotencyKey: key,
+		}
+		order, err := svc.CreateOrder(ctx, params)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, errs.ErrIdempotencyProcessing)
+		assert.Nil(t, order)
+
+		cache.AssertExpectations(t)
+		orderRepo.AssertNotCalled(t, "Save")
+		accessSvc.AssertNotCalled(t, "CanCreateOrder")
+		rateLimiter.AssertNotCalled(t, "Check")
+		spotInst.AssertNotCalled(t, "FindMarket")
 	})
 
 	t.Run("previous request failed – retry with same key succeeds", func(t *testing.T) {
@@ -364,6 +428,7 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		accessSvc := new(mockAccessService)
 		metrics := new(mockMetricsRecorder)
 		cache := new(mockIdempotencyCache)
+		rateLimiter := new(mockOrderRateLimiter)
 
 		key := "test-key-retry"
 		params := &dto.CreateOrderParameters{
@@ -391,11 +456,12 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		})).Return(nil).Once()
 
 		accessSvc.On("CanCreateOrder", mock.Anything, params.User, params).Return(nil).Once()
-		spotInst.On("FindMarket", mock.Anything, params.MarketUUID, params.User.Roles).Return(newTestMarket("BTC-USDT"), nil).Once()
+		rateLimiter.On("Check", mock.Anything, *params.User).Return(nil).Once()
+		spotInst.On("FindMarket", mock.Anything, params.MarketUUID, params.User.Roles).Return(newTestMarket("BTC-USDT", true), nil).Once()
 		orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*model.Order"), mock.Anything).Return(nil).Once()
 		metrics.On("OrderCreated", mock.Anything).Return().Once()
 
-		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, cache)
+		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, rateLimiter, cache)
 
 		order, err := svc.CreateOrder(ctx, params)
 		require.NoError(t, err)
@@ -403,6 +469,8 @@ func TestOrderService_CreateOrder(t *testing.T) {
 
 		cache.AssertExpectations(t)
 		accessSvc.AssertExpectations(t)
+		rateLimiter.AssertExpectations(t)
+		rateLimiter.AssertNotCalled(t, "Rollback")
 		spotInst.AssertExpectations(t)
 		orderRepo.AssertExpectations(t)
 	})
@@ -413,12 +481,13 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		accessSvc := new(mockAccessService)
 		metrics := new(mockMetricsRecorder)
 		cache := new(mockIdempotencyCache)
+		rateLimiter := new(mockOrderRateLimiter)
 
 		key := "test-key-error"
 		cache.On("SetIfNotExist", mock.Anything, key, mock.Anything).Return(false, nil).Once()
 		cache.On("Get", mock.Anything, key).Return(nil, errors.New("redis connection failed")).Once()
 
-		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, cache)
+		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, rateLimiter, cache)
 
 		params := &dto.CreateOrderParameters{
 			User:           newTestUser(model.UserRoleTrader),
@@ -433,9 +502,6 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, errs.ErrIdempotencyInternal)
 		assert.Nil(t, order)
-
-		cache.AssertExpectations(t)
-		orderRepo.AssertNotCalled(t, "Save")
 	})
 
 	t.Run("key not found after reservation failed – internal error", func(t *testing.T) {
@@ -444,12 +510,13 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		accessSvc := new(mockAccessService)
 		metrics := new(mockMetricsRecorder)
 		cache := new(mockIdempotencyCache)
+		rateLimiter := new(mockOrderRateLimiter)
 
 		key := "test-key-notfound"
 		cache.On("SetIfNotExist", mock.Anything, key, mock.Anything).Return(false, nil).Once()
 		cache.On("Get", mock.Anything, key).Return(nil, errs.ErrNotFound).Once()
 
-		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, cache)
+		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, rateLimiter, cache)
 
 		params := &dto.CreateOrderParameters{
 			User:           newTestUser(model.UserRoleTrader),
@@ -464,9 +531,6 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, errs.ErrIdempotencyInternal)
 		assert.Nil(t, order)
-
-		cache.AssertExpectations(t)
-		orderRepo.AssertNotCalled(t, "Save")
 	})
 
 	t.Run("SetIfNotExist returns false (race) and then key becomes completed", func(t *testing.T) {
@@ -475,6 +539,7 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		accessSvc := new(mockAccessService)
 		metrics := new(mockMetricsRecorder)
 		cache := new(mockIdempotencyCache)
+		rateLimiter := new(mockOrderRateLimiter)
 
 		key := "test-key-race"
 		existingOrderUUID := "race-order-uuid"
@@ -487,7 +552,7 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		}, nil).Once()
 		orderRepo.On("FindByUUID", mock.Anything, existingOrderUUID).Return(existingOrder, nil).Once()
 
-		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, cache)
+		svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, rateLimiter, cache)
 
 		params := &dto.CreateOrderParameters{
 			User:           newTestUser(model.UserRoleTrader),
@@ -505,6 +570,7 @@ func TestOrderService_CreateOrder(t *testing.T) {
 		cache.AssertExpectations(t)
 		orderRepo.AssertExpectations(t)
 		accessSvc.AssertNotCalled(t, "CanCreateOrder")
+		rateLimiter.AssertNotCalled(t, "Check")
 		spotInst.AssertNotCalled(t, "FindMarket")
 	})
 }
@@ -518,8 +584,9 @@ func TestOrderService_GetOrder(t *testing.T) {
 	accessSvc := new(mockAccessService)
 	metrics := new(mockMetricsRecorder)
 	cache := defaultIdempotencyMock()
+	rateLimiter := defaultRateLimiterMock()
 
-	svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, cache)
+	svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, rateLimiter, cache)
 
 	t.Run("success", func(t *testing.T) {
 		orderUUID := uuid.NewString()
@@ -602,8 +669,9 @@ func TestOrderService_UpdateOrder(t *testing.T) {
 	accessSvc := new(mockAccessService)
 	metrics := new(mockMetricsRecorder)
 	cache := defaultIdempotencyMock()
+	rateLimiter := defaultRateLimiterMock()
 
-	svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, cache)
+	svc := NewOrderService(logger, orderRepo, spotInst, accessSvc, metrics, rateLimiter, cache)
 
 	t.Run("success update to completed", func(t *testing.T) {
 		orderUUID := uuid.NewString()

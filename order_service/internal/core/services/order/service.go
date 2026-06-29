@@ -20,6 +20,7 @@ type OrderService struct {
 	orderRepo     ports.OrderRepository
 	accessService ports.AccessService
 	metrics       ports.ServiceMetricsRecorder
+	rateLimiter   ports.OrderRateLimiter
 	logger        *zap.Logger
 
 	idempotencyGuard *IdempotencyGuard
@@ -33,12 +34,14 @@ func NewOrderService(
 	spotInstrument ports.SpotInstrument,
 	accessService ports.AccessService,
 	metrics ports.ServiceMetricsRecorder,
+	rateLimiter ports.OrderRateLimiter,
 	idempotencyCache ports.IdempotencyCache,
 ) *OrderService {
 	return &OrderService{
 		orderRepo:        orderRepo,
 		accessService:    accessService,
 		metrics:          metrics,
+		rateLimiter:      rateLimiter,
 		logger:           logger,
 		idempotencyGuard: NewIdempotencyGuard(idempotencyCache, logger),
 		marketValidator:  NewMarketValidator(spotInstrument, logger),

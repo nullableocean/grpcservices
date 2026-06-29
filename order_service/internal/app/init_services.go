@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	spotv1 "github.com/nullableocean/grpcservices/api/gen/spot/v1"
-	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/access"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/cache/rdb"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/bus"
 	kafka_publisher "github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/kafka"
@@ -15,6 +14,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/repository/postgres"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/repository/postgres/outbox"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
+	"github.com/nullableocean/grpcservices/orderservice/internal/core/services/access"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/services/order"
 	shared_retry "github.com/nullableocean/grpcservices/shared/retry"
 )
@@ -38,16 +38,29 @@ func (a *App) initServices() error {
 		return fmt.Errorf("failed create order repository: %w", err)
 	}
 
-	accessService := access.NewRoleAccessService()
-	metricsRecorder := metrics.NewOrderMetricsRecorder(a.metricsReg)
 	redisRecorder := metrics.NewRedisMetricsRecorder(a.metricsReg)
+	idempotencyCache := rdb.NewRedisIdempotencyCache(a.redis, a.cnf.Cache.TTL, redisRecorder)
+	limitsCache := rdb.NewRedisRateLimitCache(a.logger, a.redis, redisRecorder)
+
+	accessService := access.NewRoleAccessService()
+	rulesConfig := map[model.UserRole]access.RoleLimitRule{
+		model.UserRoleGuest:       {MaxRequests: a.cnf.RolesRateLimit.GuestMaxRequests, Window: a.cnf.RolesRateLimit.GuestWindow},
+		model.UserRoleTrader:      {MaxRequests: a.cnf.RolesRateLimit.TraderMaxRequests, Window: a.cnf.RolesRateLimit.TraderWindow},
+		model.UserRoleMarketMaker: {MaxRequests: a.cnf.RolesRateLimit.MarketMakerMaxRequests, Window: a.cnf.RolesRateLimit.MarketMakerWindow},
+		model.UserRoleModer:       {MaxRequests: a.cnf.RolesRateLimit.ModerMaxRequests, Window: a.cnf.RolesRateLimit.ModerWindow},
+		model.UserRoleAdmin:       {MaxRequests: a.cnf.RolesRateLimit.AdminMaxRequests, Window: a.cnf.RolesRateLimit.AdminWindow},
+	}
+	roleLimiter := access.NewRoleLimiter(limitsCache, rulesConfig)
+
+	metricsRecorder := metrics.NewOrderMetricsRecorder(a.metricsReg)
 	a.orderService = order.NewOrderService(
 		a.logger,
 		orderRepo,
 		spotInstrument,
 		accessService,
 		metricsRecorder,
-		rdb.NewRedisIdempotencyCache(a.redis, a.cnf.Cache.TTL, redisRecorder),
+		roleLimiter,
+		idempotencyCache,
 	)
 
 	pubBus := bus.NewEventPublisherBus()

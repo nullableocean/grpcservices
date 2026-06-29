@@ -10,6 +10,7 @@ import (
 type CreateOrderParameters struct {
 	UserUUID   string
 	MarketUUID string
+	IdemKey    string
 	Price      decimal.Decimal
 	Quantity   decimal.Decimal
 	Type       model.OrderType

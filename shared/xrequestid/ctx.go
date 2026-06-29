@@ -6,7 +6,7 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-type xrequestidKey struct{}
+type xreqContextKey struct{}
 
 const (
 	XREQUEST_ID_KEY = "x-request-id"
@@ -18,7 +18,7 @@ const (
 func GetFromIncomingCtx(ctx context.Context) string {
 	meta, exist := metadata.FromIncomingContext(ctx)
 	if !exist {
-		v := ctx.Value(xrequestidKey{})
+		v := ctx.Value(xreqContextKey{})
 		key, ok := v.(string)
 		if ok {
 			return key
@@ -35,13 +35,14 @@ func GetFromIncomingCtx(ctx context.Context) string {
 	return val[0]
 }
 
-// CreateToOutCtx генерирует x-request-id и записывает в исходящий контекст
-func CreateToOutCtx(ctx context.Context) (context.Context, error) {
-	xrequestId, err := NewXRequestId()
-	return SetInOutCtx(xrequestId, ctx), err
+// CreateNewToOutCtx генерирует x-request-id и записывает в исходящую метадату и в значение контекста
+func CreateNewToOutCtx(ctx context.Context) context.Context {
+	xrequestId := NewXRequestId()
+	return SetToOutCtx(xrequestId, ctx)
 }
 
-func SetInOutCtx(xreqid string, ctx context.Context) context.Context {
+// SetToOutCtx записывает x-request-id в исходящую метадату и в значение контекста
+func SetToOutCtx(xreqid string, ctx context.Context) context.Context {
 	ctx = metadata.AppendToOutgoingContext(ctx, XREQUEST_ID_KEY, xreqid)
-	return context.WithValue(ctx, xrequestidKey{}, xreqid)
+	return context.WithValue(ctx, xreqContextKey{}, xreqid)
 }

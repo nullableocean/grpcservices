@@ -262,7 +262,7 @@ func (a *App) initGRPCServer() error {
 		shared_inters.UnaryServerPanicRecovery(a.logger, a.cnf.Log.StackLines), // panic recovery
 		shared_inters.UnaryJwtAuthInterceptor(a.logger, jwtParser),             // authorize jwt
 		shared_inters.UnaryServerLogger(a.logger),                              // logging request
-		shared_inters.UnaryServerTelemetry(a.logger),                           // telemetry tracing
+		shared_inters.UnaryServerTelemetry(),                                   // telemetry tracing
 		a.grpcMetricsSrv.UnaryServerInterceptor(),                              // request metrics
 		shared_inters.ValidationUnaryInterceptor(a.logger),
 	)
@@ -313,7 +313,7 @@ func (a *App) initGRPCClients() error {
 
 	interceptors := grpc.WithChainUnaryInterceptor(
 		shared_inters.UnaryClientPanicRecovery(),                    // panic
-		shared_inters.UnaryClientXReqId(a.logger),                   // set xrequestid
+		shared_inters.UnaryClientXReqId(),                           // set xrequestid
 		shared_inters.UnaryClientXReqIdTelemetry(),                  // save xreqid to telemetry
 		a.grpcMetricsCl.UnaryClientInterceptor(),                    // grpc client metrics
 		shared_inters.UnaryClientLogger(a.logger),                   // logging request

@@ -1,16 +1,18 @@
 package cli
 
 type UserArgs struct {
-	Jwt string
+	Jwt  string
+	UUID string
 }
 
 type CreateArgs struct {
-	MarketUUID string
-	OrderType  string
-	OrderSide  string
-	Price      string
-	Quantity   int64
-	WithStream bool
+	MarketUUID     string
+	OrderType      string
+	OrderSide      string
+	Price          string
+	Quantity       string
+	WithStream     bool
+	IdempotencyKey string
 }
 
 type StreamArgs struct {

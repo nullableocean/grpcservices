@@ -15,6 +15,14 @@ const (
 	UserRoleAdmin       UserRole = "ADMIN"
 )
 
+var rolePriority = map[UserRole]int{
+	UserRoleGuest:       1,
+	UserRoleTrader:      2,
+	UserRoleMarketMaker: 3,
+	UserRoleModer:       4,
+	UserRoleAdmin:       5,
+}
+
 func (r UserRole) IsValid() bool {
 	switch r {
 	case UserRoleGuest, UserRoleTrader, UserRoleMarketMaker, UserRoleModer, UserRoleAdmin:
@@ -46,4 +54,18 @@ func (r *UserRole) UnmarshalJSON(data []byte) error {
 type User struct {
 	UUID  string     `json:"uuid"`
 	Roles []UserRole `json:"roles"`
+}
+
+func (u *User) HighestPriorityRole() UserRole {
+	priorityRole := UserRoleGuest
+	weight := 0
+
+	for _, role := range u.Roles {
+		if w, ok := rolePriority[role]; ok && w > weight {
+			weight = w
+			priorityRole = role
+		}
+	}
+
+	return priorityRole
 }

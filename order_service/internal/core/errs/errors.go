@@ -16,6 +16,8 @@ var (
 	ErrDuplicateKey        = errors.New("duplicate key violation")
 	ErrForeignKeyViolation = errors.New("foreign key violation")
 	ErrInvalidInput        = errors.New("invalid input")
-	ErrInternal            = errors.New("internal database error")
+	ErrInternal            = errors.New("internal error")
 	ErrTransactionFailed   = errors.New("transaction failed")
+
+	ErrRoleLimitExceeded = errors.New("user roles rate limit exceed")
 )
