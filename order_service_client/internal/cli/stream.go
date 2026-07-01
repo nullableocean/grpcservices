@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/nullableocean/grpcservices/orderserviceclient/internal/client"
 	"github.com/nullableocean/grpcservices/orderserviceclient/internal/dto"
 	"github.com/spf13/cobra"
 )
@@ -26,17 +25,17 @@ func (c *Cli) StreamCmd() *cobra.Command {
 		token := c.args.User.Jwt
 		userUUID := c.args.User.UUID
 
-		c.streamUpdates(c.getOrderClient(), token, c.args.StreamArgs.OrderUUID, userUUID)
+		c.streamUpdates(token, c.args.StreamArgs.OrderUUID, userUUID)
 	}
 
 	return cmd
 }
 
-func (c *Cli) streamUpdates(orderClient *client.Client, token, orderUUID, userUUID string) {
+func (c *Cli) streamUpdates(token, orderUUID, userUUID string) {
 	streamCtx, streamCancel := context.WithCancel(context.Background())
 	defer streamCancel()
 
-	dataCh, err := orderClient.StreamOrderUpdates(streamCtx, token, &dto.StreamOrderUpdateDto{
+	dataCh, err := c.getOrderClient().StreamOrderUpdates(streamCtx, token, &dto.StreamUpdatesParams{
 		OrderUUID: orderUUID,
 		UserUUID:  userUUID,
 	})

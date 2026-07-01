@@ -23,10 +23,13 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Name            string        `env:"APP_NAME" env-default:"spot-instrument"`
-	Address         string        `env:"SERVER_ADDRESS" env-default:""`
-	Port            string        `env:"SERVER_PORT" env-default:"8086"`
-	ShutdownTimeout time.Duration `env:"SHUTDOWN_TIMEOUT" env-default:"15s"`
+	Name               string        `env:"APP_NAME" env-default:"spot-instrument"`
+	Address            string        `env:"SERVER_ADDRESS" env-default:""`
+	Port               string        `env:"SERVER_PORT" env-default:"8086"`
+	ShutdownTimeout    time.Duration `env:"SHUTDOWN_TIMEOUT" env-default:"15s"`
+	HealthcheckTimeout time.Duration `env:"HEALTHCHECK_TIMEOUT" env-default:"10s"`
+	HealthRateLimit    int           `env:"HTTP_RATE_LIMIT" env-default:"5"`
+	HealthBurst        int           `env:"HTTP_BURST" env-default:"10"`
 }
 
 type EnvConfig struct {

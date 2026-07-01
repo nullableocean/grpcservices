@@ -165,6 +165,7 @@ func (r *OrderRepository) addCursorFilter(b *listQuery, cursor *model.Pagination
 }
 
 func (r *OrderRepository) addOrderByAndLimit(b *listQuery, limit int) {
+	b.argIdx++
 	b.args = append(b.args, limit)
 	b.query += fmt.Sprintf(" ORDER BY o.created_at DESC, o.uuid ASC LIMIT $%d", b.argIdx)
 }

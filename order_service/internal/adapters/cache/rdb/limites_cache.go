@@ -31,7 +31,6 @@ func (c *RateLimitCache) Increment(ctx context.Context, key string, window time.
 	val, err := c.client.Incr(ctx, key).Result()
 	if err != nil {
 		c.metrics.CacheSetError(ctx)
-
 		return 0, fmt.Errorf("redis incr failed: %w", err)
 	}
 

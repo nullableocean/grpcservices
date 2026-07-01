@@ -2,12 +2,12 @@ package dto
 
 import "fmt"
 
-type StreamOrderUpdateDto struct {
+type StreamUpdatesParams struct {
 	OrderUUID string
 	UserUUID  string
 }
 
-func (d *StreamOrderUpdateDto) Validate() error {
+func (d *StreamUpdatesParams) Validate() error {
 	if d.UserUUID == "" {
 		return fmt.Errorf("empty user uuid")
 	}

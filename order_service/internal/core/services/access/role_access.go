@@ -9,16 +9,16 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
 )
 
-var _ ports.AccessService = &RoleAccessService{}
+var _ ports.AccessService = &AccessService{}
 
-type RoleAccessService struct {
+type AccessService struct {
 }
 
-func NewRoleAccessService() *RoleAccessService {
-	return &RoleAccessService{}
+func NewRoleAccessService() *AccessService {
+	return &AccessService{}
 }
 
-func (s *RoleAccessService) CanCreateOrder(ctx context.Context, user *model.User, params *dto.CreateOrderParameters) error {
+func (s *AccessService) CanCreateOrder(ctx context.Context, user *model.User, params *dto.CreateOrderParameters) error {
 	if err := s.checkAllowedRoles(user); err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func (s *RoleAccessService) CanCreateOrder(ctx context.Context, user *model.User
 	return nil
 }
 
-func (s *RoleAccessService) checkAllowedRoles(user *model.User) error {
+func (s *AccessService) checkAllowedRoles(user *model.User) error {
 	allowedRoles := map[model.UserRole]bool{
 		model.UserRoleTrader:      true,
 		model.UserRoleMarketMaker: true,
@@ -53,7 +53,7 @@ func (s *RoleAccessService) checkAllowedRoles(user *model.User) error {
 	return nil
 }
 
-func (s *RoleAccessService) checkAllowedTypeForRoles(user *model.User, t model.OrderType) error {
+func (s *AccessService) checkAllowedTypeForRoles(user *model.User, t model.OrderType) error {
 
 	roleAllowedTypes := map[model.UserRole][]model.OrderType{
 		model.UserRoleTrader:      {model.OrderTypeLimit, model.OrderTypeMarket},

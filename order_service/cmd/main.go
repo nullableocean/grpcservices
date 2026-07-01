@@ -1,47 +1,28 @@
 package main
 
 import (
-	"io"
+	"context"
 	"log"
-	"os"
 
-	"github.com/nullableocean/grpcservices/orderservice/internal/app"
-	"github.com/nullableocean/grpcservices/orderservice/internal/config"
-	"github.com/nullableocean/grpcservices/shared/logger"
+	"github.com/nullableocean/grpcservices/orderservice/internal/app/fxrunner"
 )
 
 func main() {
-	cnf, err := config.NewConfig()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	fxApp, err := fxrunner.FxAppRunner()
 	if err != nil {
-		log.Fatalln("failed init config", err)
+		log.Fatalf("failed to build app: %v", err)
 	}
 
-	logOutputs := []io.Writer{os.Stdout}
-	var logFile *os.File
-	if cnf.Log.Path != "" {
-		var err error
-		logFile, err = os.OpenFile(cnf.Log.Path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-		if err != nil {
-			log.Fatalf("failed open log file: %v", err)
-		}
-		defer func() {
-			err := logFile.Close()
-			if err != nil {
-				log.Fatalf("failed close log file: %v", err)
-			}
-		}()
-
-		logOutputs = append(logOutputs, logFile)
+	if err := fxApp.Start(ctx); err != nil {
+		log.Fatalf("failed to start app: %v", err)
 	}
 
-	zapLogger, err := logger.NewLogger(cnf.Log.Level, logOutputs...)
-	if err != nil {
-		log.Fatalf("failed init logger: %v", err)
-	}
-	defer zapLogger.Sync()
+	<-fxApp.Wait()
 
-	err = app.New(cnf, zapLogger).Run()
-	if err != nil {
-		log.Fatalln("failed start app", err)
+	if err := fxApp.Stop(ctx); err != nil {
+		log.Fatalf("failed to stop app: %v", err)
 	}
 }

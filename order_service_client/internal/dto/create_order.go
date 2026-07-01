@@ -7,7 +7,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type CreateOrderParameters struct {
+type CreateOrderParams struct {
 	UserUUID   string
 	MarketUUID string
 	IdemKey    string
@@ -17,7 +17,7 @@ type CreateOrderParameters struct {
 	Side       model.OrderSide
 }
 
-func (d *CreateOrderParameters) Validate() error {
+func (d *CreateOrderParams) Validate() error {
 	if d.UserUUID == "" {
 		return fmt.Errorf("empty user uuid")
 	}

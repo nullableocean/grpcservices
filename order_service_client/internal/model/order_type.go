@@ -7,6 +7,7 @@ const (
 	OrderTypeMarket     OrderType = "market"
 	OrderTypeStopLoss   OrderType = "stop"
 	OrderTypeTakeProfit OrderType = "profit"
+	OrderTypeUnknown    OrderType = "unknown"
 )
 
 func (t OrderType) IsValid() bool {

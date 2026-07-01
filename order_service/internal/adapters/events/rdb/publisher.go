@@ -10,24 +10,24 @@ import (
 	"go.uber.org/zap"
 )
 
-var _ ports.EventPublisher = &RedisEventPublisher{}
+var _ ports.EventPublisher = &Publisher{}
 
-type RedisEventPublisher struct {
+type Publisher struct {
 	client  *redis.Client
 	channel string
 
 	logger *zap.Logger
 }
 
-func NewRedisPublisher(logger *zap.Logger, client *redis.Client, channel string) *RedisEventPublisher {
-	return &RedisEventPublisher{
+func NewRedisPublisher(logger *zap.Logger, client *redis.Client, channel string) *Publisher {
+	return &Publisher{
 		client:  client,
 		channel: channel,
 		logger:  logger,
 	}
 }
 
-func (p *RedisEventPublisher) Publish(ctx context.Context, event model.Event) error {
+func (p *Publisher) Publish(ctx context.Context, event model.Event) error {
 	logger := p.logger.With(zap.String("event_uuid", event.ID()))
 
 	bdata, err := json.Marshal(event)

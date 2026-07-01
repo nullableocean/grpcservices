@@ -2,6 +2,7 @@ package outbox
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -48,13 +49,19 @@ func (r *OutboxReader) FetchUnprocessedTx(ctx context.Context, tx pgx.Tx, limit 
 	var records []*OutboxRecord
 	for rows.Next() {
 		var rec OutboxRecord
+		var errMsg sql.NullString
 		err := rows.Scan(
-			&rec.EventUUID, &rec.OrderUUID, &rec.EventType, &rec.Payload, &rec.Attempts, &rec.Error,
+			&rec.EventUUID, &rec.OrderUUID, &rec.EventType, &rec.Payload, &rec.Attempts, &errMsg,
 			&rec.CreatedAt, &rec.UpdatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan outbox row: %w", err)
 		}
+
+		if errMsg.Valid {
+			rec.Error = errMsg.String
+		}
+
 		records = append(records, &rec)
 	}
 	if err := rows.Err(); err != nil {

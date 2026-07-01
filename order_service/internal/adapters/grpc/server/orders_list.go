@@ -105,8 +105,14 @@ func (srv *OrderServer) createOrderListResponse(list model.OrderList) *orderv1.O
 		pborders = append(pborders, mapping.MapOrderToProtoOrder(o))
 	}
 
+	var nextPageToken string
+
+	if list.NextPageCursor != nil {
+		nextPageToken = list.NextPageCursor.Encode()
+	}
+
 	return &orderv1.OrdersListResponse{
 		Orders:        pborders,
-		NextPageToken: list.NextPageCursor.Encode(),
+		NextPageToken: nextPageToken,
 	}
 }

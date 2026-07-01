@@ -6,6 +6,22 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+func MapProtoMoneyToDecimal(pbMoney *modelsv1.Money) decimal.Decimal {
+	if pbMoney == nil {
+		return decimal.Zero
+	}
+
+	return decimal.New(pbMoney.Units, 0).Add(decimal.New(int64(pbMoney.Nanos), -9))
+}
+
+func MapProtoDecimalToDecimal(pbDecimal *modelsv1.Decimal) decimal.Decimal {
+	if pbDecimal == nil {
+		return decimal.Zero
+	}
+
+	return decimal.New(pbDecimal.Units, 0).Add(decimal.New(int64(pbDecimal.Nanos), -9))
+}
+
 func MapDecimalToProtoMoney(dec decimal.Decimal) *modelsv1.Money {
 	units := dec.IntPart()
 	nanos := dec.Sub(decimal.NewFromInt(units)).Mul(decimal.NewFromInt(1e9)).IntPart()
@@ -27,49 +43,105 @@ func MapDecimalToProtoDecimal(dec decimal.Decimal) *modelsv1.Decimal {
 }
 
 func MapOrderTypeToProtoType(t model.OrderType) modelsv1.OrderType {
-	var pbType modelsv1.OrderType
-
 	switch t {
 	case model.OrderTypeLimit:
-		pbType = modelsv1.OrderType_ORDER_TYPE_LIMIT
+		return modelsv1.OrderType_ORDER_TYPE_LIMIT
 	case model.OrderTypeMarket:
-		pbType = modelsv1.OrderType_ORDER_TYPE_MARKET
+		return modelsv1.OrderType_ORDER_TYPE_MARKET
 	case model.OrderTypeStopLoss:
-		pbType = modelsv1.OrderType_ORDER_TYPE_STOP_LOSS
+		return modelsv1.OrderType_ORDER_TYPE_STOP_LOSS
 	case model.OrderTypeTakeProfit:
-		pbType = modelsv1.OrderType_ORDER_TYPE_TAKE_PROFIT
+		return modelsv1.OrderType_ORDER_TYPE_TAKE_PROFIT
+	default:
+		return modelsv1.OrderType_ORDER_TYPE_UNSPECIFIED
 	}
+}
 
-	return pbType
+func MapProtoOrderTypeToType(pbType modelsv1.OrderType) model.OrderType {
+	switch pbType {
+	case modelsv1.OrderType_ORDER_TYPE_LIMIT:
+		return model.OrderTypeLimit
+	case modelsv1.OrderType_ORDER_TYPE_MARKET:
+		return model.OrderTypeMarket
+	case modelsv1.OrderType_ORDER_TYPE_STOP_LOSS:
+		return model.OrderTypeStopLoss
+	case modelsv1.OrderType_ORDER_TYPE_TAKE_PROFIT:
+		return model.OrderTypeTakeProfit
+	default:
+		return model.OrderTypeUnknown
+	}
 }
 
 func MapOrderSideToProtoSide(s model.OrderSide) modelsv1.OrderSide {
-	var pbSide modelsv1.OrderSide
-
 	switch s {
 	case model.OrderSideBuy:
-		pbSide = modelsv1.OrderSide_ORDER_SIDE_BUY
+		return modelsv1.OrderSide_ORDER_SIDE_BUY
 	case model.OrderSideSell:
-		pbSide = modelsv1.OrderSide_ORDER_SIDE_SELL
+		return modelsv1.OrderSide_ORDER_SIDE_SELL
+	default:
+		return modelsv1.OrderSide_ORDER_SIDE_UNSPECIFIED
 	}
+}
 
-	return pbSide
+func MapProtoOrderSideToSide(pbSide modelsv1.OrderSide) model.OrderSide {
+	switch pbSide {
+	case modelsv1.OrderSide_ORDER_SIDE_BUY:
+		return model.OrderSideBuy
+	case modelsv1.OrderSide_ORDER_SIDE_SELL:
+		return model.OrderSideSell
+	default:
+		return model.OrderSideUnknown
+	}
+}
+
+func MapStatusToProtoStatus(status model.OrderStatus) modelsv1.OrderStatus {
+	switch status {
+	case model.OrderStatusCreated:
+		return modelsv1.OrderStatus_ORDER_STATUS_CREATED
+	case model.OrderStatusPending:
+		return modelsv1.OrderStatus_ORDER_STATUS_PENDING
+	case model.OrderStatusCompleted:
+		return modelsv1.OrderStatus_ORDER_STATUS_COMPLETED
+	case model.OrderStatusCancelled:
+		return modelsv1.OrderStatus_ORDER_STATUS_CANCELLED
+	case model.OrderStatusRejected:
+		return modelsv1.OrderStatus_ORDER_STATUS_REJECTED
+	default:
+		return modelsv1.OrderStatus_ORDER_STATUS_UNSPECIFIED
+	}
 }
 
 func MapProtoStatusToStatus(pbstatus modelsv1.OrderStatus) model.OrderStatus {
-	var status model.OrderStatus
 	switch pbstatus {
 	case modelsv1.OrderStatus_ORDER_STATUS_CREATED:
-		status = model.OrderStatusCreated
+		return model.OrderStatusCreated
 	case modelsv1.OrderStatus_ORDER_STATUS_PENDING:
-		status = model.OrderStatusPending
+		return model.OrderStatusPending
 	case modelsv1.OrderStatus_ORDER_STATUS_COMPLETED:
-		status = model.OrderStatusCompleted
+		return model.OrderStatusCompleted
 	case modelsv1.OrderStatus_ORDER_STATUS_CANCELLED:
-		status = model.OrderStatusCancelled
+		return model.OrderStatusCancelled
 	case modelsv1.OrderStatus_ORDER_STATUS_REJECTED:
-		status = model.OrderStatusRejected
+		return model.OrderStatusRejected
+	default:
+		return model.OrderStatusUnknown
+	}
+}
+
+func MapProtoOrderToOrder(pborder *modelsv1.Order) *model.Order {
+	if pborder == nil {
+		return nil
 	}
 
-	return status
+	return &model.Order{
+		UUID:       pborder.OrderUuid,
+		MarketUUID: pborder.UserUuid,
+		Type:       MapProtoOrderTypeToType(pborder.Type),
+		Status:     MapProtoStatusToStatus(pborder.Status),
+		Side:       MapProtoOrderSideToSide(pborder.Side),
+		Price:      MapProtoMoneyToDecimal(pborder.Price),
+		Quantity:   MapProtoDecimalToDecimal(pborder.Quantity),
+		CreatedAt:  pborder.CreatedAt.AsTime(),
+		UpdatedAt:  pborder.UpdatedAt.AsTime(),
+	}
 }

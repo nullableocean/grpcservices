@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/nullableocean/grpcservices/orderserviceclient/internal/client"
 	"github.com/nullableocean/grpcservices/orderserviceclient/internal/dto"
 	"github.com/nullableocean/grpcservices/orderserviceclient/internal/model"
 	"github.com/shopspring/decimal"
@@ -18,7 +17,7 @@ func (c *Cli) CreateCmd() *cobra.Command {
 		Short: "create order and streaming updates",
 	}
 
-	cmd.Flags().StringVarP(&c.args.CreateArgs.IdempotencyKey, "idemkey", "ik", "", "idempotency key (UUID)")
+	cmd.Flags().StringVarP(&c.args.CreateArgs.IdempotencyKey, "idemkey", "k", "", "idempotency key (UUID)")
 	cmd.Flags().StringVarP(&c.args.CreateArgs.MarketUUID, "market", "m", "", "market UUID (required)")
 	cmd.Flags().StringVarP(&c.args.CreateArgs.OrderSide, "side", "s", "", "order type: [buy|sell] (required)")
 	cmd.Flags().StringVarP(&c.args.CreateArgs.OrderType, "type", "t", "", "order type: [limit|market|stop|profit] (required)")
@@ -39,22 +38,21 @@ func (c *Cli) CreateCmd() *cobra.Command {
 
 func (c *Cli) setCreateOrderRunFunc(cmd *cobra.Command) {
 	cmd.Run = func(cmd *cobra.Command, args []string) {
-		client := c.getOrderClient()
 
 		token := c.args.User.Jwt
 		userUUID := c.args.User.UUID
 
-		orderUUID := c.createOrder(client, token, userUUID, c.args.CreateArgs)
+		orderUUID := c.createOrder(token, userUUID, c.args.CreateArgs)
 
 		fmt.Println("OK", orderUUID)
 
 		if c.args.CreateArgs.WithStream {
-			c.streamUpdates(client, token, orderUUID, userUUID)
+			c.streamUpdates(token, orderUUID, userUUID)
 		}
 	}
 }
 
-func (c *Cli) createOrder(orderClient *client.Client, token, userUUID string, args CreateArgs) string {
+func (c *Cli) createOrder(token, userUUID string, args CreateArgs) string {
 	priceDec, err := decimal.NewFromString(args.Price)
 	if err != nil {
 		log.Fatalf("invalid price: %v", err)
@@ -65,7 +63,7 @@ func (c *Cli) createOrder(orderClient *client.Client, token, userUUID string, ar
 		log.Fatalf("invalid quantity %v", err)
 	}
 
-	createDto := &dto.CreateOrderParameters{
+	createDto := &dto.CreateOrderParams{
 		UserUUID:   userUUID,
 		MarketUUID: args.MarketUUID,
 		Type:       model.OrderType(args.OrderType),
@@ -74,7 +72,7 @@ func (c *Cli) createOrder(orderClient *client.Client, token, userUUID string, ar
 		Quantity:   quantityDec,
 	}
 
-	resp, err := orderClient.CreateOrder(context.Background(), token, createDto)
+	resp, err := c.getOrderClient().CreateOrder(context.Background(), token, createDto)
 	if err != nil {
 		log.Fatalln("failed create order", err)
 	}

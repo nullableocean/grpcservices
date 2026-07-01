@@ -8,6 +8,7 @@ const (
 	OrderStatusCompleted OrderStatus = "completed"
 	OrderStatusCancelled OrderStatus = "canceled"
 	OrderStatusRejected  OrderStatus = "rejected"
+	OrderStatusUnknown   OrderStatus = "unknown"
 )
 
 func (s OrderStatus) IsValid() bool {

@@ -32,10 +32,13 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Name            string        `env:"APP_NAME" env-default:"order-service"`
-	Address         string        `env:"SERVER_ADDRESS" env-default:""`
-	Port            string        `env:"SERVER_PORT" env-default:"8085"`
-	ShutdownTimeout time.Duration `env:"SHUTDOWN_TIMEOUT" env-default:"15s"`
+	Name               string        `env:"APP_NAME" env-default:"order-service"`
+	Address            string        `env:"SERVER_ADDRESS" env-default:""`
+	Port               string        `env:"SERVER_PORT" env-default:"8085"`
+	ShutdownTimeout    time.Duration `env:"SHUTDOWN_TIMEOUT" env-default:"15s"`
+	HealthcheckTimeout time.Duration `env:"HEALTHCHECK_TIMEOUT" env-default:"10s"`
+	HealthRateLimit    int           `env:"HTTP_RATE_LIMIT" env-default:"5"`
+	HealthBurst        int           `env:"HTTP_BURST" env-default:"10"`
 }
 
 type EnvConfig struct {
@@ -148,8 +151,8 @@ type RetryConfig struct {
 }
 
 type EventsConfig struct {
-	STREAM_SEND_RETRIES int           `env:"EVENTS_STREAM_SEND_RETRIES" env-default:"3"`
-	STREAM_SEND_TIMEOUT time.Duration `env:"EVENTS_STREAM_SEND_TIMEOUT" env-default:"5s"`
+	StreamSendRetries int           `env:"EVENTS_STREAM_SEND_RETRIES" env-default:"3"`
+	StreamSendTimeout time.Duration `env:"EVENTS_STREAM_SEND_TIMEOUT" env-default:"5s"`
 }
 
 type KafkaConfig struct {

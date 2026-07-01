@@ -10,6 +10,7 @@ import (
 type Cli struct {
 	rootCmd *cobra.Command
 	args    Args
+	client  *client.Client
 }
 
 func (c *Cli) Execute() error {
@@ -25,22 +26,29 @@ func New() *Cli {
 	}
 	rootCmd.PersistentFlags().StringVarP(&c.args.GrpcAddr, "addr", "a", "", "order-service gRPC endpoint (required)")
 	rootCmd.PersistentFlags().StringVarP(&c.args.User.Jwt, "jwt", "j", "", "jwt token (required)")
+	rootCmd.PersistentFlags().StringVarP(&c.args.User.UUID, "uid", "u", "", "user uuid (required)")
 
 	rootCmd.MarkFlagRequired("addr")
 	rootCmd.MarkFlagRequired("jwt")
+	rootCmd.MarkFlagRequired("uid")
 
 	rootCmd.AddCommand(c.CreateCmd())
 	rootCmd.AddCommand(c.StreamCmd())
+	rootCmd.AddCommand(c.ListCmd())
 
 	c.rootCmd = rootCmd
 	return c
 }
 
 func (c *Cli) getOrderClient() *client.Client {
-	client, err := client.NewClient(c.args.GrpcAddr)
-	if err != nil {
-		log.Fatalln("create client error", err)
+	if c.client == nil {
+		client, err := client.NewClient(c.args.GrpcAddr)
+		if err != nil {
+			log.Fatalln("create client error", err)
+		}
+
+		c.client = client
 	}
 
-	return client
+	return c.client
 }

@@ -15,6 +15,11 @@ type CreateArgs struct {
 	IdempotencyKey string
 }
 
+type ListOrdersArgs struct {
+	PageSize      int
+	NextPageToken string
+}
+
 type StreamArgs struct {
 	OrderUUID string
 }
@@ -25,4 +30,5 @@ type Args struct {
 
 	StreamArgs StreamArgs
 	CreateArgs CreateArgs
+	ListArgs   ListOrdersArgs
 }
