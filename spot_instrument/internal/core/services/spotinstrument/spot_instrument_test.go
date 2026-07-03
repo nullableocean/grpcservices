@@ -193,7 +193,7 @@ func TestSpotInstrument_ViewMarketsPaginated(t *testing.T) {
 	svc := NewSpotInstrument(logger, repo, metrics)
 
 	t.Run("first page with empty token", func(t *testing.T) {
-		userRoles := []model.UserRole{model.UserRoleTrader}
+		user := model.NewUser("uuid", []model.UserRole{model.UserRoleTrader})
 		pageToken := model.PageToken{} // пустой токен
 		pageSize := int32(10)
 
@@ -207,11 +207,11 @@ func TestSpotInstrument_ViewMarketsPaginated(t *testing.T) {
 			NextPageToken: expectedCursor.Encode(),
 		}
 
-		repo.On("FindEnabledByRolesPaginated", mock.Anything, userRoles, pageToken, pageSize).
+		repo.On("FindEnabledByRolesPaginated", mock.Anything, user.Roles, pageToken, pageSize).
 			Return(expectedData, nil).Once()
 		metrics.On("ViewMarkets", mock.Anything).Return().Once()
 
-		result, err := svc.ViewMarketsPaginated(ctx, userRoles, pageToken, pageSize)
+		result, err := svc.ViewMarketsPaginated(ctx, user, pageToken, pageSize)
 
 		require.NoError(t, err)
 		assert.Equal(t, expectedData, result)
@@ -220,7 +220,7 @@ func TestSpotInstrument_ViewMarketsPaginated(t *testing.T) {
 	})
 
 	t.Run("subsequent page with token", func(t *testing.T) {
-		userRoles := []model.UserRole{model.UserRoleTrader}
+		user := model.NewUser("uuid", []model.UserRole{model.UserRoleTrader})
 		prevCursor := newPaginationCursor("ETH/USDT", "uuid-eth")
 		pageToken := prevCursor.Encode()
 		pageSize := int32(5)
@@ -234,11 +234,11 @@ func TestSpotInstrument_ViewMarketsPaginated(t *testing.T) {
 			NextPageToken: model.PageToken{},
 		}
 
-		repo.On("FindEnabledByRolesPaginated", mock.Anything, userRoles, pageToken, pageSize).
+		repo.On("FindEnabledByRolesPaginated", mock.Anything, user.Roles, pageToken, pageSize).
 			Return(expectedData, nil).Once()
 		metrics.On("ViewMarkets", mock.Anything).Return().Once()
 
-		result, err := svc.ViewMarketsPaginated(ctx, userRoles, pageToken, pageSize)
+		result, err := svc.ViewMarketsPaginated(ctx, user, pageToken, pageSize)
 
 		require.NoError(t, err)
 		assert.Equal(t, expectedData, result)
@@ -247,17 +247,17 @@ func TestSpotInstrument_ViewMarketsPaginated(t *testing.T) {
 	})
 
 	t.Run("repository error", func(t *testing.T) {
-		userRoles := []model.UserRole{}
+		user := model.NewUser("uuid", []model.UserRole{})
 		pageToken := model.PageToken{}
 		pageSize := int32(50)
 		repoErr := errors.New("timeout")
 
-		repo.On("FindEnabledByRolesPaginated", mock.Anything, userRoles, pageToken, pageSize).
+		repo.On("FindEnabledByRolesPaginated", mock.Anything, user.Roles, pageToken, pageSize).
 			Return(nil, repoErr).Once()
 		metrics.On("ViewMarkets", mock.Anything).Return().Once()
 		metrics.On("FailedViewMarkets", mock.Anything).Return().Once()
 
-		result, err := svc.ViewMarketsPaginated(ctx, userRoles, pageToken, pageSize)
+		result, err := svc.ViewMarketsPaginated(ctx, user, pageToken, pageSize)
 
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "failed to get markets")
@@ -267,7 +267,7 @@ func TestSpotInstrument_ViewMarketsPaginated(t *testing.T) {
 	})
 
 	t.Run("empty result set", func(t *testing.T) {
-		userRoles := []model.UserRole{model.UserRoleTrader}
+		user := model.NewUser("uuid", []model.UserRole{model.UserRoleTrader})
 		pageToken := model.PageToken{}
 		pageSize := int32(10)
 
@@ -277,11 +277,11 @@ func TestSpotInstrument_ViewMarketsPaginated(t *testing.T) {
 			NextPageToken: model.PageToken{},
 		}
 
-		repo.On("FindEnabledByRolesPaginated", mock.Anything, userRoles, pageToken, pageSize).
+		repo.On("FindEnabledByRolesPaginated", mock.Anything, user.Roles, pageToken, pageSize).
 			Return(expectedData, nil).Once()
 		metrics.On("ViewMarkets", mock.Anything).Return().Once()
 
-		result, err := svc.ViewMarketsPaginated(ctx, userRoles, pageToken, pageSize)
+		result, err := svc.ViewMarketsPaginated(ctx, user, pageToken, pageSize)
 
 		require.NoError(t, err)
 		assert.Equal(t, expectedData, result)

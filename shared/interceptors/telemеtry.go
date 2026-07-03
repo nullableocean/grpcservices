@@ -17,7 +17,7 @@ func UnaryServerTelemetry() grpc.UnaryServerInterceptor {
 			reqid := xrequestid.GetFromIncomingCtx(ctx)
 
 			if reqid == "" {
-				ctx = xrequestid.CreateNewToOutCtx(ctx)
+				ctx, reqid = xrequestid.CreateNewToOutCtx(ctx)
 			}
 
 			span.SetAttributes(attribute.String(xrequestid.XREQUEST_ID_KEY, reqid))
@@ -47,7 +47,7 @@ func UnaryClientXReqId() grpc.UnaryClientInterceptor {
 		reqid := xrequestid.GetFromIncomingCtx(ctx)
 
 		if reqid == "" {
-			ctx = xrequestid.CreateNewToOutCtx(ctx)
+			ctx, reqid = xrequestid.CreateNewToOutCtx(ctx)
 		} else {
 			ctx = xrequestid.SetToOutCtx(reqid, ctx)
 		}

@@ -32,7 +32,7 @@ func LoggerModule() fx.Option {
 					outputFile.f = f
 				}
 
-				l, err := logger.NewLogger(cfg.Log.Level, outputs...)
+				l, err := logger.NewZapLogger(cfg.Log.Level, outputs...)
 				return l, outputFile, err
 			},
 		),

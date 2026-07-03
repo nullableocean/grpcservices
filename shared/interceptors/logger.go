@@ -22,9 +22,16 @@ const (
 // логируем входящие запросы
 func UnaryServerLogger(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
-		l := logger.With(
+		fields := []zap.Field{
 			zap.String(CALLED_METHOD_KEY, info.FullMethod),
-			zap.String(xrequestid.XREQUEST_ID_KEY, xrequestid.GetFromIncomingCtx(ctx)),
+		}
+
+		if reqid := xrequestid.GetFromIncomingCtx(ctx); reqid != "" {
+			fields = append(fields, zap.String(xrequestid.XREQUEST_ID_KEY, reqid))
+		}
+
+		l := logger.With(
+			fields...,
 		)
 
 		l.Debug("received grpc request")
@@ -33,7 +40,6 @@ func UnaryServerLogger(logger *zap.Logger) grpc.UnaryServerInterceptor {
 		resp, err = handler(ctx, req)
 
 		l.Debug("request handled", zap.Duration(CALL_DURATION_KEY, time.Since(start)), zap.String(RESPONSE_STATUS, getGRPCStatusCode(err).String()), zap.Error(err))
-
 		return resp, err
 	}
 }

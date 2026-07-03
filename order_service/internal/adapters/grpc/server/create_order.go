@@ -7,7 +7,6 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/mapping"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/dto"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
-	shared_inters "github.com/nullableocean/grpcservices/shared/interceptors"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -19,31 +18,19 @@ func (srv *OrderServer) CreateOrder(ctx context.Context, req *orderv1.CreateOrde
 	ctx, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("order_grpc_server").Start(ctx, "create_order")
 	defer span.End()
 
-	userUUID, ok := shared_inters.UserUUIDFromContext(ctx)
-	if !ok || userUUID == "" {
-		return nil, status.Error(codes.Unauthenticated, "user not found in context")
+	user, err := srv.extractUserFromCtx(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "user not extracted from context")
 	}
 
-	span.SetAttributes(attribute.String("user_uuid", userUUID))
-	logger := srv.logger.With(zap.String("user_uuid", userUUID))
+	span.SetAttributes(attribute.String("user_uuid", user.UUID))
+	logger := srv.logger.With(zap.String("user_uuid", user.UUID))
 	logger.Debug("grpc received call for create order")
 
-	ctxRoles, ok := shared_inters.RolesFromContext(ctx)
-	if !ok {
-		logger.Warn("roles not provided in context")
-	}
-
-	var roles []model.UserRole
-	if len(ctxRoles) > 0 {
-		roles = make([]model.UserRole, len(ctxRoles))
-		for i, roleStr := range ctxRoles {
-			roles[i] = model.UserRole(roleStr)
-		}
-	}
-
-	params, err := srv.mapCreateRequestToDto(req, userUUID, roles)
+	params, err := srv.mapCreateRequestToDto(req, user)
 	if err != nil {
-		logger.Warn("invalid create order request", zap.Error(err))
+		span.AddEvent("failed order created")
+		logger.Error("failed map request to DTO", zap.Error(err))
 
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
@@ -62,7 +49,7 @@ func (srv *OrderServer) CreateOrder(ctx context.Context, req *orderv1.CreateOrde
 	return srv.mapOrderToResponse(newOrder), nil
 }
 
-func (srv *OrderServer) mapCreateRequestToDto(req *orderv1.CreateOrderRequest, userUUID string, roles []model.UserRole) (*dto.CreateOrderParameters, error) {
+func (srv *OrderServer) mapCreateRequestToDto(req *orderv1.CreateOrderRequest, user *model.User) (*dto.CreateOrderParameters, error) {
 	orderSide := mapping.MapProtoSideToOrderSide(req.OrderSide)
 	orderType := mapping.MapProtoTypeToOrderType(req.OrderType)
 
@@ -71,21 +58,17 @@ func (srv *OrderServer) mapCreateRequestToDto(req *orderv1.CreateOrderRequest, u
 
 	return &dto.CreateOrderParameters{
 		IdempotencyKey: req.IdempotencyKey,
-		User: &model.User{
-			UUID:  userUUID,
-			Roles: roles,
-		},
-		MarketUUID: req.MarketUuid,
-		Side:       orderSide,
-		Type:       orderType,
-		Price:      price,
-		Quantity:   quantity,
+		User:           user,
+		MarketUUID:     req.MarketUuid,
+		Side:           orderSide,
+		Type:           orderType,
+		Price:          price,
+		Quantity:       quantity,
 	}, nil
 }
 
 func (srv *OrderServer) mapOrderToResponse(o *model.Order) *orderv1.CreateOrderResponse {
 	return &orderv1.CreateOrderResponse{
-		OrderUuid: o.UUID,
-		Order:     mapping.MapOrderToProtoOrder(o),
+		Order: mapping.MapOrderToProtoOrder(o),
 	}
 }

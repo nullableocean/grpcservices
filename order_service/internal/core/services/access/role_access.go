@@ -30,6 +30,16 @@ func (s *AccessService) CanCreateOrder(ctx context.Context, user *model.User, pa
 	return nil
 }
 
+func (s *AccessService) CanSeeOrder(ctx context.Context, user *model.User, order *model.Order) error {
+	if user.UUID != order.UserUUID {
+		if user.HighestPriorityRole().GetPriority() < model.UserRoleModer.GetPriority() {
+			return fmt.Errorf("user cant see order")
+		}
+	}
+
+	return nil
+}
+
 func (s *AccessService) checkAllowedRoles(user *model.User) error {
 	allowedRoles := map[model.UserRole]bool{
 		model.UserRoleTrader:      true,

@@ -21,6 +21,7 @@ func MapProtoUserRolesToRoles(pbRoles []modelsv1.UserRole) []model.UserRole {
 			role = model.UserRoleModer
 		case modelsv1.UserRole_USER_ROLE_ADMIN:
 			role = model.UserRoleAdmin
+		default:
 		}
 
 		rlsList = append(rlsList, role)

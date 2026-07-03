@@ -9,3 +9,15 @@ const (
 	UserRoleModer       UserRole = "MODER"
 	UserRoleAdmin       UserRole = "ADMIN"
 )
+
+type User struct {
+	UUID  string     `json:"uuid"`
+	Roles []UserRole `json:"roles"`
+}
+
+func NewUser(uuid string, roles []UserRole) *User {
+	return &User{
+		UUID:  uuid,
+		Roles: roles,
+	}
+}

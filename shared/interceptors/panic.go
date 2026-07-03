@@ -59,11 +59,21 @@ func StreamServerPanicRecovery(logger *zap.Logger, stackDebugLines int) grpc.Str
 }
 
 // UnaryClientPanicRecovery ловит панику при отправке запроса
-func UnaryClientPanicRecovery() grpc.UnaryClientInterceptor {
+func UnaryClientPanicRecovery(logger *zap.Logger, stackDebugLines int) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error) {
 		defer func() {
 			if r := recover(); r != nil {
-				err = status.Error(codes.Internal, fmt.Sprintf("send grpc request panic: %v", r))
+				msg := fmt.Sprintf("grpc stream panic: %v", fmt.Sprintf("send grpc request panic: %v", r))
+				stack := debug.Stack()
+				trimmedStack := strings.Join(strings.SplitN(string(stack), "\n", stackDebugLines), "\n")
+
+				logger.Error("failed grpc client request, got panic",
+					zap.String(CALLED_METHOD_KEY, method),
+					zap.String(STACK_KEY, trimmedStack),
+					zap.String("error", msg),
+				)
+
+				err = status.Error(codes.Internal, msg)
 			}
 		}()
 

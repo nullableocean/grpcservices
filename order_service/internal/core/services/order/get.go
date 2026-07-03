@@ -12,23 +12,22 @@ import (
 	"go.uber.org/zap"
 )
 
-func (s *OrderService) GetOrder(ctx context.Context, orderUUID, userUUID string) (*model.Order, error) {
+func (s *OrderService) GetOrder(ctx context.Context, orderUUID string, user *model.User) (*model.Order, error) {
 	ctx, span := otel.Tracer("order_service").Start(ctx, "get_order")
 	defer span.End()
 
-	logger := s.logger.With(zap.String("order_uuid", orderUUID), zap.String("user_uuid", userUUID))
+	logger := s.logger.With(zap.String("order_uuid", orderUUID), zap.String("user_uuid", user.UUID))
 
 	o, err := s.findOrder(ctx, orderUUID)
 	if err != nil {
-		logger.Warn("failed get order", zap.Error(err))
+		logger.Error("failed get order from repository", zap.Error(err))
 
 		return nil, err
 	}
 
-	if o.UserUUID != userUUID {
-		logger.Warn("failed get order, user uuid not belong to order", zap.String("order_user_uuid", o.UserUUID), zap.Error(err))
-
-		return nil, fmt.Errorf("get order for user error: %w", errs.ErrNotFound)
+	if err := s.accessService.CanSeeOrder(ctx, user, o); err != nil {
+		logger.Error("failed get order by user", zap.String("order_user_uuid", o.UserUUID), zap.Error(err))
+		return nil, err
 	}
 
 	return o, nil

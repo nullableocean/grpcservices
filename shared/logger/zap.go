@@ -8,9 +8,9 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// NewLogger
+// NewZapLogger
 // levels "debug" "info" "warn" "error" "panic" "fatal"
-func NewLogger(level string, outputs ...io.Writer) (*zap.Logger, error) {
+func NewZapLogger(level string, outputs ...io.Writer) (*zap.Logger, error) {
 	lvl, err := zap.ParseAtomicLevel(level)
 	if err != nil {
 		return nil, err

@@ -9,4 +9,5 @@ import (
 
 type AccessService interface {
 	CanCreateOrder(ctx context.Context, user *model.User, createParams *dto.CreateOrderParameters) error
+	CanSeeOrder(ctx context.Context, user *model.User, order *model.Order) error
 }

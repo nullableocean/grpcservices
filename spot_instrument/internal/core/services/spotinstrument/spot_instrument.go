@@ -28,14 +28,14 @@ func NewSpotInstrument(l *zap.Logger, mRepo repository.MarketRepository, metrics
 	}
 }
 
-func (s *SpotInstrument) ViewMarketsPaginated(ctx context.Context, userRoles []model.UserRole, pageToken model.PageToken, pageSize int32) (*model.PaginationData, error) {
+func (s *SpotInstrument) ViewMarketsPaginated(ctx context.Context, user *model.User, pageToken model.PageToken, pageSize int32) (*model.PaginationData, error) {
 	ctx, span := otel.Tracer("spot_instrument").Start(ctx, "view_markets")
 	defer span.End()
 
 	s.metrics.ViewMarkets(ctx)
 	s.logger.Debug("view markets with pagination", zap.String("page_token", pageToken.Token))
 
-	paginatonData, err := s.marketRepo.FindEnabledByRolesPaginated(ctx, userRoles, pageToken, pageSize)
+	paginatonData, err := s.marketRepo.FindEnabledByRolesPaginated(ctx, user.Roles, pageToken, pageSize)
 	if err != nil {
 		span.AddEvent("failed get markets")
 		s.metrics.FailedViewMarkets(ctx)

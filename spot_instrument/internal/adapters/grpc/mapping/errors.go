@@ -21,5 +21,5 @@ func MapErrorToGrpcStatusError(e error) error {
 		return status.Error(codes.InvalidArgument, e.Error())
 	}
 
-	return status.Error(codes.Internal, e.Error())
+	return status.Error(codes.Internal, "server error")
 }

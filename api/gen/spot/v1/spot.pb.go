@@ -26,12 +26,10 @@ const (
 // Запрос на получение списка маркетов
 type ViewMarketsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Роли пользователя для фильтрации доступных маркетов
-	UserRoles []v1.UserRole `protobuf:"varint,1,rep,packed,name=user_roles,json=userRoles,proto3,enum=models.v1.UserRole" json:"user_roles,omitempty"`
 	// Токен пагинации
-	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Размер страницы (1–200)
-	PageSize      int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageSize      int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -64,13 +62,6 @@ func (x *ViewMarketsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ViewMarketsRequest.ProtoReflect.Descriptor instead.
 func (*ViewMarketsRequest) Descriptor() ([]byte, []int) {
 	return file_service_spot_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *ViewMarketsRequest) GetUserRoles() []v1.UserRole {
-	if x != nil {
-		return x.UserRoles
-	}
-	return nil
 }
 
 func (x *ViewMarketsRequest) GetPageToken() string {
@@ -247,14 +238,11 @@ var File_service_spot_proto protoreflect.FileDescriptor
 
 const file_service_spot_proto_rawDesc = "" +
 	"\n" +
-	"\x12service/spot.proto\x12\aspot.v1\x1a\x11models/user.proto\x1a\x13models/market.proto\x1a\x17validate/validate.proto\"\xb4\x01\n" +
-	"\x12ViewMarketsRequest\x12I\n" +
+	"\x12service/spot.proto\x12\aspot.v1\x1a\x11models/user.proto\x1a\x13models/market.proto\x1a\x17validate/validate.proto\"i\n" +
+	"\x12ViewMarketsRequest\x12*\n" +
 	"\n" +
-	"user_roles\x18\x01 \x03(\x0e2\x13.models.v1.UserRoleB\x15\xfaB\x12\x92\x01\x0f\b\x00\x10\n" +
-	"\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\tuserRoles\x12*\n" +
-	"\n" +
-	"page_token\x18\x02 \x01(\tB\v\xfaB\br\x06\x18\x80\x04\xd0\x01\x01R\tpageToken\x12'\n" +
-	"\tpage_size\x18\x03 \x01(\x05B\n" +
+	"page_token\x18\x01 \x01(\tB\v\xfaB\br\x06\x18\x80\x04\xd0\x01\x01R\tpageToken\x12'\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\n" +
 	"\xfaB\a\x1a\x05\x18\xc8\x01(\x01R\bpageSize\"j\n" +
 	"\x13ViewMarketsResponse\x12+\n" +
 	"\amarkets\x18\x01 \x03(\v2\x11.models.v1.MarketR\amarkets\x12&\n" +
@@ -290,23 +278,22 @@ var file_service_spot_proto_goTypes = []any{
 	(*ViewMarketsResponse)(nil), // 1: spot.v1.ViewMarketsResponse
 	(*FindMarketRequest)(nil),   // 2: spot.v1.FindMarketRequest
 	(*FindMarketResponse)(nil),  // 3: spot.v1.FindMarketResponse
-	(v1.UserRole)(0),            // 4: models.v1.UserRole
-	(*v1.Market)(nil),           // 5: models.v1.Market
+	(*v1.Market)(nil),           // 4: models.v1.Market
+	(v1.UserRole)(0),            // 5: models.v1.UserRole
 }
 var file_service_spot_proto_depIdxs = []int32{
-	4, // 0: spot.v1.ViewMarketsRequest.user_roles:type_name -> models.v1.UserRole
-	5, // 1: spot.v1.ViewMarketsResponse.markets:type_name -> models.v1.Market
-	4, // 2: spot.v1.FindMarketRequest.user_roles:type_name -> models.v1.UserRole
-	5, // 3: spot.v1.FindMarketResponse.market:type_name -> models.v1.Market
-	0, // 4: spot.v1.SpotInstrument.ViewMarkets:input_type -> spot.v1.ViewMarketsRequest
-	2, // 5: spot.v1.SpotInstrument.FindMarket:input_type -> spot.v1.FindMarketRequest
-	1, // 6: spot.v1.SpotInstrument.ViewMarkets:output_type -> spot.v1.ViewMarketsResponse
-	3, // 7: spot.v1.SpotInstrument.FindMarket:output_type -> spot.v1.FindMarketResponse
-	6, // [6:8] is the sub-list for method output_type
-	4, // [4:6] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	4, // 0: spot.v1.ViewMarketsResponse.markets:type_name -> models.v1.Market
+	5, // 1: spot.v1.FindMarketRequest.user_roles:type_name -> models.v1.UserRole
+	4, // 2: spot.v1.FindMarketResponse.market:type_name -> models.v1.Market
+	0, // 3: spot.v1.SpotInstrument.ViewMarkets:input_type -> spot.v1.ViewMarketsRequest
+	2, // 4: spot.v1.SpotInstrument.FindMarket:input_type -> spot.v1.FindMarketRequest
+	1, // 5: spot.v1.SpotInstrument.ViewMarkets:output_type -> spot.v1.ViewMarketsResponse
+	3, // 6: spot.v1.SpotInstrument.FindMarket:output_type -> spot.v1.FindMarketResponse
+	5, // [5:7] is the sub-list for method output_type
+	3, // [3:5] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_service_spot_proto_init() }

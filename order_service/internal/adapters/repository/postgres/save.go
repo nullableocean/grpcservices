@@ -96,7 +96,7 @@ func (r *OrderRepository) saveOrder(ctx context.Context, order *model.Order, eve
 		return r.mapDBError(err, "failed to commit transaction")
 	}
 
-	r.logger.Debug("success save order", zap.String("order_uuid", order.UUID))
+	r.logger.Debug("success save order", zap.String("order_uuid", order.UUID), zap.Int64("order_record_id", orderID))
 
 	return nil
 }

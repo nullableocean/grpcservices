@@ -32,6 +32,10 @@ func (r UserRole) IsValid() bool {
 	return false
 }
 
+func (r UserRole) GetPriority() int {
+	return rolePriority[r]
+}
+
 func (r UserRole) MarshalJSON() ([]byte, error) {
 	return json.Marshal(string(r))
 }
@@ -54,6 +58,13 @@ func (r *UserRole) UnmarshalJSON(data []byte) error {
 type User struct {
 	UUID  string     `json:"uuid"`
 	Roles []UserRole `json:"roles"`
+}
+
+func NewUser(uuid string, roles []UserRole) *User {
+	return &User{
+		UUID:  uuid,
+		Roles: roles,
+	}
 }
 
 func (u *User) HighestPriorityRole() UserRole {

@@ -28,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // Сервис SpotInstrument предоставляет информацию о маркетах
+// UUID юзера и роли извлекается из токена передаваемого в метадате
 type SpotInstrumentClient interface {
 	// ViewMarkets возвращает список доступных маркетов с пагинацией
 	ViewMarkets(ctx context.Context, in *ViewMarketsRequest, opts ...grpc.CallOption) (*ViewMarketsResponse, error)
@@ -68,6 +69,7 @@ func (c *spotInstrumentClient) FindMarket(ctx context.Context, in *FindMarketReq
 // for forward compatibility.
 //
 // Сервис SpotInstrument предоставляет информацию о маркетах
+// UUID юзера и роли извлекается из токена передаваемого в метадате
 type SpotInstrumentServer interface {
 	// ViewMarkets возвращает список доступных маркетов с пагинацией
 	ViewMarkets(context.Context, *ViewMarketsRequest) (*ViewMarketsResponse, error)

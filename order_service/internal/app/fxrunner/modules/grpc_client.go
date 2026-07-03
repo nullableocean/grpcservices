@@ -39,7 +39,7 @@ func GrpcClientModule() fx.Option {
 			}
 
 			interceptors := grpc.WithChainUnaryInterceptor(
-				shared_inters.UnaryClientPanicRecovery(),
+				shared_inters.UnaryClientPanicRecovery(logger, cfg.Log.StackLines),
 				shared_inters.UnaryClientXReqId(),
 				shared_inters.UnaryClientXReqIdTelemetry(),
 				clientMetrics.UnaryClientInterceptor(),

@@ -92,7 +92,7 @@ func (r *OrderRepository) List(ctx context.Context, userUUID string, filters mod
 	}, nil
 }
 
-func (r *OrderRepository) addStatusFilter(b *listQuery, statuses []model.OrderStatus) error {
+func (r *OrderRepository) addStatusFilter(q *listQuery, statuses []model.OrderStatus) error {
 	if len(statuses) == 0 {
 		return nil
 	}
@@ -103,26 +103,26 @@ func (r *OrderRepository) addStatusFilter(b *listQuery, statuses []model.OrderSt
 	}
 
 	for _, id := range ids {
-		b.args = append(b.args, id)
+		q.args = append(q.args, id)
 	}
 
-	b.query += fmt.Sprintf(" AND o.order_status_id IN (%s)", b.addPlaceholders(len(ids)))
+	q.query += fmt.Sprintf(" AND o.order_status_id IN (%s)", q.addPlaceholders(len(ids)))
 	return nil
 }
 
-func (r *OrderRepository) addMarketFilter(b *listQuery, marketUUIDs []string) {
+func (r *OrderRepository) addMarketFilter(q *listQuery, marketUUIDs []string) {
 	if len(marketUUIDs) == 0 {
 		return
 	}
 
 	for _, uuid := range marketUUIDs {
-		b.args = append(b.args, uuid)
+		q.args = append(q.args, uuid)
 	}
 
-	b.query += fmt.Sprintf(" AND o.market_uuid IN (%s)", b.addPlaceholders(len(marketUUIDs)))
+	q.query += fmt.Sprintf(" AND o.market_uuid IN (%s)", q.addPlaceholders(len(marketUUIDs)))
 }
 
-func (r *OrderRepository) addTypeFilter(b *listQuery, orderType *model.OrderType) error {
+func (r *OrderRepository) addTypeFilter(q *listQuery, orderType *model.OrderType) error {
 	if orderType == nil {
 		return nil
 	}
@@ -132,42 +132,41 @@ func (r *OrderRepository) addTypeFilter(b *listQuery, orderType *model.OrderType
 		return err
 	}
 
-	b.args = append(b.args, id)
-
-	b.argIdx++
-	b.query += fmt.Sprintf(" AND o.order_type_id = $%d", b.argIdx)
+	q.argIdx++
+	q.args = append(q.args, id)
+	q.query += fmt.Sprintf(" AND o.order_type_id = $%d", q.argIdx)
 
 	return nil
 }
 
-func (r *OrderRepository) addDateRangeFilter(b *listQuery, from, to *time.Time) {
+func (r *OrderRepository) addDateRangeFilter(q *listQuery, from, to *time.Time) {
 	if from != nil {
-		b.args = append(b.args, *from)
-		b.argIdx++
-		b.query += fmt.Sprintf(" AND o.created_at >= $%d", b.argIdx)
+		q.argIdx++
+		q.args = append(q.args, *from)
+		q.query += fmt.Sprintf(" AND o.created_at >= $%d", q.argIdx)
 	}
 
 	if to != nil {
-		b.args = append(b.args, *to)
-		b.argIdx++
-		b.query += fmt.Sprintf(" AND o.created_at <= $%d", b.argIdx)
+		q.argIdx++
+		q.args = append(q.args, *to)
+		q.query += fmt.Sprintf(" AND o.created_at <= $%d", q.argIdx)
 	}
 }
 
-func (r *OrderRepository) addCursorFilter(b *listQuery, cursor *model.PaginationCursor) {
+func (r *OrderRepository) addCursorFilter(q *listQuery, cursor *model.PaginationCursor) {
 	if cursor == nil || cursor.CreatedAt.IsZero() || cursor.OrderUUID == "" {
 		return
 	}
 
-	b.argIdx += 2
-	b.args = append(b.args, cursor.CreatedAt, cursor.OrderUUID)
-	b.query += fmt.Sprintf(" AND (o.created_at, o.uuid) < ($%d, $%d)", b.argIdx-1, b.argIdx)
+	q.argIdx += 2
+	q.args = append(q.args, cursor.CreatedAt, cursor.OrderUUID)
+	q.query += fmt.Sprintf(" AND (o.created_at, o.uuid) < ($%d, $%d)", q.argIdx-1, q.argIdx)
 }
 
-func (r *OrderRepository) addOrderByAndLimit(b *listQuery, limit int) {
-	b.argIdx++
-	b.args = append(b.args, limit)
-	b.query += fmt.Sprintf(" ORDER BY o.created_at DESC, o.uuid ASC LIMIT $%d", b.argIdx)
+func (r *OrderRepository) addOrderByAndLimit(q *listQuery, limit int) {
+	q.argIdx++
+	q.args = append(q.args, limit)
+	q.query += fmt.Sprintf(" ORDER BY o.created_at DESC, o.uuid ASC LIMIT $%d", q.argIdx)
 }
 
 func (r *OrderRepository) getStatusesIDs(ctx context.Context, statuses []model.OrderStatus) ([]int, error) {

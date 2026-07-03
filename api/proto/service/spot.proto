@@ -9,6 +9,7 @@ import "models/market.proto";
 import "validate/validate.proto";
 
 // Сервис SpotInstrument предоставляет информацию о маркетах
+// UUID юзера и роли извлекается из токена передаваемого в метадате
 service SpotInstrument {
     // ViewMarkets возвращает список доступных маркетов с пагинацией
     rpc ViewMarkets(ViewMarketsRequest) returns (ViewMarketsResponse);
@@ -19,22 +20,14 @@ service SpotInstrument {
 
 // Запрос на получение списка маркетов
 message ViewMarketsRequest {
-    // Роли пользователя для фильтрации доступных маркетов
-    repeated models.v1.UserRole user_roles = 1 [(validate.rules).repeated = {
-        min_items: 0,
-        max_items: 10,
-        unique: true,
-        items: {enum: {defined_only: true, not_in: [0]}}
-    }];
-
     // Токен пагинации
-    string page_token = 2 [(validate.rules).string = {
+    string page_token = 1 [(validate.rules).string = {
         ignore_empty: true,
         max_len: 512
     }];
 
     // Размер страницы (1–200)
-    int32 page_size = 3 [(validate.rules).int32 = {
+    int32 page_size = 2 [(validate.rules).int32 = {
         gte: 1,
         lte: 200
     }];

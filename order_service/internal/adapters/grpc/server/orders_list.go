@@ -8,7 +8,6 @@ import (
 	orderv1 "github.com/nullableocean/grpcservices/api/gen/order/v1"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/mapping"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
-	shared_inters "github.com/nullableocean/grpcservices/shared/interceptors"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -16,22 +15,18 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (srv *OrderServer) getGrpcError(e error) error {
-	return mapping.MapErrorToGrpcStatusError(e)
-}
-
 func (srv *OrderServer) OrdersList(ctx context.Context, req *orderv1.OrdersListRequest) (*orderv1.OrdersListResponse, error) {
 	ctx, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("order_grpc_server").Start(ctx, "orders_list")
 	defer span.End()
 
-	userUUID, ok := shared_inters.UserUUIDFromContext(ctx)
-	if !ok || userUUID == "" {
-		return nil, status.Error(codes.Unauthenticated, "user not found in context")
+	user, err := srv.extractUserFromCtx(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "user not extracted from context")
 	}
 
-	srv.logger.Debug("received grpc request on orders list", zap.String("user_uuid", userUUID))
+	srv.logger.Debug("received grpc request on orders list", zap.String("user_uuid", user.UUID))
 
-	span.SetAttributes(attribute.String("user_uuid", userUUID))
+	span.SetAttributes(attribute.String("user_uuid", user.UUID))
 
 	filters, err := srv.extractFilters(req)
 	if err != nil {
@@ -39,7 +34,7 @@ func (srv *OrderServer) OrdersList(ctx context.Context, req *orderv1.OrdersListR
 		return nil, mapping.MapErrorToGrpcStatusError(err)
 	}
 
-	list, err := srv.orderService.OrdersList(ctx, userUUID, filters)
+	list, err := srv.orderService.OrdersList(ctx, user, filters)
 	if err != nil {
 		span.AddEvent("failed get orders list")
 		return nil, mapping.MapErrorToGrpcStatusError(err)

@@ -64,59 +64,6 @@ func (m *ViewMarketsRequest) validate(all bool) error {
 
 	var errors []error
 
-	if len(m.GetUserRoles()) > 10 {
-		err := ViewMarketsRequestValidationError{
-			field:  "UserRoles",
-			reason: "value must contain no more than 10 item(s)",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	_ViewMarketsRequest_UserRoles_Unique := make(map[modelsv1.UserRole]struct{}, len(m.GetUserRoles()))
-
-	for idx, item := range m.GetUserRoles() {
-		_, _ = idx, item
-
-		if _, exists := _ViewMarketsRequest_UserRoles_Unique[item]; exists {
-			err := ViewMarketsRequestValidationError{
-				field:  fmt.Sprintf("UserRoles[%v]", idx),
-				reason: "repeated value must contain unique items",
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
-		} else {
-			_ViewMarketsRequest_UserRoles_Unique[item] = struct{}{}
-		}
-
-		if _, ok := _ViewMarketsRequest_UserRoles_NotInLookup[item]; ok {
-			err := ViewMarketsRequestValidationError{
-				field:  fmt.Sprintf("UserRoles[%v]", idx),
-				reason: "value must not be in list [0]",
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
-		}
-
-		if _, ok := modelsv1.UserRole_name[int32(item)]; !ok {
-			err := ViewMarketsRequestValidationError{
-				field:  fmt.Sprintf("UserRoles[%v]", idx),
-				reason: "value must be one of the defined enum values",
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
-		}
-
-	}
-
 	if m.GetPageToken() != "" {
 
 		if utf8.RuneCountInString(m.GetPageToken()) > 512 {
@@ -222,10 +169,6 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = ViewMarketsRequestValidationError{}
-
-var _ViewMarketsRequest_UserRoles_NotInLookup = map[modelsv1.UserRole]struct{}{
-	0: {},
-}
 
 // Validate checks the field values on ViewMarketsResponse with the rules
 // defined in the proto definition for this message. If any rules are

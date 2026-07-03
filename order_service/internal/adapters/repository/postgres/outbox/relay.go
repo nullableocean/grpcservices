@@ -112,12 +112,6 @@ func (r *OutboxRelay) processBatch(ctx context.Context) {
 	ctx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()
 
-	defer func() {
-		if rec := recover(); rec != nil {
-			r.logger.Error("panic in outbox relay", zap.Any("error", rec), zap.Stack("stacktrace"))
-		}
-	}()
-
 	tx, err := r.pgpool.Begin(ctx)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
@@ -132,6 +126,12 @@ func (r *OutboxRelay) processBatch(ctx context.Context) {
 		err := tx.Rollback(context.WithoutCancel(ctx))
 		if err != nil && !errors.Is(err, pgx.ErrTxClosed) {
 			r.logger.Error("failed outbox transaction rollback", zap.Error(err))
+		}
+	}()
+
+	defer func() {
+		if rec := recover(); rec != nil {
+			r.logger.Error("panic in outbox relay", zap.Any("error", rec), zap.Stack("stacktrace"))
 		}
 	}()
 

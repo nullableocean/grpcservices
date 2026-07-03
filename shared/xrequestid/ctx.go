@@ -36,9 +36,9 @@ func GetFromIncomingCtx(ctx context.Context) string {
 }
 
 // CreateNewToOutCtx генерирует x-request-id и записывает в исходящую метадату и в значение контекста
-func CreateNewToOutCtx(ctx context.Context) context.Context {
+func CreateNewToOutCtx(ctx context.Context) (context.Context, string) {
 	xrequestId := NewXRequestId()
-	return SetToOutCtx(xrequestId, ctx)
+	return SetToOutCtx(xrequestId, ctx), xrequestId
 }
 
 // SetToOutCtx записывает x-request-id в исходящую метадату и в значение контекста

@@ -36,8 +36,8 @@ func MapErrorToGrpcStatusError(e error) error {
 	}
 
 	if errors.Is(e, errs.ErrIdempotencyProcessing) {
-		return status.Error(codes.Aborted, e.Error())
+		return status.Error(codes.Aborted, "failed idempotency")
 	}
 
-	return status.Error(codes.Internal, e.Error())
+	return status.Error(codes.Internal, "server error")
 }

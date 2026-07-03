@@ -65,22 +65,20 @@ func (srv *SpotInstrumentServer) ViewMarkets(ctx context.Context, req *spotv1.Vi
 	ctx, span := otel.Tracer("spot_instrument_server").Start(ctx, "view_markets")
 	defer span.End()
 
-	userUUID, ok := shared_inters.UserUUIDFromContext(ctx)
-	if !ok || userUUID == "" {
-		return nil, status.Error(codes.Unauthenticated, "user uuid not provided")
+	user, err := srv.extractUserFromCtx(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "user not extracted from context")
 	}
 
-	logger := srv.logger.With(zap.String("user_uuid", userUUID))
+	logger := srv.logger.With(zap.String("user_uuid", user.UUID))
 
 	logger.Debug("got grpc call ViewMarkets in SpotInstrumentServer")
-
-	roles := mapping.MapProtoUserRolesToRoles(req.UserRoles)
 
 	pageToken := model.PageToken{
 		Token: req.PageToken,
 	}
 
-	data, err := srv.spotInstrument.ViewMarketsPaginated(ctx, roles, pageToken, req.PageSize)
+	data, err := srv.spotInstrument.ViewMarketsPaginated(ctx, user, pageToken, req.PageSize)
 	if err != nil {
 		span.AddEvent("failed view markets")
 		logger.Error("failed get markets", zap.Error(err))
@@ -92,6 +90,29 @@ func (srv *SpotInstrumentServer) ViewMarkets(ctx context.Context, req *spotv1.Vi
 	logger.Debug("response markets", zap.Int("markets_count", len(data.Markets)))
 
 	return srv.mapMarketsToResponse(data.Markets, data.NextPageToken.Token), nil
+}
+
+func (srv *SpotInstrumentServer) extractUserFromCtx(ctx context.Context) (*model.User, error) {
+	userUUID, ok := shared_inters.UserUUIDFromContext(ctx)
+	if !ok || userUUID == "" {
+		return nil, status.Error(codes.Unauthenticated, "user not found in context")
+	}
+
+	ctxRoles, ok := shared_inters.RolesFromContext(ctx)
+	if !ok {
+		srv.logger.Warn("roles not provided in context")
+	}
+
+	var roles []model.UserRole
+	if len(ctxRoles) > 0 {
+		roles = make([]model.UserRole, len(ctxRoles))
+		for i, roleStr := range ctxRoles {
+			roles[i] = model.UserRole(roleStr)
+		}
+	}
+
+	user := model.NewUser(userUUID, roles)
+	return user, nil
 }
 
 func (srv *SpotInstrumentServer) mapMarketsToResponse(markets []*model.Market, nextPageToken string) *spotv1.ViewMarketsResponse {

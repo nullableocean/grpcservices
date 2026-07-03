@@ -32,8 +32,8 @@ func GRPCServerModule() fx.Option {
 				unaryInterceptors := grpc.ChainUnaryInterceptor(
 					shared_inters.UnaryServerPanicRecovery(logger, cfg.Log.StackLines),
 					shared_inters.UnaryJwtAuthInterceptor(logger, jwtParser),
-					shared_inters.UnaryServerLogger(logger),
 					shared_inters.UnaryServerTelemetry(),
+					shared_inters.UnaryServerLogger(logger),
 					serverMetrics.UnaryServerInterceptor(),
 					shared_inters.ValidationUnaryInterceptor(logger),
 				)

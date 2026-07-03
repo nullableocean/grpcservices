@@ -182,7 +182,7 @@ func (s *OrderService) rollbackRateLimit(ctx context.Context, logger *zap.Logger
 }
 
 func (s *OrderService) validateMarket(ctx context.Context, logger *zap.Logger, data *dto.CreateOrderParameters) error {
-	if err := s.marketValidator.Validate(ctx, data.MarketUUID, data.User.Roles); err != nil {
+	if err := s.marketValidator.Validate(ctx, data.MarketUUID, data.User); err != nil {
 		logger.Error("market validation failed", zap.Error(err))
 		s.metrics.OrderFailedCreate(ctx)
 
