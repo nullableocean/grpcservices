@@ -36,6 +36,11 @@ func LoggerModule() fx.Option {
 				return l, outputFile, err
 			},
 		),
+		fx.Provide(
+			func(zapLogger *zap.Logger) (*logger.CtxZapLogger, error) {
+				return logger.NewCtxZapLogger(zapLogger)
+			},
+		),
 		fx.Invoke(
 			func(lc fx.Lifecycle, logger *zap.Logger, outputFile outputLoggerFile) {
 				lc.Append(fx.Hook{

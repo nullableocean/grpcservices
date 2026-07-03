@@ -11,7 +11,7 @@ import (
 )
 
 func (r *OrderRepository) Save(ctx context.Context, order *model.Order, events ...model.Event) error {
-	r.logger.Debug("start save order",
+	r.logger.Debug(ctx, "start save order",
 		zap.String("order_uuid", order.UUID),
 		zap.String("order_type", string(order.Type)),
 		zap.String("order_side", string(order.Side)),
@@ -96,7 +96,7 @@ func (r *OrderRepository) saveOrder(ctx context.Context, order *model.Order, eve
 		return r.mapDBError(err, "failed to commit transaction")
 	}
 
-	r.logger.Debug("success save order", zap.String("order_uuid", order.UUID), zap.Int64("order_record_id", orderID))
+	r.logger.Debug(ctx, "success save order", zap.String("order_uuid", order.UUID), zap.Int64("order_record_id", orderID))
 
 	return nil
 }

@@ -8,15 +8,15 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/errs"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
-	"go.uber.org/zap"
+	"github.com/nullableocean/grpcservices/shared/logger"
 )
 
 type MarketValidator struct {
 	spotInstrument ports.SpotInstrument
-	logger         *zap.Logger
+	logger         *logger.CtxZapLogger
 }
 
-func NewMarketValidator(spotInstrument ports.SpotInstrument, logger *zap.Logger) *MarketValidator {
+func NewMarketValidator(spotInstrument ports.SpotInstrument, logger *logger.CtxZapLogger) *MarketValidator {
 	return &MarketValidator{
 		spotInstrument: spotInstrument,
 		logger:         logger,

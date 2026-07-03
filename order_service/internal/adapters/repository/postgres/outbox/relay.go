@@ -13,6 +13,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/metrics"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"go.uber.org/zap"
 )
 
@@ -31,7 +32,7 @@ type OutboxRelay struct {
 	inProcess atomic.Bool
 
 	metrics *metrics.OutboxMetricsRecorder
-	logger  *zap.Logger
+	logger  *logger.CtxZapLogger
 }
 
 type Config struct {
@@ -61,7 +62,7 @@ func (c Config) Validate() error {
 	return nil
 }
 
-func NewRelay(l *zap.Logger, pool *pgxpool.Pool, publisher ports.EventPublisher, outboxMetrics *metrics.OutboxMetricsRecorder, opt Config) (*OutboxRelay, error) {
+func NewRelay(l *logger.CtxZapLogger, pool *pgxpool.Pool, publisher ports.EventPublisher, outboxMetrics *metrics.OutboxMetricsRecorder, opt Config) (*OutboxRelay, error) {
 	if err := opt.Validate(); err != nil {
 		return nil, err
 	}
@@ -89,7 +90,7 @@ func (r *OutboxRelay) Start(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			r.logger.Debug("event outbox relay closed by context")
+			r.logger.Debug(ctx, "event outbox relay closed by context")
 			return
 		case <-ticker.C:
 			if r.stopped.Load() {
@@ -115,9 +116,9 @@ func (r *OutboxRelay) processBatch(ctx context.Context) {
 	tx, err := r.pgpool.Begin(ctx)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			r.logger.Warn("timeout beginning transaction")
+			r.logger.Warn(ctx, "timeout beginning transaction")
 		} else {
-			r.logger.Error("failed to begin transaction", zap.Error(err))
+			r.logger.Error(ctx, "failed to begin transaction", zap.Error(err))
 		}
 		return
 	}
@@ -125,29 +126,29 @@ func (r *OutboxRelay) processBatch(ctx context.Context) {
 	defer func() {
 		err := tx.Rollback(context.WithoutCancel(ctx))
 		if err != nil && !errors.Is(err, pgx.ErrTxClosed) {
-			r.logger.Error("failed outbox transaction rollback", zap.Error(err))
+			r.logger.Error(ctx, "failed outbox transaction rollback", zap.Error(err))
 		}
 	}()
 
 	defer func() {
 		if rec := recover(); rec != nil {
-			r.logger.Error("panic in outbox relay", zap.Any("error", rec), zap.Stack("stacktrace"))
+			r.logger.Error(ctx, "panic in outbox relay", zap.Any("error", rec), zap.Stack("stacktrace"))
 		}
 	}()
 
 	records, err := r.reader.FetchUnprocessedTx(ctx, tx, r.batchSize)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			r.logger.Warn("timeout fetching unprocessed events")
+			r.logger.Warn(ctx, "timeout fetching unprocessed events")
 		} else {
-			r.logger.Error("failed to fetch unprocessed events", zap.Error(err))
+			r.logger.Error(ctx, "failed to fetch unprocessed events", zap.Error(err))
 		}
 		return
 	}
 
 	if len(records) == 0 {
 		if commitErr := tx.Commit(ctx); commitErr != nil {
-			r.logger.Error("failed to commit empty transaction", zap.Error(commitErr))
+			r.logger.Error(ctx, "failed to commit empty transaction", zap.Error(commitErr))
 		}
 		return
 	}
@@ -156,7 +157,7 @@ LOOP:
 	for i, rec := range records {
 		select {
 		case <-ctx.Done():
-			r.logger.Warn("processing cancelled by timeout or context",
+			r.logger.Warn(ctx, "processing cancelled by timeout or context",
 				zap.Int("processed", i),
 				zap.Int("total", len(records)),
 				zap.Error(ctx.Err()),
@@ -169,7 +170,7 @@ LOOP:
 		if rec.Attempts >= r.maxRetry {
 			markErr := r.reader.MarkDeadTx(ctx, tx, rec.EventUUID, rec.Error)
 			if markErr != nil {
-				r.logger.Error("failed mark dead event", zap.Error(err))
+				r.logger.Error(ctx, "failed mark dead event", zap.Error(err))
 				return
 			}
 			continue
@@ -177,13 +178,13 @@ LOOP:
 
 		event, err := r.unmarshalEvent(rec)
 		if err != nil {
-			r.logger.Error("failed to unmarshal event",
+			r.logger.Error(ctx, "failed to unmarshal event",
 				zap.Error(err),
 				zap.String("event_uuid", rec.EventUUID))
 
 			markErr := r.reader.MarkDeadTx(ctx, tx, rec.EventUUID, err.Error())
 			if markErr != nil {
-				r.logger.Error("failed mark dead event", zap.Error(err))
+				r.logger.Error(ctx, "failed mark dead event", zap.Error(err))
 				return
 			}
 
@@ -192,13 +193,13 @@ LOOP:
 		}
 
 		if err := r.publisher.Publish(ctx, event); err != nil {
-			r.logger.Error("failed to publish event",
+			r.logger.Error(ctx, "failed to publish event",
 				zap.Error(err),
 				zap.String("event_uuid", rec.EventUUID))
 
 			markErr := r.reader.MarkFailedTx(ctx, tx, rec.EventUUID, err.Error())
 			if markErr != nil {
-				r.logger.Error("failed mark failed event", zap.Error(err))
+				r.logger.Error(ctx, "failed mark failed event", zap.Error(err))
 				return
 			}
 
@@ -207,7 +208,7 @@ LOOP:
 		}
 
 		if err := r.reader.MarkProcessedTx(ctx, tx, rec.EventUUID); err != nil {
-			r.logger.Error("failed to mark event as processed",
+			r.logger.Error(ctx, "failed to mark event as processed",
 				zap.Error(err),
 				zap.String("event_uuid", rec.EventUUID))
 
@@ -217,7 +218,7 @@ LOOP:
 	}
 
 	if err := tx.Commit(context.WithoutCancel(ctx)); err != nil {
-		r.logger.Error("failed to commit transaction", zap.Error(err))
+		r.logger.Error(ctx, "failed to commit transaction", zap.Error(err))
 		return
 	}
 

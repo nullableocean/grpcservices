@@ -11,6 +11,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/repository/postgres/outbox"
 	"github.com/nullableocean/grpcservices/orderservice/internal/config"
 	"github.com/nullableocean/grpcservices/shared/health"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
@@ -31,7 +32,7 @@ func (o *OutboxHealth) HealthCheck() health.HealthCheck {
 func OutboxModule() fx.Option {
 	return fx.Options(
 		fx.Provide(
-			func(logger *zap.Logger, cfg *config.Config, pool *pgxpool.Pool, bus *bus.EventPublisherBus, outboxMetrics *metrics.OutboxMetricsRecorder) (*outbox.OutboxRelay, *OutboxHealth, error) {
+			func(logger *logger.CtxZapLogger, cfg *config.Config, pool *pgxpool.Pool, bus *bus.EventPublisherBus, outboxMetrics *metrics.OutboxMetricsRecorder) (*outbox.OutboxRelay, *OutboxHealth, error) {
 				outbox, err := outbox.NewRelay(logger, pool, bus, outboxMetrics, outbox.Config{
 					Interval:     cfg.Outbox.PollInterval,
 					BatchSize:    cfg.Outbox.BatchSize,

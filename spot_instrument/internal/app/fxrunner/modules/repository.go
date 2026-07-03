@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/adapters/repository/postgres"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/config"
 	"go.uber.org/fx"
@@ -55,8 +56,8 @@ func PostgresModule() fx.Option {
 func RepositoriesModule() fx.Option {
 	return fx.Options(
 		fx.Provide(
-			func(logger *zap.Logger, pool *pgxpool.Pool) (*postgres.MarketRepository, error) {
-				return postgres.NewMarketRepository(logger, pool)
+			func(ctxLogger *logger.CtxZapLogger, pool *pgxpool.Pool) (*postgres.MarketRepository, error) {
+				return postgres.NewMarketRepository(ctxLogger, pool)
 			},
 		),
 		fx.Invoke(

@@ -12,6 +12,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/dto"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/errs"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
+	"github.com/nullableocean/grpcservices/shared/logger"
 )
 
 type idempotencyStatus int
@@ -37,7 +38,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, data *dto.CreateOrderPar
 	)
 
 	if err := data.Validate(); err != nil {
-		logger.Warn("validation failed", zap.Error(err))
+		logger.Warn(ctx, "validation failed", zap.Error(err))
 		return nil, err
 	}
 
@@ -65,7 +66,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, data *dto.CreateOrderPar
 	return order, nil
 }
 
-func (s *OrderService) checkIdempotency(ctx context.Context, logger *zap.Logger, idempotencyKey string) (*idempotencyCheckResult, error) {
+func (s *OrderService) checkIdempotency(ctx context.Context, logger *logger.CtxZapLogger, idempotencyKey string) (*idempotencyCheckResult, error) {
 	ok, err := s.idempotencyGuard.Reserve(ctx, idempotencyKey)
 	if err != nil {
 		return nil, err
@@ -77,12 +78,12 @@ func (s *OrderService) checkIdempotency(ctx context.Context, logger *zap.Logger,
 
 	idemData, err := s.idempotencyGuard.GetExisting(ctx, idempotencyKey)
 	if err != nil && !errors.Is(err, errs.ErrIdempotencyKeyNotFound) {
-		logger.Error("failed to get existing idempotency data", zap.Error(err))
+		logger.Error(ctx, "failed to get existing idempotency data", zap.Error(err))
 		return nil, err
 	}
 
 	if idemData == nil {
-		logger.Error("idempotency data not found by key")
+		logger.Error(ctx, "idempotency data not found by key")
 		return nil, errs.ErrIdempotencyInternal
 	}
 
@@ -94,39 +95,39 @@ func (s *OrderService) checkIdempotency(ctx context.Context, logger *zap.Logger,
 	case idemData.IsFailed():
 		return s.handleIdempotencyRetry(ctx, logger, idempotencyKey, idemData)
 	default:
-		logger.Error("unknown idempotency state")
+		logger.Error(ctx, "unknown idempotency state")
 		return nil, errs.ErrIdempotencyInternal
 	}
 }
 
-func (s *OrderService) handleIdempotencyCompleted(ctx context.Context, logger *zap.Logger, idemData *model.IdempotencyData) (*idempotencyCheckResult, error) {
+func (s *OrderService) handleIdempotencyCompleted(ctx context.Context, logger *logger.CtxZapLogger, idemData *model.IdempotencyData) (*idempotencyCheckResult, error) {
 	if idemData.OrderUUID == "" {
-		logger.Error("idempotency error: empty order uuid in cached data")
+		logger.Error(ctx, "idempotency error: empty order uuid in cached data")
 		return nil, errs.ErrIdempotencyInternal
 	}
 
 	order, err := s.orderRepo.FindByUUID(ctx, idemData.OrderUUID)
 	if err != nil {
-		logger.Error("failed to get order from repository", zap.String("order_uuid", idemData.OrderUUID), zap.Error(err))
+		logger.Error(ctx, "failed to get order from repository", zap.String("order_uuid", idemData.OrderUUID), zap.Error(err))
 		return nil, err
 	}
 
-	logger.Debug("order found by idempotency cached uuid")
+	logger.Debug(ctx, "order found by idempotency cached uuid")
 	return &idempotencyCheckResult{Status: idempotencyResultExisting, Order: order}, nil
 }
 
-func (s *OrderService) handleIdempotencyRetry(ctx context.Context, logger *zap.Logger, idempotencyKey string, idemData *model.IdempotencyData) (*idempotencyCheckResult, error) {
-	logger.Debug("previous request by idempotency key was failed, retrying", zap.String("previous_error", idemData.LastError))
+func (s *OrderService) handleIdempotencyRetry(ctx context.Context, logger *logger.CtxZapLogger, idempotencyKey string, idemData *model.IdempotencyData) (*idempotencyCheckResult, error) {
+	logger.Debug(ctx, "previous request by idempotency key was failed, retrying", zap.String("previous_error", idemData.LastError))
 
 	if err := s.idempotencyGuard.SetProcessing(ctx, idempotencyKey); err != nil {
-		logger.Error("failed to set processing idempotency key", zap.Error(err))
+		logger.Error(ctx, "failed to set processing idempotency key", zap.Error(err))
 		return nil, err
 	}
 
 	return &idempotencyCheckResult{Status: idempotencyReserved}, nil
 }
 
-func (s *OrderService) processOrderCreation(ctx context.Context, logger *zap.Logger, data *dto.CreateOrderParameters) (*model.Order, error) {
+func (s *OrderService) processOrderCreation(ctx context.Context, logger *logger.CtxZapLogger, data *dto.CreateOrderParameters) (*model.Order, error) {
 	if err := s.authorize(ctx, logger, data); err != nil {
 		return nil, err
 	}
@@ -151,18 +152,18 @@ func (s *OrderService) processOrderCreation(ctx context.Context, logger *zap.Log
 	return createdOrder, err
 }
 
-func (s *OrderService) authorize(ctx context.Context, logger *zap.Logger, data *dto.CreateOrderParameters) error {
+func (s *OrderService) authorize(ctx context.Context, logger *logger.CtxZapLogger, data *dto.CreateOrderParameters) error {
 	if err := s.accessService.CanCreateOrder(ctx, data.User, data); err != nil {
-		logger.Debug("access denied", zap.Error(err))
+		logger.Debug(ctx, "access denied", zap.Error(err))
 		return errors.Join(errs.ErrNotAllowed, err)
 	}
 
 	return nil
 }
 
-func (s *OrderService) checkAndIncRateLimits(ctx context.Context, logger *zap.Logger, data *dto.CreateOrderParameters) error {
+func (s *OrderService) checkAndIncRateLimits(ctx context.Context, logger *logger.CtxZapLogger, data *dto.CreateOrderParameters) error {
 	if err := s.rateLimiter.Check(ctx, *data.User); err != nil {
-		logger.Warn("orders rate limit exceeded", zap.Error(err))
+		logger.Warn(ctx, "orders rate limit exceeded", zap.Error(err))
 		s.metrics.OrderFailedCreate(ctx)
 
 		return err
@@ -171,9 +172,9 @@ func (s *OrderService) checkAndIncRateLimits(ctx context.Context, logger *zap.Lo
 	return nil
 }
 
-func (s *OrderService) rollbackRateLimit(ctx context.Context, logger *zap.Logger, data *dto.CreateOrderParameters) error {
+func (s *OrderService) rollbackRateLimit(ctx context.Context, logger *logger.CtxZapLogger, data *dto.CreateOrderParameters) error {
 	if err := s.rateLimiter.Rollback(ctx, *data.User); err != nil {
-		logger.Warn("orders rate limit failed rollback", zap.Error(err))
+		logger.Warn(ctx, "orders rate limit failed rollback", zap.Error(err))
 
 		return err
 	}
@@ -181,9 +182,9 @@ func (s *OrderService) rollbackRateLimit(ctx context.Context, logger *zap.Logger
 	return nil
 }
 
-func (s *OrderService) validateMarket(ctx context.Context, logger *zap.Logger, data *dto.CreateOrderParameters) error {
+func (s *OrderService) validateMarket(ctx context.Context, logger *logger.CtxZapLogger, data *dto.CreateOrderParameters) error {
 	if err := s.marketValidator.Validate(ctx, data.MarketUUID, data.User); err != nil {
-		logger.Error("market validation failed", zap.Error(err))
+		logger.Error(ctx, "market validation failed", zap.Error(err))
 		s.metrics.OrderFailedCreate(ctx)
 
 		return fmt.Errorf("market validation: %w", err)
@@ -192,32 +193,32 @@ func (s *OrderService) validateMarket(ctx context.Context, logger *zap.Logger, d
 	return nil
 }
 
-func (s *OrderService) createAndSaveOrder(ctx context.Context, logger *zap.Logger, data *dto.CreateOrderParameters) (*model.Order, error) {
+func (s *OrderService) createAndSaveOrder(ctx context.Context, logger *logger.CtxZapLogger, data *dto.CreateOrderParameters) (*model.Order, error) {
 	order := s.orderFactory.CreateOrder(data)
 	event := s.orderFactory.CreateCreatedEvent(order)
 
 	if err := s.orderRepo.Save(ctx, order, event); err != nil {
-		logger.Error("failed to save order", zap.Error(err))
+		logger.Error(ctx, "failed to save order", zap.Error(err))
 		s.metrics.OrderFailedCreate(ctx)
 
 		return nil, fmt.Errorf("failed to save order: %w", err)
 	}
 
-	logger.Debug("order created successfully", zap.String("order_uuid", order.UUID))
+	logger.Debug(ctx, "order created successfully", zap.String("order_uuid", order.UUID))
 	s.metrics.OrderCreated(ctx)
 
 	return order, nil
 }
 
-func (s *OrderService) markIdempotencyFailed(ctx context.Context, logger *zap.Logger, idempotencyKey string) {
+func (s *OrderService) markIdempotencyFailed(ctx context.Context, logger *logger.CtxZapLogger, idempotencyKey string) {
 	if err := s.idempotencyGuard.SetFailed(ctx, idempotencyKey); err != nil {
-		logger.Error("failed to mark idempotency key as failed", zap.String("idempotency_key", idempotencyKey), zap.Error(err))
+		logger.Error(ctx, "failed to mark idempotency key as failed", zap.String("idempotency_key", idempotencyKey), zap.Error(err))
 	}
 }
 
-func (s *OrderService) markIdempotencyCompleted(ctx context.Context, logger *zap.Logger, idempotencyKey, orderUUID string) {
+func (s *OrderService) markIdempotencyCompleted(ctx context.Context, logger *logger.CtxZapLogger, idempotencyKey, orderUUID string) {
 	if err := s.idempotencyGuard.SetCompleted(ctx, idempotencyKey, orderUUID); err != nil {
-		logger.Error("failed to mark idempotency key as completed",
+		logger.Error(ctx, "failed to mark idempotency key as completed",
 			zap.String("idempotency_key", idempotencyKey),
 			zap.String("order_uuid", orderUUID),
 			zap.Error(err),

@@ -25,12 +25,12 @@ func (srv *OrderServer) CreateOrder(ctx context.Context, req *orderv1.CreateOrde
 
 	span.SetAttributes(attribute.String("user_uuid", user.UUID))
 	logger := srv.logger.With(zap.String("user_uuid", user.UUID))
-	logger.Debug("grpc received call for create order")
+	logger.Debug(ctx, "grpc received call for create order")
 
 	params, err := srv.mapCreateRequestToDto(req, user)
 	if err != nil {
 		span.AddEvent("failed order created")
-		logger.Error("failed map request to DTO", zap.Error(err))
+		logger.Error(ctx, "failed map request to DTO", zap.Error(err))
 
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
@@ -38,13 +38,13 @@ func (srv *OrderServer) CreateOrder(ctx context.Context, req *orderv1.CreateOrde
 	newOrder, err := srv.orderService.CreateOrder(ctx, params)
 	if err != nil {
 		span.AddEvent("failed order created")
-		logger.Error("failed create order", zap.Error(err))
+		logger.Error(ctx, "failed create order", zap.Error(err))
 
 		return nil, srv.getGrpcError(err)
 	}
 
 	span.AddEvent("order created")
-	logger.Debug("order created", zap.String("order_uuid", newOrder.UUID))
+	logger.Debug(ctx, "order created", zap.String("order_uuid", newOrder.UUID))
 
 	return srv.mapOrderToResponse(newOrder), nil
 }

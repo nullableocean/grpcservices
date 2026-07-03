@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/core/errs"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/core/model"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/core/ports/metrics"
@@ -17,10 +18,10 @@ type SpotInstrument struct {
 	marketRepo repository.MarketRepository
 	metrics    metrics.SpotInstrumentRecords
 
-	logger *zap.Logger
+	logger *logger.CtxZapLogger
 }
 
-func NewSpotInstrument(l *zap.Logger, mRepo repository.MarketRepository, metrics metrics.SpotInstrumentRecords) *SpotInstrument {
+func NewSpotInstrument(l *logger.CtxZapLogger, mRepo repository.MarketRepository, metrics metrics.SpotInstrumentRecords) *SpotInstrument {
 	return &SpotInstrument{
 		marketRepo: mRepo,
 		metrics:    metrics,
@@ -33,7 +34,7 @@ func (s *SpotInstrument) ViewMarketsPaginated(ctx context.Context, user *model.U
 	defer span.End()
 
 	s.metrics.ViewMarkets(ctx)
-	s.logger.Debug("view markets with pagination", zap.String("page_token", pageToken.Token))
+	s.logger.Debug(ctx, "view markets with pagination", zap.String("page_token", pageToken.Token))
 
 	paginatonData, err := s.marketRepo.FindEnabledByRolesPaginated(ctx, user.Roles, pageToken, pageSize)
 	if err != nil {
@@ -51,7 +52,7 @@ func (s *SpotInstrument) ViewMarkets(ctx context.Context, userRoles []model.User
 	defer span.End()
 
 	s.metrics.ViewMarkets(ctx)
-	s.logger.Debug("view markets")
+	s.logger.Debug(ctx, "view markets")
 
 	markets, err := s.marketRepo.FindEnabledByRoles(ctx, userRoles)
 	if err != nil {
@@ -70,19 +71,19 @@ func (s *SpotInstrument) FindWithRoles(ctx context.Context, marketUuid string, u
 	span.SetAttributes(attribute.String("market_uuid", marketUuid))
 
 	s.metrics.FindMarket(ctx)
-	s.logger.Debug("find market", zap.String("market_uuid", marketUuid))
+	s.logger.Debug(ctx, "find market", zap.String("market_uuid", marketUuid))
 
 	market, err := s.marketRepo.FindByUUID(ctx, marketUuid)
 	if err != nil {
 		s.metrics.FailedFindMarket(ctx)
-		s.logger.Error("failed find market", zap.Error(err), zap.String("market_uuid", marketUuid))
+		s.logger.Error(ctx, "failed find market", zap.Error(err), zap.String("market_uuid", marketUuid))
 
 		return nil, fmt.Errorf("failed to get market: %w", err)
 	}
 
 	if !market.IsAccessibleForRoles(userRoles) {
 		span.AddEvent("failed find market")
-		s.logger.Error("market found. not allowed for roles", zap.String("market_uuid", marketUuid))
+		s.logger.Error(ctx, "market found. not allowed for roles", zap.String("market_uuid", marketUuid))
 
 		return nil, errs.ErrNotAllowed
 	}

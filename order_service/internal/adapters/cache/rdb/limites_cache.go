@@ -7,6 +7,7 @@ import (
 
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/metrics"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
@@ -16,10 +17,10 @@ var _ ports.CacheRateLimitCounter = &RateLimitCache{}
 type RateLimitCache struct {
 	client  *redis.Client
 	metrics *metrics.RedisMetricsRecorder
-	logger  *zap.Logger
+	logger  *logger.CtxZapLogger
 }
 
-func NewRedisRateLimitCache(logger *zap.Logger, client *redis.Client, metrics *metrics.RedisMetricsRecorder) *RateLimitCache {
+func NewRedisRateLimitCache(logger *logger.CtxZapLogger, client *redis.Client, metrics *metrics.RedisMetricsRecorder) *RateLimitCache {
 	return &RateLimitCache{
 		client:  client,
 		metrics: metrics,
@@ -36,7 +37,7 @@ func (c *RateLimitCache) Increment(ctx context.Context, key string, window time.
 
 	if val == 1 {
 		if err := c.client.Expire(ctx, key, window).Err(); err != nil {
-			c.logger.Error("failed to set TTL for rate limit key", zap.String("key", key), zap.Error(err))
+			c.logger.Error(ctx, "failed to set TTL for rate limit key", zap.String("key", key), zap.Error(err))
 			c.metrics.CacheSetError(ctx)
 		}
 	}

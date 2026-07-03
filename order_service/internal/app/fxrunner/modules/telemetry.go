@@ -5,15 +5,15 @@ import (
 	"fmt"
 
 	"github.com/nullableocean/grpcservices/orderservice/internal/config"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/nullableocean/grpcservices/shared/telemetry"
 	"go.uber.org/fx"
-	"go.uber.org/zap"
 )
 
 func TelemetryModule() fx.Option {
 	return fx.Options(
 		fx.Provide(
-			func(cfg *config.Config, logger *zap.Logger) (telemetry.ShutdownFunc, error) {
+			func(cfg *config.Config, logger *logger.CtxZapLogger) (telemetry.ShutdownFunc, error) {
 				cfgTelemetry := &telemetry.Config{
 					ServiceName:        cfg.App.Name,
 					ExporterGRPCAddr:   cfg.Telemetry.ExporterGrpcAddress,

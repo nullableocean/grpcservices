@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/core/errs"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/core/model"
 	"go.uber.org/zap"
@@ -19,13 +20,13 @@ type MarketRepository struct {
 	db        *pgxpool.Pool
 	roleMap   map[string]int
 	roleMapMu sync.RWMutex
-	logger    *zap.Logger
+	logger    *logger.CtxZapLogger
 
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 }
 
-func NewMarketRepository(logger *zap.Logger, db *pgxpool.Pool) (*MarketRepository, error) {
+func NewMarketRepository(logger *logger.CtxZapLogger, db *pgxpool.Pool) (*MarketRepository, error) {
 	r := &MarketRepository{
 		db:     db,
 		logger: logger,
@@ -54,11 +55,11 @@ func (r *MarketRepository) refreshLoop(ctx context.Context, interval time.Durati
 	for {
 		select {
 		case <-ctx.Done():
-			r.logger.Debug("stopping role map refresher")
+			r.logger.Debug(ctx, "stopping role map refresher")
 			return
 		case <-ticker.C:
 			if err := r.loadRoleMap(ctx); err != nil {
-				r.logger.Error("failed to refresh role map", zap.Error(err))
+				r.logger.Error(ctx, "failed to refresh role map", zap.Error(err))
 			}
 		}
 	}
@@ -123,7 +124,7 @@ func (r *MarketRepository) FindEnabledByRolesPaginated(ctx context.Context, role
 
 	cursor, err := pageToken.Decode()
 	if err != nil {
-		r.logger.Warn("failed decode pagination token", zap.Error(err))
+		r.logger.Warn(ctx, "failed decode pagination token", zap.Error(err))
 	}
 
 	if cursor.MarketName != "" && cursor.MarketUuid != "" {
@@ -411,7 +412,7 @@ func (r *MarketRepository) syncMarketRoles(ctx context.Context, tx pgx.Tx, marke
 	for _, rl := range roles {
 		id, ok := r.roleCodeToID(rl)
 		if !ok {
-			r.logger.Warn("skipping unknown role", zap.String("role", string(rl)))
+			r.logger.Warn(ctx, "skipping unknown role", zap.String("role", string(rl)))
 			continue
 		}
 		roleIDs = append(roleIDs, id)

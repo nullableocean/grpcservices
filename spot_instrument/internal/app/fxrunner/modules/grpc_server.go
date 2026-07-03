@@ -12,6 +12,7 @@ import (
 	shared_auth "github.com/nullableocean/grpcservices/shared/auth"
 	"github.com/nullableocean/grpcservices/shared/health"
 	shared_inters "github.com/nullableocean/grpcservices/shared/interceptors"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/adapters/grpc/server"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/config"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/core/services/spotinstrument"
@@ -80,8 +81,8 @@ func GRPCRunnerModule() fx.Option {
 	return fx.Options(
 		fx.Provide(func() *GrpcServerHealth { return &GrpcServerHealth{} }),
 		fx.Invoke(
-			func(lc fx.Lifecycle, logger *zap.Logger, cfg *config.Config, grpcServer *grpc.Server, spotService *spotinstrument.SpotInstrument, health *GrpcServerHealth) {
-				spotServer := server.NewSpotInstrumentServer(logger, spotService)
+			func(lc fx.Lifecycle, ctxLogger *logger.CtxZapLogger, logger *zap.Logger, cfg *config.Config, grpcServer *grpc.Server, spotService *spotinstrument.SpotInstrument, health *GrpcServerHealth) {
+				spotServer := server.NewSpotInstrumentServer(ctxLogger, spotService)
 				spotv1.RegisterSpotInstrumentServer(grpcServer, spotServer)
 
 				lc.Append(fx.Hook{

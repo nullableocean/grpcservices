@@ -9,6 +9,7 @@ import (
 	updatenotifier "github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/update_notifier"
 	"github.com/nullableocean/grpcservices/orderservice/internal/config"
 	"github.com/nullableocean/grpcservices/shared/health"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -17,7 +18,7 @@ import (
 func UpdateNotifierModule() fx.Option {
 	return fx.Options(
 		fx.Provide(
-			func(logger *zap.Logger, cfg *config.Config) (*updatenotifier.UpdateNotifier, error) {
+			func(logger *logger.CtxZapLogger, cfg *config.Config) (*updatenotifier.UpdateNotifier, error) {
 				return updatenotifier.NewUpdateNotifier(logger, updatenotifier.Options{
 					SendTimeoutOnSub: cfg.Events.StreamSendTimeout,
 					SendTries:        cfg.Events.StreamSendRetries,
@@ -43,7 +44,7 @@ func (o *RedisSubHealth) HealthCheck() health.HealthCheck {
 func RedisSubsriberModule() fx.Option {
 	return fx.Options(
 		fx.Provide(
-			func(logger *zap.Logger, cfg *config.Config, redisClient *redis.Client, notifier *updatenotifier.UpdateNotifier) (*rdb.RedisEventSubscriber, *RedisSubHealth) {
+			func(logger *logger.CtxZapLogger, cfg *config.Config, redisClient *redis.Client, notifier *updatenotifier.UpdateNotifier) (*rdb.RedisEventSubscriber, *RedisSubHealth) {
 				handler := rdb.NewUpdatesMessageHandler(logger, notifier)
 				return rdb.NewRedisSubscriber(logger, redisClient, []string{cfg.QueueRedis.UpdatesChannel}, handler), &RedisSubHealth{}
 			},

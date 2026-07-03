@@ -9,10 +9,10 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/config"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/nullableocean/grpcservices/shared/retry"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/fx"
-	"go.uber.org/zap"
 )
 
 type KafkaPublishers struct {
@@ -28,7 +28,7 @@ func EventPublishersModule() fx.Option {
 			},
 		),
 		fx.Provide(
-			func(logger *zap.Logger, cfg *config.Config, producer sarama.SyncProducer, kafkaMetrics *metrics.KafkaMetricsRecorder) (*KafkaPublishers, error) {
+			func(logger *logger.CtxZapLogger, cfg *config.Config, producer sarama.SyncProducer, kafkaMetrics *metrics.KafkaMetricsRecorder) (*KafkaPublishers, error) {
 				updates := kafka.NewKafkaPublisher(logger, producer, cfg.Kafka.TopicUpdates, kafkaMetrics)
 				created := kafka.NewKafkaPublisher(logger, producer, cfg.Kafka.TopicCreated, kafkaMetrics)
 				dlq := kafka.NewKafkaPublisher(logger, producer, cfg.Kafka.DLQTopic, kafkaMetrics)
@@ -53,7 +53,7 @@ func EventPublishersModule() fx.Option {
 			},
 		),
 		fx.Provide(
-			func(logger *zap.Logger, redisClient *redis.Client, cfg *config.Config) *rdb.Publisher {
+			func(logger *logger.CtxZapLogger, redisClient *redis.Client, cfg *config.Config) *rdb.Publisher {
 				return rdb.NewRedisPublisher(logger, redisClient, cfg.QueueRedis.UpdatesChannel)
 			},
 		),

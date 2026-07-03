@@ -24,11 +24,11 @@ func (srv *OrderServer) OrdersList(ctx context.Context, req *orderv1.OrdersListR
 		return nil, status.Error(codes.Unauthenticated, "user not extracted from context")
 	}
 
-	srv.logger.Debug("received grpc request on orders list", zap.String("user_uuid", user.UUID))
+	srv.logger.Debug(ctx, "received grpc request on orders list", zap.String("user_uuid", user.UUID))
 
 	span.SetAttributes(attribute.String("user_uuid", user.UUID))
 
-	filters, err := srv.extractFilters(req)
+	filters, err := srv.extractFilters(ctx, req)
 	if err != nil {
 		span.AddEvent("failed extract filters")
 		return nil, mapping.MapErrorToGrpcStatusError(err)
@@ -44,7 +44,7 @@ func (srv *OrderServer) OrdersList(ctx context.Context, req *orderv1.OrdersListR
 	return resp, nil
 }
 
-func (srv *OrderServer) extractFilters(req *orderv1.OrdersListRequest) (model.OrderListFilter, error) {
+func (srv *OrderServer) extractFilters(ctx context.Context, req *orderv1.OrdersListRequest) (model.OrderListFilter, error) {
 	pbfilters := req.Filters
 
 	var statuses []model.OrderStatus
@@ -79,7 +79,7 @@ func (srv *OrderServer) extractFilters(req *orderv1.OrdersListRequest) (model.Or
 
 	cursor, err := model.DecodeTokenToCursor(req.PageToken)
 	if err != nil {
-		srv.logger.Error("failed decode pagination token", zap.Error(err))
+		srv.logger.Error(ctx, "failed decode pagination token", zap.Error(err))
 	}
 
 	return model.OrderListFilter{

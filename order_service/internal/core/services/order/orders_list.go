@@ -20,7 +20,7 @@ func (s *OrderService) OrdersList(ctx context.Context, user *model.User, filters
 
 	list, err := s.orderRepo.List(ctx, user.UUID, filters)
 	if err != nil {
-		logger.Error("failed get list orders from repo", zap.Error(err))
+		logger.Error(ctx, "failed get list orders from repo", zap.Error(err))
 
 		return model.OrderList{}, err
 	}

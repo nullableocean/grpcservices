@@ -5,6 +5,7 @@ import (
 
 	spotv1 "github.com/nullableocean/grpcservices/api/gen/spot/v1"
 	shared_inters "github.com/nullableocean/grpcservices/shared/interceptors"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/adapters/grpc/mapping"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/core/model"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/core/services/spotinstrument"
@@ -18,10 +19,10 @@ type SpotInstrumentServer struct {
 	spotv1.UnimplementedSpotInstrumentServer
 
 	spotInstrument *spotinstrument.SpotInstrument
-	logger         *zap.Logger
+	logger         *logger.CtxZapLogger
 }
 
-func NewSpotInstrumentServer(l *zap.Logger, spotInstrument *spotinstrument.SpotInstrument) *SpotInstrumentServer {
+func NewSpotInstrumentServer(l *logger.CtxZapLogger, spotInstrument *spotinstrument.SpotInstrument) *SpotInstrumentServer {
 	return &SpotInstrumentServer{
 		spotInstrument: spotInstrument,
 		logger:         l,
@@ -39,20 +40,20 @@ func (srv *SpotInstrumentServer) FindMarket(ctx context.Context, req *spotv1.Fin
 
 	logger := srv.logger.With(zap.String("user_uuid", userUUID))
 
-	logger.Debug("got grpc call FindMarket in SpotInstrumentServer")
+	logger.Debug(ctx, "got grpc call FindMarket in SpotInstrumentServer")
 
 	roles := mapping.MapProtoUserRolesToRoles(req.UserRoles)
 
 	market, err := srv.spotInstrument.FindWithRoles(ctx, req.MarketUuid, roles)
 	if err != nil {
 		span.AddEvent("failed find market")
-		logger.Error("failed find market", zap.Error(err))
+		logger.Error(ctx, "failed find market", zap.Error(err))
 
 		return nil, srv.getGrpcError(err)
 	}
 
 	span.AddEvent("success find markets")
-	logger.Debug("market found", zap.String("market_uuid", market.UUID))
+	logger.Debug(ctx, "market found", zap.String("market_uuid", market.UUID))
 
 	response := &spotv1.FindMarketResponse{
 		Market: mapping.MapMarketToProtoMarket(market),
@@ -72,7 +73,7 @@ func (srv *SpotInstrumentServer) ViewMarkets(ctx context.Context, req *spotv1.Vi
 
 	logger := srv.logger.With(zap.String("user_uuid", user.UUID))
 
-	logger.Debug("got grpc call ViewMarkets in SpotInstrumentServer")
+	logger.Debug(ctx, "got grpc call ViewMarkets in SpotInstrumentServer")
 
 	pageToken := model.PageToken{
 		Token: req.PageToken,
@@ -81,13 +82,13 @@ func (srv *SpotInstrumentServer) ViewMarkets(ctx context.Context, req *spotv1.Vi
 	data, err := srv.spotInstrument.ViewMarketsPaginated(ctx, user, pageToken, req.PageSize)
 	if err != nil {
 		span.AddEvent("failed view markets")
-		logger.Error("failed get markets", zap.Error(err))
+		logger.Error(ctx, "failed get markets", zap.Error(err))
 
 		return nil, srv.getGrpcError(err)
 	}
 
 	span.AddEvent("success find markets")
-	logger.Debug("response markets", zap.Int("markets_count", len(data.Markets)))
+	logger.Debug(ctx, "response markets", zap.Int("markets_count", len(data.Markets)))
 
 	return srv.mapMarketsToResponse(data.Markets, data.NextPageToken.Token), nil
 }
@@ -100,7 +101,7 @@ func (srv *SpotInstrumentServer) extractUserFromCtx(ctx context.Context) (*model
 
 	ctxRoles, ok := shared_inters.RolesFromContext(ctx)
 	if !ok {
-		srv.logger.Warn("roles not provided in context")
+		srv.logger.Warn(ctx, "roles not provided in context")
 	}
 
 	var roles []model.UserRole

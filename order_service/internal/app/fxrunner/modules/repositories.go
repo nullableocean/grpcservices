@@ -8,15 +8,15 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/repository/postgres"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/repository/postgres/outbox"
 	"github.com/nullableocean/grpcservices/orderservice/internal/config"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	shared_retry "github.com/nullableocean/grpcservices/shared/retry"
 	"go.uber.org/fx"
-	"go.uber.org/zap"
 )
 
 func PostgresModule() fx.Option {
 	return fx.Options(
 		fx.Provide(
-			func(logger *zap.Logger, cfg *config.Config) (*pgxpool.Pool, error) {
+			func(logger *logger.CtxZapLogger, cfg *config.Config) (*pgxpool.Pool, error) {
 				pgCnf, err := pgxpool.ParseConfig(cfg.Postgres.DSN)
 				if err != nil {
 					return nil, fmt.Errorf("failed parse pg dsn: %w", err)
@@ -59,7 +59,7 @@ func RepositoriesModule() fx.Option {
 			},
 		),
 		fx.Provide(
-			func(logger *zap.Logger, cfg *config.Config, pool *pgxpool.Pool, writer *outbox.OutboxWriter) (*postgres.OrderRepository, error) {
+			func(logger *logger.CtxZapLogger, cfg *config.Config, pool *pgxpool.Pool, writer *outbox.OutboxWriter) (*postgres.OrderRepository, error) {
 				repoCfg := postgres.RepositoryConfig{
 					Retries:          cfg.Repo.MaxRetries,
 					RetryBackoffFunc: shared_retry.NewExponentialBackoffFunc(cfg.Repo.BackoffStartDelay, cfg.Repo.BackoffMaxDelay),

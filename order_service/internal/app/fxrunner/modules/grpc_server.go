@@ -16,6 +16,7 @@ import (
 	shared_auth "github.com/nullableocean/grpcservices/shared/auth"
 	"github.com/nullableocean/grpcservices/shared/health"
 	shared_inters "github.com/nullableocean/grpcservices/shared/interceptors"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -96,8 +97,8 @@ func GRPCRunnerModule() fx.Option {
 			return &GrpcServerHealth{}
 		}),
 		fx.Invoke(
-			func(lc fx.Lifecycle, logger *zap.Logger, cfg *config.Config, grpcServer *grpc.Server, orderService *order.OrderService, notifier *updatenotifier.UpdateNotifier, health *GrpcServerHealth) {
-				orderServer := server.NewOrderServer(logger, orderService, notifier)
+			func(lc fx.Lifecycle, ctxLogger *logger.CtxZapLogger, logger *zap.Logger, cfg *config.Config, grpcServer *grpc.Server, orderService *order.OrderService, notifier *updatenotifier.UpdateNotifier, health *GrpcServerHealth) {
+				orderServer := server.NewOrderServer(ctxLogger, orderService, notifier)
 				orderv1.RegisterOrderServer(grpcServer, orderServer)
 
 				lc.Append(fx.Hook{

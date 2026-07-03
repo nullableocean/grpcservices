@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/nullableocean/grpcservices/spotinstrument/internal/core/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -104,7 +105,7 @@ func newTestMarket(uuid, name string, enabled bool, roles []model.UserRole) *mod
 
 func TestSpotInstrument_ViewMarkets(t *testing.T) {
 	ctx := context.Background()
-	logger := zap.NewNop()
+	logger, _ := logger.NewCtxZapLogger(zap.NewNop())
 
 	marketRepo := new(mockMarketRepository)
 	metrics := new(mockSpotInstrumentMetrics)
@@ -187,7 +188,7 @@ func TestSpotInstrument_ViewMarkets(t *testing.T) {
 
 func TestSpotInstrument_ViewMarketsPaginated(t *testing.T) {
 	ctx := context.Background()
-	logger := zap.NewNop()
+	logger, _ := logger.NewCtxZapLogger(zap.NewNop())
 	repo := new(mockMarketRepository)
 	metrics := new(mockSpotInstrumentMetrics)
 	svc := NewSpotInstrument(logger, repo, metrics)

@@ -9,6 +9,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/mapping"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 )
@@ -17,7 +18,7 @@ var _ ports.SpotInstrument = &SpotInstrumentClient{}
 
 type SpotInstrumentClient struct {
 	client spotv1.SpotInstrumentClient
-	logger *zap.Logger
+	logger *logger.CtxZapLogger
 
 	reqTimeout time.Duration
 }
@@ -26,7 +27,7 @@ type Option struct {
 	RequestTimeout time.Duration
 }
 
-func NewSpotInstrumentClient(l *zap.Logger, grpcClient spotv1.SpotInstrumentClient, opts Option) (*SpotInstrumentClient, error) {
+func NewSpotInstrumentClient(l *logger.CtxZapLogger, grpcClient spotv1.SpotInstrumentClient, opts Option) (*SpotInstrumentClient, error) {
 	if opts.RequestTimeout <= 0 {
 		return nil, errors.New("invalid request timeout option")
 	}
@@ -42,7 +43,7 @@ func (cl *SpotInstrumentClient) FindMarket(ctx context.Context, marketUuid strin
 	ctx, span := otel.Tracer("spot_grpc_client").Start(ctx, "find_market")
 	defer span.End()
 
-	cl.logger.Debug("call FindMarket from SpotInstrument grpc server")
+	cl.logger.Debug(ctx, "call FindMarket from SpotInstrument grpc server")
 
 	request := &spotv1.FindMarketRequest{
 		MarketUuid: marketUuid,
@@ -50,7 +51,7 @@ func (cl *SpotInstrumentClient) FindMarket(ctx context.Context, marketUuid strin
 
 	res, err := cl.client.FindMarket(ctx, request)
 	if err != nil {
-		cl.logger.Error("failed get market from spot instrument", zap.Error(err))
+		cl.logger.Error(ctx, "failed get market from spot instrument", zap.Error(err))
 
 		return nil, mapping.MapGrpcStatusToError(err)
 	}

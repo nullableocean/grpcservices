@@ -7,15 +7,16 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/errs"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"go.uber.org/zap"
 )
 
 type IdempotencyGuard struct {
 	cache  ports.IdempotencyCache
-	logger *zap.Logger
+	logger *logger.CtxZapLogger
 }
 
-func NewIdempotencyGuard(cache ports.IdempotencyCache, logger *zap.Logger) *IdempotencyGuard {
+func NewIdempotencyGuard(cache ports.IdempotencyCache, logger *logger.CtxZapLogger) *IdempotencyGuard {
 	return &IdempotencyGuard{
 		cache:  cache,
 		logger: logger,
@@ -28,7 +29,7 @@ func (g *IdempotencyGuard) Reserve(ctx context.Context, key string) (bool, error
 	})
 
 	if err != nil {
-		g.logger.Error("failed to set idempotent key in cache", zap.String("key", key), zap.Error(err))
+		g.logger.Error(ctx, "failed to set idempotent key in cache", zap.String("key", key), zap.Error(err))
 		return false, errs.ErrIdempotencyInternal
 	}
 
@@ -42,7 +43,7 @@ func (g *IdempotencyGuard) GetExisting(ctx context.Context, key string) (*model.
 	}
 
 	if err != nil {
-		g.logger.Error("failed to get idempotency data from cache", zap.String("key", key), zap.Error(err))
+		g.logger.Error(ctx, "failed to get idempotency data from cache", zap.String("key", key), zap.Error(err))
 		return nil, errs.ErrIdempotencyInternal
 	}
 

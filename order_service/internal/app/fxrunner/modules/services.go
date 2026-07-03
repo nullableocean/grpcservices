@@ -12,16 +12,16 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/services/access"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/services/order"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/fx"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
 func ServicesModule() fx.Option {
 	return fx.Options(
 		fx.Provide(
-			func(logger *zap.Logger, redisClient *redis.Client, cfg *config.Config, rdbMetrics *metrics.RedisMetricsRecorder) (*redis_cache.IdempotencyCache, *redis_cache.RateLimitCache) {
+			func(logger *logger.CtxZapLogger, redisClient *redis.Client, cfg *config.Config, rdbMetrics *metrics.RedisMetricsRecorder) (*redis_cache.IdempotencyCache, *redis_cache.RateLimitCache) {
 				idemCache := redis_cache.NewRedisIdempotencyCache(redisClient, cfg.Cache.TTL, rdbMetrics)
 				limitCache := redis_cache.NewRedisRateLimitCache(logger, redisClient, rdbMetrics)
 
@@ -48,7 +48,7 @@ func ServicesModule() fx.Option {
 		),
 		fx.Provide(
 			func(
-				logger *zap.Logger,
+				logger *logger.CtxZapLogger,
 				repo *postgres.OrderRepository,
 				spotClient *client.SpotInstrumentClient,
 				accessSvc *access.AccessService,
@@ -67,7 +67,7 @@ func ServicesModule() fx.Option {
 				)
 			},
 		),
-		fx.Provide(func(logger *zap.Logger, grpcServer *grpc.Server, service *order.OrderService, notifier *updatenotifier.UpdateNotifier) *server.OrderServer {
+		fx.Provide(func(logger *logger.CtxZapLogger, grpcServer *grpc.Server, service *order.OrderService, notifier *updatenotifier.UpdateNotifier) *server.OrderServer {
 			orderServer := server.NewOrderServer(logger, service, notifier)
 			orderv1.RegisterOrderServer(grpcServer, orderServer)
 			return orderServer

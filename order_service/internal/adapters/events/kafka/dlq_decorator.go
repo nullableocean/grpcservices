@@ -8,6 +8,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/metrics"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"go.uber.org/zap"
 )
 
@@ -19,7 +20,7 @@ type DlqPublisherDecorator struct {
 	dlqPublisher *Publisher
 
 	publisher *Publisher
-	logger    *zap.Logger
+	logger    *logger.CtxZapLogger
 	metrics   *metrics.KafkaMetricsRecorder
 
 	maxAttemps  int
@@ -31,7 +32,7 @@ type Config struct {
 	BackoffFunc RetryBackoffFunc
 }
 
-func NewDlqPublisherDecorator(logger *zap.Logger, dlqWriter *Publisher, publisher *Publisher, metrics *metrics.KafkaMetricsRecorder, opts Config) (*DlqPublisherDecorator, error) {
+func NewDlqPublisherDecorator(logger *logger.CtxZapLogger, dlqWriter *Publisher, publisher *Publisher, metrics *metrics.KafkaMetricsRecorder, opts Config) (*DlqPublisherDecorator, error) {
 	if opts.MaxAttempts <= 0 {
 		return nil, fmt.Errorf("invalid attempts for DlqPublishRetrayer: %d", opts.MaxAttempts)
 	}
@@ -54,7 +55,7 @@ func (p *DlqPublisherDecorator) Publish(ctx context.Context, event model.Event) 
 			return nil
 		}
 
-		p.logger.Warn("failed to publish event, will retry",
+		p.logger.Warn(ctx, "failed to publish event, will retry",
 			zap.Int("attempt", attempt+1),
 			zap.String("event_id", event.ID()),
 			zap.Error(err),
@@ -65,7 +66,7 @@ func (p *DlqPublisherDecorator) Publish(ctx context.Context, event model.Event) 
 		select {
 		case <-time.After(backoff):
 		case <-ctx.Done():
-			p.logger.Error("context cancelled during retry",
+			p.logger.Error(ctx, "context cancelled during retry",
 				zap.String("event_id", event.ID()),
 			)
 
@@ -73,13 +74,13 @@ func (p *DlqPublisherDecorator) Publish(ctx context.Context, event model.Event) 
 		}
 	}
 
-	p.logger.Error("all retires done. sending to DLQ",
+	p.logger.Error(ctx, "all retires done. sending to DLQ",
 		zap.String("event_id", event.ID()),
 		zap.Error(lastErr),
 	)
 
 	if err := p.dlqPublisher.Publish(ctx, event); err != nil {
-		p.logger.Error("failed to publish to DLQ",
+		p.logger.Error(ctx, "failed to publish to DLQ",
 			zap.String("event_id", event.ID()),
 			zap.Error(err),
 		)

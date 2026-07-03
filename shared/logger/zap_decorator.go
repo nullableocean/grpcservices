@@ -2,6 +2,7 @@ package logger
 
 import (
 	"context"
+	"errors"
 
 	"github.com/nullableocean/grpcservices/shared/xrequestid"
 	"go.uber.org/zap"
@@ -14,6 +15,16 @@ const (
 
 type CtxZapLogger struct {
 	*zap.Logger
+}
+
+func NewCtxZapLogger(logger *zap.Logger) (*CtxZapLogger, error) {
+	if logger == nil {
+		return nil, errors.New("argument *zap.Logger is nil")
+	}
+
+	return &CtxZapLogger{
+		Logger: logger,
+	}, nil
 }
 
 func (log *CtxZapLogger) Log(lvl zapcore.Level, msg string, fields ...zap.Field) {

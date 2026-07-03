@@ -8,6 +8,7 @@ import (
 
 	"github.com/nullableocean/grpcservices/orderservice/internal/config"
 	"github.com/nullableocean/grpcservices/shared/health"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/fx"
@@ -18,7 +19,7 @@ import (
 func HTTPServerModule() fx.Option {
 	return fx.Options(
 		fx.Provide(
-			func(logger *zap.Logger, healthCheker *health.HealthCheker, cfg *config.Config, reg *prometheus.Registry) *http.Server {
+			func(logger *logger.CtxZapLogger, healthCheker *health.HealthCheker, cfg *config.Config, reg *prometheus.Registry) *http.Server {
 				mux := http.NewServeMux()
 				mux.Handle(cfg.Metrics.Path, promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
@@ -47,7 +48,7 @@ func HTTPServerModule() fx.Option {
 					w.WriteHeader(httpStatus)
 					err := json.NewEncoder(w).Encode(result)
 					if err != nil {
-						logger.Error("failed encode healthcheck result", zap.Error(err))
+						logger.Error(ctx, "failed encode healthcheck result", zap.Error(err))
 					}
 				})
 

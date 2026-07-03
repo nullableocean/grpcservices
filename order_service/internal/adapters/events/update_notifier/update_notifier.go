@@ -9,6 +9,7 @@ import (
 
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"go.uber.org/zap"
 )
 
@@ -24,7 +25,7 @@ type UpdateNotifier struct {
 
 	mu sync.RWMutex
 
-	logger *zap.Logger
+	logger *logger.CtxZapLogger
 }
 
 type Options struct {
@@ -32,7 +33,7 @@ type Options struct {
 	SendTries        int
 }
 
-func NewUpdateNotifier(l *zap.Logger, opt Options) (*UpdateNotifier, error) {
+func NewUpdateNotifier(l *logger.CtxZapLogger, opt Options) (*UpdateNotifier, error) {
 	if opt.SendTimeoutOnSub <= 0 {
 		return nil, errors.New("invalid timeout option")
 	}
@@ -72,7 +73,7 @@ func (notifier *UpdateNotifier) Subscribe(ctx context.Context, orderUUID string)
 func (notifier *UpdateNotifier) Publish(ctx context.Context, event model.Event) error {
 	updatedEvent, ok := event.(*model.EventOrderUpdated)
 	if !ok {
-		notifier.logger.Warn("update notifier got not updated event", zap.String("event_type", event.EventType().String()))
+		notifier.logger.Warn(ctx, "update notifier got not updated event", zap.String("event_type", event.EventType().String()))
 
 		return nil
 	}
@@ -101,23 +102,23 @@ func (notifier *UpdateNotifier) publish(ctx context.Context, orderUUID string, e
 	for _, sub := range cpSubs {
 		select {
 		case <-ctx.Done():
-			logger.Debug("context closed", zap.Error(ctx.Err()))
+			logger.Debug(ctx, "context closed", zap.Error(ctx.Err()))
 			return ctx.Err()
 
 		case <-sub.closeCh:
-			logger.Debug("sub closed", zap.Int("sub_id", sub.id))
+			logger.Debug(ctx, "sub closed", zap.Int("sub_id", sub.id))
 
 			subs.Remove(sub.id)
 		case <-time.After(notifier.sendTimeout):
-			logger.Debug("timeout notify sub", zap.Int("sub_id", sub.id))
+			logger.Debug(ctx, "timeout notify sub", zap.Int("sub_id", sub.id))
 
 			if atomic.AddInt32(&sub.timeouts, 1) >= notifier.sendTries {
-				logger.Debug("expired timeouts. remove sub", zap.Int("sub_id", sub.id))
+				logger.Debug(ctx, "expired timeouts. remove sub", zap.Int("sub_id", sub.id))
 
 				subs.Remove(sub.id)
 			}
 		case sub.updatesCh <- event:
-			logger.Debug("subscriber notified", zap.Int("sub_id", sub.id))
+			logger.Debug(ctx, "subscriber notified", zap.Int("sub_id", sub.id))
 			atomic.StoreInt32(&sub.timeouts, 0)
 		}
 	}

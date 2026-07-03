@@ -1,17 +1,19 @@
 package breaker
 
 import (
+	"context"
 	"sync"
 
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/grpc/mapping"
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/metrics"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/sony/gobreaker"
 	"go.uber.org/zap"
 )
 
 type CircuitBreaker struct {
 	cb      *gobreaker.CircuitBreaker
-	logger  *zap.Logger
+	logger  *logger.CtxZapLogger
 	metrics *metrics.CircuitBreakerMetricsRecorder
 
 	stateMu      sync.Mutex
@@ -19,7 +21,7 @@ type CircuitBreaker struct {
 	lastFailures uint32
 }
 
-func NewCircuitBreaker(logger *zap.Logger, metrics *metrics.CircuitBreakerMetricsRecorder, cb *gobreaker.CircuitBreaker) *CircuitBreaker {
+func NewCircuitBreaker(logger *logger.CtxZapLogger, metrics *metrics.CircuitBreakerMetricsRecorder, cb *gobreaker.CircuitBreaker) *CircuitBreaker {
 	breaker := &CircuitBreaker{
 		cb:           cb,
 		logger:       logger,
@@ -35,15 +37,15 @@ func NewCircuitBreaker(logger *zap.Logger, metrics *metrics.CircuitBreakerMetric
 	return breaker
 }
 
-func (cb *CircuitBreaker) Execute(fn func() (interface{}, error)) (interface{}, error) {
-	cb.updateStateAndMetrics()
-	defer cb.updateStateAndMetrics()
+func (cb *CircuitBreaker) Execute(ctx context.Context, fn func() (interface{}, error)) (interface{}, error) {
+	cb.updateStateAndMetrics(ctx)
+	defer cb.updateStateAndMetrics(ctx)
 
 	r, err := cb.cb.Execute(func() (interface{}, error) {
 		r, err := fn()
 
 		if mapping.IsClientSideGrpcError(err) {
-			cb.logger.Debug("circuit breaker skip client side error", zap.Error(err))
+			cb.logger.Debug(ctx, "circuit breaker skip client side error", zap.Error(err))
 
 			return r, nil
 		}
@@ -53,13 +55,13 @@ func (cb *CircuitBreaker) Execute(fn func() (interface{}, error)) (interface{}, 
 
 	if err != nil {
 		if err == gobreaker.ErrOpenState {
-			cb.logger.Warn("circuit breaker is open, request rejected")
+			cb.logger.Warn(ctx, "circuit breaker is open, request rejected")
 			cb.metrics.RecordRejectedRequest()
 
 			return nil, err
 		}
 
-		cb.logger.Error("circuit breaker execution failed", zap.Error(err))
+		cb.logger.Error(ctx, "circuit breaker execution failed", zap.Error(err))
 		cb.metrics.RecordFailedRequest()
 
 		return nil, err
@@ -70,7 +72,7 @@ func (cb *CircuitBreaker) Execute(fn func() (interface{}, error)) (interface{}, 
 	return r, nil
 }
 
-func (cb *CircuitBreaker) updateStateAndMetrics() {
+func (cb *CircuitBreaker) updateStateAndMetrics(ctx context.Context) {
 	state := cb.cb.State()
 	counts := cb.cb.Counts()
 
@@ -86,7 +88,7 @@ func (cb *CircuitBreaker) updateStateAndMetrics() {
 
 		cb.metrics.RecordStateTransition(fromStr, toStr)
 
-		cb.logger.Debug("circuit breaker state changed",
+		cb.logger.Debug(ctx, "circuit breaker state changed",
 			zap.String("from", fromStr),
 			zap.String("to", toStr),
 			zap.Uint32("consecutive_failures", counts.ConsecutiveFailures),

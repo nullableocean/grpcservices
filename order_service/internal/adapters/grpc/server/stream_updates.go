@@ -28,11 +28,11 @@ func (srv *OrderServer) StreamOrderUpdates(req *orderv1.GetUpdatesRequest, strea
 	span.SetAttributes(attribute.String("order_uuid", orderUUID))
 
 	logger := srv.logger.With(zap.String("user_uuid", user.UUID), zap.String("order_uuid", orderUUID))
-	logger.Debug("grpc received call for start update streaming")
+	logger.Debug(ctx, "grpc received call for start update streaming")
 
 	_, err = srv.orderService.GetOrder(ctx, orderUUID, user)
 	if err != nil {
-		logger.Warn("failed find order for streaming updates")
+		logger.Warn(ctx, "failed find order for streaming updates")
 		return srv.getGrpcError(err)
 	}
 
@@ -45,14 +45,14 @@ SEND_UPDATES:
 			err := stream.Send(srv.createUpdatesResponse(update.Data))
 			if err != nil {
 				span.AddEvent("failed send to stream")
-				logger.Warn("failed send message to grpc stream", zap.Error(err))
+				logger.Warn(ctx, "failed send message to grpc stream", zap.Error(err))
 
 				break SEND_UPDATES
 			}
 		}
 	}
 
-	logger.Debug("close stream")
+	logger.Debug(ctx, "close stream")
 	span.AddEvent("close stream")
 
 	return nil

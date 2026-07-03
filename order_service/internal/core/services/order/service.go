@@ -6,7 +6,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/dto"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
-	"go.uber.org/zap"
+	"github.com/nullableocean/grpcservices/shared/logger"
 )
 
 type Service interface {
@@ -21,7 +21,7 @@ type OrderService struct {
 	accessService ports.AccessService
 	metrics       ports.ServiceMetricsRecorder
 	rateLimiter   ports.OrderRateLimiter
-	logger        *zap.Logger
+	logger        *logger.CtxZapLogger
 
 	idempotencyGuard *IdempotencyGuard
 	marketValidator  *MarketValidator
@@ -29,7 +29,7 @@ type OrderService struct {
 }
 
 func NewOrderService(
-	logger *zap.Logger,
+	logger *logger.CtxZapLogger,
 	orderRepo ports.OrderRepository,
 	spotInstrument ports.SpotInstrument,
 	accessService ports.AccessService,

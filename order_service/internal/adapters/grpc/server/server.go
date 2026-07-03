@@ -9,7 +9,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/services/order"
 	shared_inters "github.com/nullableocean/grpcservices/shared/interceptors"
-	"go.uber.org/zap"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -20,10 +20,10 @@ type OrderServer struct {
 	orderService   order.Service
 	updateNotifier ports.UpdateNotifier
 
-	logger *zap.Logger
+	logger *logger.CtxZapLogger
 }
 
-func NewOrderServer(l *zap.Logger, orderService order.Service, updateNotifier ports.UpdateNotifier) *OrderServer {
+func NewOrderServer(l *logger.CtxZapLogger, orderService order.Service, updateNotifier ports.UpdateNotifier) *OrderServer {
 	return &OrderServer{
 		orderService:   orderService,
 		updateNotifier: updateNotifier,
@@ -43,7 +43,7 @@ func (srv *OrderServer) extractUserFromCtx(ctx context.Context) (*model.User, er
 
 	ctxRoles, ok := shared_inters.RolesFromContext(ctx)
 	if !ok {
-		srv.logger.Warn("roles not provided in context")
+		srv.logger.Warn(ctx, "roles not provided in context")
 	}
 
 	var roles []model.UserRole

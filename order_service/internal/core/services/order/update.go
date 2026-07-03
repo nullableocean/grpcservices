@@ -18,19 +18,19 @@ func (s *OrderService) UpdateOrder(ctx context.Context, orderUUID string, data *
 	logger := s.logger.With(zap.String("order_uuid", orderUUID))
 
 	if err := data.Validate(); err != nil {
-		logger.Warn("validation failed", zap.Error(err))
+		logger.Warn(ctx, "validation failed", zap.Error(err))
 		return err
 	}
 
 	order, err := s.findOrder(ctx, orderUUID)
 	if err != nil {
-		logger.Error("failed to find order", zap.Error(err))
+		logger.Error(ctx, "failed to find order", zap.Error(err))
 		return err
 	}
 
 	oldStatus := order.Status
 	if err := s.applyStatusTransition(order, data.Status); err != nil {
-		logger.Error("invalid status update", zap.Error(err))
+		logger.Error(ctx, "invalid status update", zap.Error(err))
 		s.metrics.OrderFailedUpdate(ctx)
 
 		return err
@@ -39,14 +39,14 @@ func (s *OrderService) UpdateOrder(ctx context.Context, orderUUID string, data *
 	event := s.orderFactory.CreateUpdatedEvent(orderUUID, oldStatus, data.Status)
 
 	if err := s.orderRepo.Update(ctx, order, event); err != nil {
-		logger.Error("failed to save update", zap.Error(err))
+		logger.Error(ctx, "failed to save update", zap.Error(err))
 		s.metrics.OrderFailedUpdate(ctx)
 
 		return fmt.Errorf("failed to save updates: %w", errs.ErrCantUpdate)
 	}
 
 	s.recordUpdatedMetric(ctx, data.Status)
-	logger.Debug("order updated successfully", zap.String("new_status", string(data.Status)))
+	logger.Debug(ctx, "order updated successfully", zap.String("new_status", string(data.Status)))
 
 	return nil
 }

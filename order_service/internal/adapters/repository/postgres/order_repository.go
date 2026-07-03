@@ -13,7 +13,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/errs"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
-	"go.uber.org/zap"
+	"github.com/nullableocean/grpcservices/shared/logger"
 )
 
 var _ ports.OrderRepository = &OrderRepository{}
@@ -21,7 +21,7 @@ var _ ports.OrderRepository = &OrderRepository{}
 type OrderRepository struct {
 	pgpool *pgxpool.Pool
 	outbox *outbox.OutboxWriter
-	logger *zap.Logger
+	logger *logger.CtxZapLogger
 
 	retries int
 	backoff func(attempt int) time.Duration
@@ -44,7 +44,7 @@ func (cfg RepositoryConfig) Validate() error {
 	return nil
 }
 
-func NewOrderRepository(l *zap.Logger, pool *pgxpool.Pool, outbox *outbox.OutboxWriter, cfg RepositoryConfig) (*OrderRepository, error) {
+func NewOrderRepository(l *logger.CtxZapLogger, pool *pgxpool.Pool, outbox *outbox.OutboxWriter, cfg RepositoryConfig) (*OrderRepository, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}

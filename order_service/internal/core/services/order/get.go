@@ -20,13 +20,13 @@ func (s *OrderService) GetOrder(ctx context.Context, orderUUID string, user *mod
 
 	o, err := s.findOrder(ctx, orderUUID)
 	if err != nil {
-		logger.Error("failed get order from repository", zap.Error(err))
+		logger.Error(ctx, "failed get order from repository", zap.Error(err))
 
 		return nil, err
 	}
 
 	if err := s.accessService.CanSeeOrder(ctx, user, o); err != nil {
-		logger.Error("failed get order by user", zap.String("order_user_uuid", o.UserUUID), zap.Error(err))
+		logger.Error(ctx, "failed get order by user", zap.String("order_user_uuid", o.UserUUID), zap.Error(err))
 		return nil, err
 	}
 

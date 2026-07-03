@@ -6,16 +6,17 @@ import (
 
 	updatenotifier "github.com/nullableocean/grpcservices/orderservice/internal/adapters/events/update_notifier"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
 type UpdatesMessagesHandler struct {
 	notifier *updatenotifier.UpdateNotifier
-	logger   *zap.Logger
+	logger   *logger.CtxZapLogger
 }
 
-func NewUpdatesMessageHandler(logger *zap.Logger, updateNotifier *updatenotifier.UpdateNotifier) *UpdatesMessagesHandler {
+func NewUpdatesMessageHandler(logger *logger.CtxZapLogger, updateNotifier *updatenotifier.UpdateNotifier) *UpdatesMessagesHandler {
 	return &UpdatesMessagesHandler{
 		notifier: updateNotifier,
 		logger:   logger,
@@ -27,7 +28,7 @@ func (h *UpdatesMessagesHandler) Handle(ctx context.Context, msg *redis.Message)
 
 	err := json.Unmarshal([]byte(msg.Payload), updateEvent)
 	if err != nil {
-		h.logger.Warn("failed redis message unmarshal to update event", zap.Error(err))
+		h.logger.Warn(ctx, "failed redis message unmarshal to update event", zap.Error(err))
 		return nil
 	}
 

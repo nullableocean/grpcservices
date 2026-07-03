@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
@@ -25,10 +26,10 @@ type RedisEventSubscriber struct {
 	stopped bool
 	started bool
 
-	logger *zap.Logger
+	logger *logger.CtxZapLogger
 }
 
-func NewRedisSubscriber(logger *zap.Logger, client *redis.Client, channels []string, handler ports.MessageHandler) *RedisEventSubscriber {
+func NewRedisSubscriber(logger *logger.CtxZapLogger, client *redis.Client, channels []string, handler ports.MessageHandler) *RedisEventSubscriber {
 	return &RedisEventSubscriber{
 		handler:  handler,
 		client:   client,
@@ -68,7 +69,7 @@ func (s *RedisEventSubscriber) startReceive(ctx context.Context) {
 		case msg := <-msgCh:
 			err := s.handler.Handle(ctx, msg)
 			if err != nil {
-				s.logger.Error("failed handling event from redis queue", zap.String("channel", msg.Channel), zap.Error(err))
+				s.logger.Error(ctx, "failed handling event from redis queue", zap.String("channel", msg.Channel), zap.Error(err))
 			}
 		}
 	}

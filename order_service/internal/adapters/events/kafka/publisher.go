@@ -10,6 +10,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/errs"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/model"
 	"github.com/nullableocean/grpcservices/orderservice/internal/core/ports"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/nullableocean/grpcservices/shared/xrequestid"
 	"go.uber.org/zap"
 )
@@ -20,10 +21,10 @@ type Publisher struct {
 	producer sarama.SyncProducer
 	topic    string
 	metrics  *metrics.KafkaMetricsRecorder
-	logger   *zap.Logger
+	logger   *logger.CtxZapLogger
 }
 
-func NewKafkaPublisher(logger *zap.Logger, producer sarama.SyncProducer, topic string, metrics *metrics.KafkaMetricsRecorder) *Publisher {
+func NewKafkaPublisher(logger *logger.CtxZapLogger, producer sarama.SyncProducer, topic string, metrics *metrics.KafkaMetricsRecorder) *Publisher {
 	return &Publisher{
 		producer: producer,
 		topic:    topic,
@@ -36,7 +37,7 @@ func (p *Publisher) Publish(ctx context.Context, event model.Event) (err error) 
 	defer func() {
 		if r := recover(); r != nil {
 			msg := fmt.Sprintf("grpc request panic: %v", r)
-			p.logger.Error("panic in kafka publisher", zap.Any("error", msg))
+			p.logger.Error(ctx, "panic in kafka publisher", zap.Any("error", msg))
 
 			err = fmt.Errorf("panic in publisher: %w: %s", errs.ErrInternal, msg)
 		}
@@ -44,7 +45,7 @@ func (p *Publisher) Publish(ctx context.Context, event model.Event) (err error) 
 
 	payload, err := event.Payload()
 	if err != nil {
-		p.logger.Error("failed to serialize event data",
+		p.logger.Error(ctx, "failed to serialize event data",
 			zap.String("event_id", event.ID()),
 			zap.Error(err),
 		)
@@ -62,7 +63,7 @@ func (p *Publisher) Publish(ctx context.Context, event model.Event) (err error) 
 	partition, offset, err := p.producer.SendMessage(msg)
 	if err != nil {
 		p.metrics.MessagePublishFailed(ctx)
-		p.logger.Error("failed to write message to kafka",
+		p.logger.Error(ctx, "failed to write message to kafka",
 			zap.String("topic", p.topic),
 			zap.String("event_id", event.ID()),
 			zap.Error(err),
@@ -73,7 +74,7 @@ func (p *Publisher) Publish(ctx context.Context, event model.Event) (err error) 
 
 	p.metrics.MessagePublished(ctx)
 
-	p.logger.Debug("event published in kafka",
+	p.logger.Debug(ctx, "event published in kafka",
 		zap.String("topic", p.topic),
 		zap.String("event_id", event.ID()),
 		zap.String("order_id", event.GetOrderUUID()),

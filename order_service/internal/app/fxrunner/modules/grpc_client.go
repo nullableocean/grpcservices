@@ -12,6 +12,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderservice/internal/adapters/metrics"
 	"github.com/nullableocean/grpcservices/orderservice/internal/config"
 	shared_inters "github.com/nullableocean/grpcservices/shared/interceptors"
+	"github.com/nullableocean/grpcservices/shared/logger"
 	"github.com/sony/gobreaker"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/fx"
@@ -23,14 +24,14 @@ import (
 
 func GrpcClientModule() fx.Option {
 	return fx.Options(
-		fx.Provide(func(logger *zap.Logger, cfg *config.Config, clientMetrics *grpc_prometheus.ClientMetrics, brMetrics *metrics.CircuitBreakerMetricsRecorder) (*grpc.ClientConn, error) {
+		fx.Provide(func(ctxZapLogger *logger.CtxZapLogger, zapLogger *zap.Logger, cfg *config.Config, clientMetrics *grpc_prometheus.ClientMetrics, brMetrics *metrics.CircuitBreakerMetricsRecorder) (*grpc.ClientConn, error) {
 			cb := gobreaker.NewCircuitBreaker(gobreaker.Settings{
 				Name:        "spotinstrument-breaker",
 				MaxRequests: cfg.CircuitBreaker.MaxRequests,
 				Interval:    cfg.CircuitBreaker.Interval,
 				Timeout:     cfg.CircuitBreaker.Timeout,
 			})
-			cbWithMetrics := breaker.NewCircuitBreaker(logger, brMetrics, cb)
+			cbWithMetrics := breaker.NewCircuitBreaker(ctxZapLogger, brMetrics, cb)
 
 			retryOpts := []retry.CallOption{
 				retry.WithMax(uint(cfg.Retry.MaxRetries)),
@@ -39,11 +40,11 @@ func GrpcClientModule() fx.Option {
 			}
 
 			interceptors := grpc.WithChainUnaryInterceptor(
-				shared_inters.UnaryClientPanicRecovery(logger, cfg.Log.StackLines),
+				shared_inters.UnaryClientPanicRecovery(zapLogger, cfg.Log.StackLines),
 				shared_inters.UnaryClientXReqId(),
 				shared_inters.UnaryClientXReqIdTelemetry(),
 				clientMetrics.UnaryClientInterceptor(),
-				shared_inters.UnaryClientLogger(logger),
+				shared_inters.UnaryClientLogger(zapLogger),
 				shared_inters.UnaryClientJwtForwardInterceptor(),
 				retry.UnaryClientInterceptor(retryOpts...),
 				shared_inters.UnaryCircuitBreakerInterceptor(cbWithMetrics),
@@ -75,7 +76,7 @@ func GrpcClientModule() fx.Option {
 func SpotClientModule() fx.Option {
 	return fx.Options(
 		fx.Provide(
-			func(logger *zap.Logger, conn *grpc.ClientConn, cfg *config.Config) (*client.SpotInstrumentClient, error) {
+			func(logger *logger.CtxZapLogger, conn *grpc.ClientConn, cfg *config.Config) (*client.SpotInstrumentClient, error) {
 				return client.NewSpotInstrumentClient(logger, spotv1.NewSpotInstrumentClient(conn), client.Option{
 					RequestTimeout: cfg.GRPC.ClientTimeout,
 				})

@@ -27,12 +27,12 @@ func (srv *OrderServer) GetOrderStatus(ctx context.Context, req *orderv1.GetStat
 	span.SetAttributes(attribute.String("order_uuid", req.OrderUuid))
 
 	logger := srv.logger.With(zap.String("user_uuid", user.UUID), zap.String("order_uuid", req.OrderUuid))
-	logger.Debug("grpc received call for get order status")
+	logger.Debug(ctx, "grpc received call for get order status")
 
 	o, err := srv.orderService.GetOrder(ctx, req.OrderUuid, user)
 	if err != nil {
 		span.AddEvent("failed get order status")
-		logger.Warn("failed get order", zap.Error(err))
+		logger.Warn(ctx, "failed get order", zap.Error(err))
 
 		return nil, srv.getGrpcError(err)
 	}
