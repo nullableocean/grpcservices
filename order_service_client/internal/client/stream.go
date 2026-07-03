@@ -24,7 +24,6 @@ func (c *Client) StreamOrderUpdates(ctx context.Context, token string, dto *dto.
 
 	req := orderv1.GetUpdatesRequest{
 		OrderUuid: dto.OrderUUID,
-		UserUuid:  dto.UserUUID,
 	}
 
 	md := metadata.New(map[string]string{

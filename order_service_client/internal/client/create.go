@@ -11,8 +11,7 @@ import (
 )
 
 type Response struct {
-	NewOrderUuid string
-	Status       model.OrderStatus
+	Order *model.Order
 }
 
 func (c *Client) CreateOrder(ctx context.Context, authToken string, dto *dto.CreateOrderParams) (*Response, error) {
@@ -26,7 +25,6 @@ func (c *Client) CreateOrder(ctx context.Context, authToken string, dto *dto.Cre
 	}
 
 	req := &orderv1.CreateOrderRequest{
-		UserUuid:       dto.UserUUID,
 		MarketUuid:     dto.MarketUUID,
 		OrderType:      MapOrderTypeToProtoType(dto.Type),
 		OrderSide:      MapOrderSideToProtoSide(dto.Side),
@@ -46,7 +44,6 @@ func (c *Client) CreateOrder(ctx context.Context, authToken string, dto *dto.Cre
 	}
 
 	return &Response{
-		NewOrderUuid: response.OrderUuid,
-		Status:       MapProtoStatusToStatus(response.Order.Status),
+		Order: MapProtoOrderToOrder(response.Order),
 	}, nil
 }

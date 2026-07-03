@@ -39,7 +39,7 @@ case "$COMMAND" in
         USER_UUID_ARG="${1:-$(uuidgen)}"
         MARKET_UUID="${2:-22222222-2222-2222-2222-222222222222}"
         PRICE="${3:-10.12}"
-        QUANTITY="${4:-5}"
+        QUANTITY="${4:-0.232}"
         SIDE="${5:-buy}"
         ORDER_TYPE="${6:-limit}"
 

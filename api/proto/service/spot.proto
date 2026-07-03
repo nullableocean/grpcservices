@@ -4,7 +4,6 @@ package spot.v1;
 
 option go_package = "github.com/nullableocean/grpcservices/api/gen/spot/v1;spotv1";
 
-import "models/user.proto";
 import "models/market.proto";
 import "validate/validate.proto";
 
@@ -45,14 +44,6 @@ message ViewMarketsResponse {
 message FindMarketRequest {
     // UUID маркета
     string market_uuid = 1 [(validate.rules).string = {uuid: true}];
-
-    // Роли пользователя для проверки доступа к этому рынку
-    repeated models.v1.UserRole user_roles = 2 [(validate.rules).repeated = {
-        min_items: 0,
-        max_items: 10,
-        unique: true,
-        items: {enum: {defined_only: true, not_in: [0]}}
-    }];
 }
 
 // Ответ с деталями маркета

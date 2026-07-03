@@ -65,13 +65,12 @@ func (s *SpotInstrument) ViewMarkets(ctx context.Context, userRoles []model.User
 	return markets, nil
 }
 
-func (s *SpotInstrument) FindWithRoles(ctx context.Context, marketUuid string, userRoles []model.UserRole) (*model.Market, error) {
-	ctx, span := otel.Tracer("spot_instrument").Start(ctx, "find_market_with_roles")
+func (s *SpotInstrument) FindByUser(ctx context.Context, marketUuid string, user *model.User) (*model.Market, error) {
+	ctx, span := otel.Tracer("spot_instrument").Start(ctx, "find_market_by_user")
 	defer span.End()
 	span.SetAttributes(attribute.String("market_uuid", marketUuid))
 
 	s.metrics.FindMarket(ctx)
-	s.logger.Debug(ctx, "find market", zap.String("market_uuid", marketUuid))
 
 	market, err := s.marketRepo.FindByUUID(ctx, marketUuid)
 	if err != nil {
@@ -81,9 +80,17 @@ func (s *SpotInstrument) FindWithRoles(ctx context.Context, marketUuid string, u
 		return nil, fmt.Errorf("failed to get market: %w", err)
 	}
 
-	if !market.IsAccessibleForRoles(userRoles) {
+	if !market.IsAccessibleForRoles(user.Roles) {
 		span.AddEvent("failed find market")
-		s.logger.Error(ctx, "market found. not allowed for roles", zap.String("market_uuid", marketUuid))
+		s.logger.Error(ctx, "market found. not allowed for user",
+			zap.String("market_uuid", marketUuid),
+			zap.String("user_uuid", user.UUID),
+		)
+
+		s.logger.Debug(ctx, "failed access for market",
+			zap.Any("user_roles", user.Roles),
+			zap.Any("market_roles", market.AllowedRoles),
+		)
 
 		return nil, errs.ErrNotAllowed
 	}

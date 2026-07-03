@@ -17,8 +17,6 @@ import (
 	"unicode/utf8"
 
 	"google.golang.org/protobuf/types/known/anypb"
-
-	modelsv1 "github.com/nullableocean/grpcservices/api/gen/models/v1"
 )
 
 // ensure the imports are used
@@ -35,8 +33,6 @@ var (
 	_ = (*mail.Address)(nil)
 	_ = anypb.Any{}
 	_ = sort.Sort
-
-	_ = modelsv1.UserRole(0)
 )
 
 // define the regex for a UUID once up-front
@@ -342,59 +338,6 @@ func (m *FindMarketRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if len(m.GetUserRoles()) > 10 {
-		err := FindMarketRequestValidationError{
-			field:  "UserRoles",
-			reason: "value must contain no more than 10 item(s)",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	_FindMarketRequest_UserRoles_Unique := make(map[modelsv1.UserRole]struct{}, len(m.GetUserRoles()))
-
-	for idx, item := range m.GetUserRoles() {
-		_, _ = idx, item
-
-		if _, exists := _FindMarketRequest_UserRoles_Unique[item]; exists {
-			err := FindMarketRequestValidationError{
-				field:  fmt.Sprintf("UserRoles[%v]", idx),
-				reason: "repeated value must contain unique items",
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
-		} else {
-			_FindMarketRequest_UserRoles_Unique[item] = struct{}{}
-		}
-
-		if _, ok := _FindMarketRequest_UserRoles_NotInLookup[item]; ok {
-			err := FindMarketRequestValidationError{
-				field:  fmt.Sprintf("UserRoles[%v]", idx),
-				reason: "value must not be in list [0]",
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
-		}
-
-		if _, ok := modelsv1.UserRole_name[int32(item)]; !ok {
-			err := FindMarketRequestValidationError{
-				field:  fmt.Sprintf("UserRoles[%v]", idx),
-				reason: "value must be one of the defined enum values",
-			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
-		}
-
-	}
-
 	if len(errors) > 0 {
 		return FindMarketRequestMultiError(errors)
 	}
@@ -482,10 +425,6 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = FindMarketRequestValidationError{}
-
-var _FindMarketRequest_UserRoles_NotInLookup = map[modelsv1.UserRole]struct{}{
-	0: {},
-}
 
 // Validate checks the field values on FindMarketResponse with the rules
 // defined in the proto definition for this message. If any rules are

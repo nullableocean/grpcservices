@@ -38,21 +38,16 @@ func (c *Cli) CreateCmd() *cobra.Command {
 
 func (c *Cli) setCreateOrderRunFunc(cmd *cobra.Command) {
 	cmd.Run = func(cmd *cobra.Command, args []string) {
-
 		token := c.args.User.Jwt
-		userUUID := c.args.User.UUID
-
-		orderUUID := c.createOrder(token, userUUID, c.args.CreateArgs)
-
-		fmt.Println("OK", orderUUID)
+		order := c.executeCreateOrder(token, c.args.CreateArgs)
 
 		if c.args.CreateArgs.WithStream {
-			c.streamUpdates(token, orderUUID, userUUID)
+			c.executeStreamUpdates(token, order.UUID)
 		}
 	}
 }
 
-func (c *Cli) createOrder(token, userUUID string, args CreateArgs) string {
+func (c *Cli) executeCreateOrder(token string, args CreateArgs) *model.Order {
 	priceDec, err := decimal.NewFromString(args.Price)
 	if err != nil {
 		log.Fatalf("invalid price: %v", err)
@@ -64,7 +59,6 @@ func (c *Cli) createOrder(token, userUUID string, args CreateArgs) string {
 	}
 
 	createDto := &dto.CreateOrderParams{
-		UserUUID:   userUUID,
 		MarketUUID: args.MarketUUID,
 		Type:       model.OrderType(args.OrderType),
 		Side:       model.OrderSide(args.OrderSide),
@@ -77,6 +71,8 @@ func (c *Cli) createOrder(token, userUUID string, args CreateArgs) string {
 		log.Fatalln("failed create order", err)
 	}
 
-	orderUUID := resp.NewOrderUuid
-	return orderUUID
+	fmt.Println("OK")
+	fmt.Println(resp.Order.String())
+
+	return resp.Order
 }

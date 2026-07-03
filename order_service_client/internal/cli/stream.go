@@ -23,21 +23,18 @@ func (c *Cli) StreamCmd() *cobra.Command {
 
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		token := c.args.User.Jwt
-		userUUID := c.args.User.UUID
-
-		c.streamUpdates(token, c.args.StreamArgs.OrderUUID, userUUID)
+		c.executeStreamUpdates(token, c.args.StreamArgs.OrderUUID)
 	}
 
 	return cmd
 }
 
-func (c *Cli) streamUpdates(token, orderUUID, userUUID string) {
+func (c *Cli) executeStreamUpdates(token, orderUUID string) {
 	streamCtx, streamCancel := context.WithCancel(context.Background())
 	defer streamCancel()
 
 	dataCh, err := c.getOrderClient().StreamOrderUpdates(streamCtx, token, &dto.StreamUpdatesParams{
 		OrderUUID: orderUUID,
-		UserUUID:  userUUID,
 	})
 	if err != nil {
 		log.Fatalln(err)

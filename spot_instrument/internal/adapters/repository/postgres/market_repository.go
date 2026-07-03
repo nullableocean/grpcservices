@@ -109,17 +109,38 @@ func (r *MarketRepository) FindEnabledByRolesPaginated(ctx context.Context, role
 		}
 	}
 
+	// Запрос выбирает активные рынки доступные для переданных ролей.
+	// Логика доступа:
+	//   - Рынок считается публичным, если в market_allowed_roles для него нет ни одной записи.
+	//   - Иначе рынок доступен, если среди его разрешённых ролей есть хотя бы одна из ролей пользователя.
+	// Фильтрация по правам реализована через два коррелированных EXISTS + планироващик хеширует подзапросы
+	// Роли в выборку для каждого рынка подтягиваются через LATERAL-подзапрос,
+	// который выполняется только рынков попавших в выдачу
+	// Пагинация – keyset по (m.name, m.uuid).
 	query := `
         SELECT m.uuid, m.name, m.is_enabled, m.deleted_at, m.created_at, m.updated_at,
-               COALESCE(array_agg(r.code) FILTER (WHERE r.code IS NOT NULL), '{}') AS role_codes
+               COALESCE(rr.codes, '{}') AS role_codes
         FROM markets m
-        LEFT JOIN market_allowed_roles mar ON m.uuid = mar.market_uuid
-        LEFT JOIN roles r ON mar.role_id = r.id
+        LEFT JOIN LATERAL (
+            SELECT array_agg(r.code) AS codes
+            FROM market_allowed_roles mar
+            JOIN roles r ON r.id = mar.role_id
+            WHERE mar.market_uuid = m.uuid
+        ) rr ON true
         WHERE m.is_enabled = true AND m.deleted_at IS NULL
+          AND (
+              NOT EXISTS (
+                  SELECT 1 FROM market_allowed_roles mar0
+                  WHERE mar0.market_uuid = m.uuid
+              )
+              OR EXISTS (
+                  SELECT 1 FROM market_allowed_roles mar1
+                  WHERE mar1.market_uuid = m.uuid AND mar1.role_id = ANY($1)
+              )
+          )
     `
 
-	args := make([]interface{}, 0, 4)
-	args = append(args, roleIDs)
+	args := []interface{}{roleIDs}
 	argIndex := 2
 
 	cursor, err := pageToken.Decode()
@@ -133,19 +154,13 @@ func (r *MarketRepository) FindEnabledByRolesPaginated(ctx context.Context, role
 		argIndex += 2
 	}
 
-	query += fmt.Sprintf(`
-        GROUP BY m.uuid
-        HAVING COUNT(mar.role_id) = 0 OR array_agg(mar.role_id) && $1
-        ORDER BY m.name, m.uuid
-        LIMIT $%d
-    `, argIndex)
+	query += fmt.Sprintf(` ORDER BY m.name, m.uuid LIMIT $%d`, argIndex)
 	args = append(args, limit+1)
 
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query markets: %w", err)
 	}
-
 	defer rows.Close()
 
 	var markets []*model.Market
@@ -183,6 +198,10 @@ func (r *MarketRepository) FindEnabledByRolesPaginated(ctx context.Context, role
 		return nil, fmt.Errorf("failed handle rows: %w", err)
 	}
 
+	return r.getPaginationData(markets, limit), nil
+}
+
+func (r *MarketRepository) getPaginationData(markets []*model.Market, limit int32) *model.PaginationData {
 	var nextPageToken model.PageToken
 	hasNext := len(markets) > int(limit)
 	if hasNext {
@@ -197,7 +216,7 @@ func (r *MarketRepository) FindEnabledByRolesPaginated(ctx context.Context, role
 		Markets:       markets,
 		HasNext:       hasNext,
 		NextPageToken: nextPageToken,
-	}, nil
+	}
 }
 
 func (r *MarketRepository) FindEnabledByRoles(ctx context.Context, roles []model.UserRole) ([]*model.Market, error) {
@@ -209,19 +228,30 @@ func (r *MarketRepository) FindEnabledByRoles(ctx context.Context, roles []model
 	}
 
 	query := `
-            SELECT m.uuid, m.name, m.is_enabled, m.deleted_at, m.created_at, m.updated_at,
-                   COALESCE(array_agg(r.code) FILTER (WHERE r.code IS NOT NULL), '{}') AS role_codes
-            FROM markets m
-            LEFT JOIN market_allowed_roles mar ON m.uuid = mar.market_uuid
-            LEFT JOIN roles r ON mar.role_id = r.id
-            WHERE m.is_enabled = true AND m.deleted_at IS NULL
-            GROUP BY m.uuid
-            HAVING COUNT(mar.role_id) = 0 OR array_agg(mar.role_id) && $1
-            ORDER BY m.name
-        `
+        SELECT m.uuid, m.name, m.is_enabled, m.deleted_at, m.created_at, m.updated_at,
+               COALESCE(rr.codes, '{}') AS role_codes
+        FROM markets m
+        LEFT JOIN LATERAL (
+            SELECT array_agg(r.code) AS codes
+            FROM market_allowed_roles mar
+            JOIN roles r ON r.id = mar.role_id
+            WHERE mar.market_uuid = m.uuid
+        ) rr ON true
+        WHERE m.is_enabled = true AND m.deleted_at IS NULL
+          AND (
+              NOT EXISTS (
+                  SELECT 1 FROM market_allowed_roles mar0
+                  WHERE mar0.market_uuid = m.uuid
+              )
+              OR EXISTS (
+                  SELECT 1 FROM market_allowed_roles mar1
+                  WHERE mar1.market_uuid = m.uuid AND mar1.role_id = ANY($1)
+              )
+          )
+        ORDER BY m.name
+    `
 
 	rows, err := r.db.Query(ctx, query, roleIDs)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to query markets: %w", err)
 	}
@@ -268,13 +298,17 @@ func (r *MarketRepository) FindEnabledByRoles(ctx context.Context, roles []model
 func (r *MarketRepository) FindByUUID(ctx context.Context, uuid string) (*model.Market, error) {
 	query := `
         SELECT m.uuid, m.name, m.is_enabled, m.deleted_at, m.created_at, m.updated_at,
-               COALESCE(array_agg(r.code) FILTER (WHERE r.code IS NOT NULL), '{}') AS role_codes
+               COALESCE(rr.codes, '{}') AS role_codes
         FROM markets m
-        LEFT JOIN market_allowed_roles mar ON m.uuid = mar.market_uuid
-        LEFT JOIN roles r ON mar.role_id = r.id
+        LEFT JOIN LATERAL (
+            SELECT array_agg(r.code) AS codes
+            FROM market_allowed_roles mar
+            JOIN roles r ON r.id = mar.role_id
+            WHERE mar.market_uuid = m.uuid
+        ) rr ON true
         WHERE m.uuid = $1
-        GROUP BY m.uuid
     `
+
 	var m model.Market
 	var deletedAt sql.NullTime
 	var roleCodes []string
@@ -288,7 +322,6 @@ func (r *MarketRepository) FindByUUID(ctx context.Context, uuid string) (*model.
 		&m.UpdatedAt,
 		&roleCodes,
 	)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, fmt.Errorf("market not found: %w", err)

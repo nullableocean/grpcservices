@@ -274,6 +274,14 @@
                 </li>
               
                 <li>
+                  <a href="#order.v1.GetOrderRequest"><span class="badge">M</span>GetOrderRequest</a>
+                </li>
+              
+                <li>
+                  <a href="#order.v1.GetOrderResponse"><span class="badge">M</span>GetOrderResponse</a>
+                </li>
+              
+                <li>
                   <a href="#order.v1.GetStatusRequest"><span class="badge">M</span>GetStatusRequest</a>
                 </li>
               
@@ -853,13 +861,6 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
             <tbody>
               
                 <tr>
-                  <td>user_uuid</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p>UUID пользователя </p></td>
-                </tr>
-              
-                <tr>
                   <td>market_uuid</td>
                   <td><a href="#string">string</a></td>
                   <td></td>
@@ -916,17 +917,6 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
                 </tr>
               </thead>
               <tbody>
-              
-                <tr>
-                  <td>user_uuid</td>
-                  <td>
-                    <ul>
-                    
-                      <li>string.uuid: true</li>
-                    
-                    </ul>
-                  </td>
-                </tr>
               
                 <tr>
                   <td>market_uuid</td>
@@ -1016,13 +1006,6 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
             <tbody>
               
                 <tr>
-                  <td>order_uuid</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p>UUID созданного ордера </p></td>
-                </tr>
-              
-                <tr>
                   <td>order</td>
                   <td><a href="#models.v1.Order">models.v1.Order</a></td>
                   <td></td>
@@ -1036,8 +1019,8 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
 
         
       
-        <h3 id="order.v1.GetStatusRequest">GetStatusRequest</h3>
-        <p>Запрос статуса ордера</p>
+        <h3 id="order.v1.GetOrderRequest">GetOrderRequest</h3>
+        <p>Запрос информации об ордере</p>
 
         
           <table class="field-table">
@@ -1051,13 +1034,6 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
                   <td><a href="#string">string</a></td>
                   <td></td>
                   <td><p>UUID ордера </p></td>
-                </tr>
-              
-                <tr>
-                  <td>user_uuid</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p>UUID пользователя </p></td>
                 </tr>
               
             </tbody>
@@ -1087,8 +1063,72 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
                   </td>
                 </tr>
               
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+        <h3 id="order.v1.GetOrderResponse">GetOrderResponse</h3>
+        <p>Информация об ордере</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
                 <tr>
-                  <td>user_uuid</td>
+                  <td>order</td>
+                  <td><a href="#models.v1.Order">models.v1.Order</a></td>
+                  <td></td>
+                  <td><p>Ордер </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="order.v1.GetStatusRequest">GetStatusRequest</h3>
+        <p>Запрос статуса ордера</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>order_uuid</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>UUID ордера </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>order_uuid</td>
                   <td>
                     <ul>
                     
@@ -1153,13 +1193,6 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
                   <td><p>UUID ордера </p></td>
                 </tr>
               
-                <tr>
-                  <td>user_uuid</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p>UUID пользователя </p></td>
-                </tr>
-              
             </tbody>
           </table>
 
@@ -1178,17 +1211,6 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
               
                 <tr>
                   <td>order_uuid</td>
-                  <td>
-                    <ul>
-                    
-                      <li>string.uuid: true</li>
-                    
-                    </ul>
-                  </td>
-                </tr>
-              
-                <tr>
-                  <td>user_uuid</td>
                   <td>
                     <ul>
                     
@@ -1332,17 +1354,10 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
                 </tr>
               
                 <tr>
-                  <td>user_uuid</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p>Владелец ордеров (в основном берётся из JWT) </p></td>
-                </tr>
-              
-                <tr>
                   <td>page_size</td>
                   <td><a href="#int32">int32</a></td>
                   <td></td>
-                  <td><p>Развер списка </p></td>
+                  <td><p>Размер списка </p></td>
                 </tr>
               
                 <tr>
@@ -1367,17 +1382,6 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
                 </tr>
               </thead>
               <tbody>
-              
-                <tr>
-                  <td>user_uuid</td>
-                  <td>
-                    <ul>
-                    
-                      <li>string.uuid: true</li>
-                    
-                    </ul>
-                  </td>
-                </tr>
               
                 <tr>
                   <td>page_size</td>
@@ -1486,7 +1490,7 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
 
       
         <h3 id="order.v1.Order">Order</h3>
-        <p>Сервис Order управляет ордерами — создание, получение статуса, стриминг обновлений</p>
+        <p>Сервис Order управляет ордерами — создание, получение статуса, стриминг обновлений.</p><p>UUID юзера и роли извлекается из токена передаваемого в метадате</p>
         <table class="enum-table">
           <thead>
             <tr><td>Method Name</td><td>Request Type</td><td>Response Type</td><td>Description</td></tr>
@@ -1498,6 +1502,13 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
                 <td><a href="#order.v1.CreateOrderRequest">CreateOrderRequest</a></td>
                 <td><a href="#order.v1.CreateOrderResponse">CreateOrderResponse</a></td>
                 <td><p>CreateOrder создаёт новый ордер</p></td>
+              </tr>
+            
+              <tr>
+                <td>GetOrder</td>
+                <td><a href="#order.v1.GetOrderRequest">GetOrderRequest</a></td>
+                <td><a href="#order.v1.GetOrderResponse">GetOrderResponse</a></td>
+                <td><p>GetOrder возвращает информацию об ордере</p></td>
               </tr>
             
               <tr>
@@ -1550,13 +1561,6 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
                   <td><p>UUID маркета </p></td>
                 </tr>
               
-                <tr>
-                  <td>user_roles</td>
-                  <td><a href="#models.v1.UserRole">models.v1.UserRole</a></td>
-                  <td>repeated</td>
-                  <td><p>Роли пользователя для проверки доступа к этому рынку </p></td>
-                </tr>
-              
             </tbody>
           </table>
 
@@ -1579,25 +1583,6 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
                     <ul>
                     
                       <li>string.uuid: true</li>
-                    
-                    </ul>
-                  </td>
-                </tr>
-              
-                <tr>
-                  <td>user_roles</td>
-                  <td>
-                    <ul>
-                    
-                      <li>repeated.min_items: 0</li>
-                    
-                      <li>repeated.max_items: 10</li>
-                    
-                      <li>repeated.unique: true</li>
-                    
-                      <li>repeated.items.enum.defined_only: true</li>
-                    
-                      <li>repeated.items.enum.not_in: [0]</li>
                     
                     </ul>
                   </td>
@@ -1645,13 +1630,6 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
             <tbody>
               
                 <tr>
-                  <td>user_roles</td>
-                  <td><a href="#models.v1.UserRole">models.v1.UserRole</a></td>
-                  <td>repeated</td>
-                  <td><p>Роли пользователя для фильтрации доступных маркетов </p></td>
-                </tr>
-              
-                <tr>
                   <td>page_token</td>
                   <td><a href="#string">string</a></td>
                   <td></td>
@@ -1680,25 +1658,6 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
                 </tr>
               </thead>
               <tbody>
-              
-                <tr>
-                  <td>user_roles</td>
-                  <td>
-                    <ul>
-                    
-                      <li>repeated.min_items: 0</li>
-                    
-                      <li>repeated.max_items: 10</li>
-                    
-                      <li>repeated.unique: true</li>
-                    
-                      <li>repeated.items.enum.defined_only: true</li>
-                    
-                      <li>repeated.items.enum.not_in: [0]</li>
-                    
-                    </ul>
-                  </td>
-                </tr>
               
                 <tr>
                   <td>page_token</td>
@@ -1769,7 +1728,7 @@ If `units` is negative, `nanos` must be negative or zero. </p></td>
 
       
         <h3 id="spot.v1.SpotInstrument">SpotInstrument</h3>
-        <p>Сервис SpotInstrument предоставляет информацию о маркетах</p>
+        <p>Сервис SpotInstrument предоставляет информацию о маркетах</p><p>UUID юзера и роли извлекается из токена передаваемого в метадате</p>
         <table class="enum-table">
           <thead>
             <tr><td>Method Name</td><td>Request Type</td><td>Response Type</td><td>Description</td></tr>

@@ -33,18 +33,15 @@ func (srv *SpotInstrumentServer) FindMarket(ctx context.Context, req *spotv1.Fin
 	ctx, span := otel.Tracer("spot_instrument_server").Start(ctx, "find_market")
 	defer span.End()
 
-	userUUID, ok := shared_inters.UserUUIDFromContext(ctx)
-	if !ok || userUUID == "" {
-		return nil, status.Error(codes.Unauthenticated, "user uuid not provided")
+	user, err := srv.extractUserFromCtx(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "user not extracted from context")
 	}
 
-	logger := srv.logger.With(zap.String("user_uuid", userUUID))
-
+	logger := srv.logger.With(zap.String("user_uuid", user.UUID))
 	logger.Debug(ctx, "got grpc call FindMarket in SpotInstrumentServer")
 
-	roles := mapping.MapProtoUserRolesToRoles(req.UserRoles)
-
-	market, err := srv.spotInstrument.FindWithRoles(ctx, req.MarketUuid, roles)
+	market, err := srv.spotInstrument.FindByUser(ctx, req.MarketUuid, user)
 	if err != nil {
 		span.AddEvent("failed find market")
 		logger.Error(ctx, "failed find market", zap.Error(err))
@@ -111,6 +108,8 @@ func (srv *SpotInstrumentServer) extractUserFromCtx(ctx context.Context) (*model
 			roles[i] = model.UserRole(roleStr)
 		}
 	}
+
+	srv.logger.Debug(ctx, "provide roles", zap.Any("roles", roles))
 
 	user := model.NewUser(userUUID, roles)
 	return user, nil

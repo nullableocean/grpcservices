@@ -35,6 +35,7 @@ func New() *Cli {
 	rootCmd.AddCommand(c.CreateCmd())
 	rootCmd.AddCommand(c.StreamCmd())
 	rootCmd.AddCommand(c.ListCmd())
+	rootCmd.AddCommand(c.GetOrderCmd())
 
 	c.rootCmd = rootCmd
 	return c

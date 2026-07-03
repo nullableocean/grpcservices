@@ -8,7 +8,6 @@ import (
 )
 
 type CreateOrderParams struct {
-	UserUUID   string
 	MarketUUID string
 	IdemKey    string
 	Price      decimal.Decimal
@@ -18,10 +17,6 @@ type CreateOrderParams struct {
 }
 
 func (d *CreateOrderParams) Validate() error {
-	if d.UserUUID == "" {
-		return fmt.Errorf("empty user uuid")
-	}
-
 	if d.MarketUUID == "" {
 		return fmt.Errorf("empty market uuid")
 	}

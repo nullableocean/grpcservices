@@ -7,6 +7,7 @@ import (
 	"github.com/nullableocean/grpcservices/orderserviceclient/internal/dto"
 	"github.com/nullableocean/grpcservices/orderserviceclient/internal/model"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type ListResponse struct {
@@ -20,8 +21,7 @@ func (c *Client) ListOrders(ctx context.Context, authToken string, dto *dto.List
 	}
 
 	req := &orderv1.OrdersListRequest{
-		Filters:   &orderv1.OrdersListFilter{},
-		UserUuid:  dto.UserUUID,
+		Filters:   c.getFilters(dto.Filters),
 		PageSize:  int32(dto.PageSize),
 		PageToken: dto.NextPageToken,
 	}
@@ -46,4 +46,31 @@ func (c *Client) ListOrders(ctx context.Context, authToken string, dto *dto.List
 		Orders:        orders,
 	}, nil
 
+}
+
+func (c *Client) getFilters(filters dto.Filters) *orderv1.OrdersListFilter {
+	pbfilters := &orderv1.OrdersListFilter{}
+
+	pbfilters.MarketUuids = filters.MarketUuids
+
+	if len(filters.Statuses) > 0 {
+		for _, s := range filters.Statuses {
+			pbfilters.Statuses = append(pbfilters.Statuses, MapStatusToProtoStatus(s))
+		}
+	}
+
+	if filters.Type != nil {
+		t := MapOrderTypeToProtoType(*filters.Type)
+		pbfilters.Type = &t
+	}
+
+	if filters.CreatedFrom != nil {
+		pbfilters.CreatedFrom = timestamppb.New(*filters.CreatedFrom)
+	}
+
+	if filters.CreatedTo != nil {
+		pbfilters.CreatedTo = timestamppb.New(*filters.CreatedTo)
+	}
+
+	return pbfilters
 }

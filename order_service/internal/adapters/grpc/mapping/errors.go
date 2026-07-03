@@ -16,6 +16,10 @@ func MapGrpcStatusToError(e error) error {
 		switch s.Code() {
 		case codes.NotFound:
 			return fmt.Errorf("%w: %w", e, ports.ErrNotFound)
+		case codes.PermissionDenied:
+			return fmt.Errorf("%w: %w", e, errs.ErrNotAllowed)
+		case codes.InvalidArgument:
+			return fmt.Errorf("%w: %w", e, errs.ErrIncorrectData)
 		}
 	}
 
