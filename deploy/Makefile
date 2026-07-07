@@ -3,6 +3,7 @@ SPOT_DIR = spot_instrument
 ORDER_DIR = order_service
 METRICS_DIR = metrics
 APP_NETWORK = appnet
+ELK_DIR = elk
 
 .PHONY: help up up-networks up-spot up-order up-metrics down clean up-kafka
 
@@ -19,12 +20,17 @@ help:
 up: create-net
 	make up-metrics
 	make up-kafka
+	make up-elk
 	make up-spot
 	make up-order
 
 	@echo "grafana: http://localhost:3000"
+	@echo "kibana: http://localhost:5601"
 
 up-srvs: up-spot up-order
+
+up-elk:
+	cd $(ELK_DIR) && make up
 
 up-kafka:
 	cd $(KAFKA_DIR) && make up
@@ -37,6 +43,9 @@ up-order:
 
 up-metrics:
 	cd $(METRICS_DIR) && make up
+
+down-elk:
+	cd $(ELK_DIR) && make down
 
 down-kafka:
 	cd $(KAFKA_DIR) && make down
@@ -60,7 +69,7 @@ clean-srvs:
 	cd $(SPOT_DIR) && make clean
 	cd $(ORDER_DIR) && make clean
 
-down: down-spot down-order down-kafka down-metrics rm-net
+down: down-spot down-order down-kafka down-metrics down-elk rm-net
 
 create-net:
 	docker network inspect ${APP_NETWORK} >/dev/null 2>&1 || docker network create ${APP_NETWORK}

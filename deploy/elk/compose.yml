@@ -16,7 +16,8 @@ services:
       - elk
       - appnet
     healthcheck:
-      test: ["CMD-SHELL", "curl -u elastic:${ELASTIC_PASSWORD} -s --fail http://localhost:9200/_cluster/health || exit 1"]
+      # test: ["CMD-SHELL", "curl -u elastic:${ELASTIC_PASSWORD} -s --fail http://localhost:9200/_cluster/health || exit 1"]
+      test: ["CMD-SHELL", "curl -s --fail http://localhost:9200/_cluster/health || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -54,8 +55,10 @@ services:
       - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
     command: filebeat -e --strict.perms=false
     depends_on:
-      - elasticsearch
-      - kibana
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
     networks:
       - elk
       - appnet
